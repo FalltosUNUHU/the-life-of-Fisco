@@ -2682,17 +2682,17 @@ const ALL_EVENTS = [
             { text: "Déléguer à la nounou, trop pris", effects: { rep: -5 }, consequence: "Un pincement au cœur, difficile à ignorer." }
         ] },
     { id: "child_talent", cat: "relations", sub: "enfant", rarity: "rare", emoji: "🎨", title: "Un talent inattendu", chars: [], requires: { hasChild: true },
-        context: "Ton enfant montre un don surprenant — dessin, musique, sport, peu importe : il ou elle trace déjà sa propre voie.",
+        context: "Ton enfant montre un don surprenant — dessin, musique, sport, peu importe : sa propre voie se dessine déjà, sans toi.",
         choices: [
-            { text: "L'encourager sans jamais forcer la comparaison avec toi", effects: { rep: +8, stress: -10 }, consequence: "Il/elle se sent libre d'exister par lui/elle-même." },
+            { text: "L'encourager sans jamais forcer la comparaison avec toi", effects: { rep: +8, stress: -10 }, consequence: "Cette liberté d'exister sans se comparer à toi, personne ne la lui avait offerte." },
             { text: "Lui offrir les meilleurs profs/coachs disponibles", effects: { money: -80000, rep: +5 }, consequence: "Un investissement dans son propre chemin." },
-            { text: "Le pousser vers la musique, comme toi", effects: { rel: { jenna_ortega: -10 } }, consequence: "Jenna te rappelle : il/elle n'est pas toi." }
+            { text: "Le pousser vers la musique, comme toi", effects: { rel: { jenna_ortega: -10 } }, consequence: "On te le rappelle vite : ton enfant n'est pas toi." }
         ] },
     { id: "child_indep", cat: "relations", sub: "enfant", rarity: "epic", emoji: "🧑", title: "Envie d'indépendance", chars: [], requires: { hasChild: true },
         context: "Ton enfant, en grandissant, réclame plus d'espace — sa propre chambre loin des projecteurs, ses propres amis, sa propre identité.",
         choices: [
             { text: "Lui laisser cet espace, pleinement", effects: { rep: +5, stress: -5 }, consequence: "Une relation de confiance qui se construit sur la durée." },
-            { text: "Rester très présent, quitte à le/la surprotéger", effects: { stress: +10 }, consequence: "Il/elle finit par s'en agacer un peu." },
+            { text: "Rester très présent, quitte à surprotéger", effects: { stress: +10 }, consequence: "L'agacement finit par pointer, discret mais net." },
             { text: "Trouver un juste milieu, ensemble", effects: { rel: { jenna_ortega: +10 } }, consequence: "Une discussion familiale qui apaise tout le monde." }
         ] },
     { id: "child_public", cat: "relations", sub: "enfant", rarity: "rare", emoji: "📸", title: "La presse s'intéresse à ton enfant", chars: [], requires: { hasChild: true, minRep: 60 },
@@ -2889,7 +2889,7 @@ const ALL_EVENTS = [
     { id: "re3_005", cat: "relations", sub: "mentor_jeune", rarity: "rare", emoji: "🌱", title: "Un jeune artiste te demande conseil", chars: [],
         context: "Un jeune artiste inconnu t'envoie un message désespéré, cherchant des conseils pour percer.",
         choices: [
-            { text: "Prendre le temps de lui répondre en détail", effects: { rep: +12, stress: -5 }, consequence: "Il/elle n'oubliera jamais ce geste." },
+            { text: "Prendre le temps de lui répondre en détail", effects: { rep: +12, stress: -5 }, consequence: "Ce geste ne s'oublie pas. Jamais." },
             { text: "Lui envoyer un contact utile", effects: { rep: +5 }, consequence: "Un coup de pouce discret." },
             { text: "Ignorer, trop de messages similaires", effects: {}, consequence: "Un message de plus, sans suite." }
         ] },
@@ -3281,7 +3281,7 @@ const ALL_EVENTS = [
         choices: [
             { text: "L'accompagner pleinement dans cette voie", effects: { rep: +10, stress: -10 }, consequence: "Une transmission émouvante." },
             { text: "L'encourager mais l'avertir des difficultés", effects: { stress: -5 }, consequence: "Un conseil de parent lucide." },
-            { text: "Tenter de l'en dissuader", effects: { rep: -5, stress: +10 }, consequence: "Il/elle le prend mal." }
+            { text: "Tenter de l'en dissuader", effects: { rep: -5, stress: +10 }, consequence: "Le message passe mal, et le silence s'installe quelques jours." }
         ] },
     { id: "sc6_001", cat: "scandal", sub: "biographie_nonautorisee", rarity: "rare", emoji: "📖", title: "Une biographie non autorisée sort", chars: ["journaliste_mia"],
         context: "Un livre retraçant ta vie sort sans ton accord, avec des révélations contestables.",
@@ -8905,6 +8905,19 @@ function jobFilter(list, tab) {
     return list.filter(t.test);
 }
 // Homme ou femme : exceptions d'abord, puis le prénom
+// Les fiches génériques du casting s'accordent au genre de la personne
+function bioFor(c) {
+    const b = c && c.bio || "";
+    return isFemaleChar(c)
+        ? b.replace("Acteur/actrice reconnu(e).", "Actrice reconnue.")
+            .replace("Rappeur/rappeuse de la scène US.", "Rappeuse de la scène US.")
+            .replace("Chanteur/chanteuse de la scène US.", "Chanteuse de la scène US.")
+            .replace("Footballeur professionnel.", "Footballeuse professionnelle.")
+            .replace("Chanteur reconnu.", "Chanteuse reconnue.")
+        : b.replace("Acteur/actrice reconnu(e).", "Acteur reconnu.")
+            .replace("Rappeur/rappeuse de la scène US.", "Rappeur de la scène US.")
+            .replace("Chanteur/chanteuse de la scène US.", "Chanteur de la scène US.");
+}
 function isFemaleChar(c) {
     if (!c)
         return false;
@@ -10549,7 +10562,7 @@ const SIGNATURE_PARTIES = [
 const PARTY_MOMENTS = [
     { id: "pm_jealousy", vibe: ["romance"], needsPartner: true,
         title: "Un regard de trop", emoji: "💔",
-        context: "Ton/ta partenaire remarque que tu passes beaucoup de temps avec un·e invité·e séduisant·e. La tension monte.",
+        context: "Ta compagne remarque que tu passes beaucoup de temps avec une invitée séduisante. La tension monte.",
         choices: [
             { text: "Rassurer immédiatement, publiquement", effects: { rel: { jenna_ortega: +20 }, romance: { suspicion: -15 } }, consequence: "Le geste désamorce tout." },
             { text: "Laisser filer, ce n'est rien", effects: { romance: { suspicion: 20 } }, consequence: "Le doute s'installe pour la soirée." },
@@ -10595,7 +10608,7 @@ const PARTY_MOMENTS = [
         ] },
     { id: "pm_connection", vibe: ["romance", "generic"], needsNone: true,
         title: "Une connexion inattendue", emoji: "✨",
-        context: "Une conversation improbable avec un·e invité·e tourne en échange sincère, loin du bruit de la fête.",
+        context: "Une conversation improbable avec une invitée tourne en échange sincère, loin du bruit de la fête.",
         choices: [
             { text: "Approfondir cette connexion", effects: { stress: -10, rep: +5 }, consequence: "Un vrai moment humain au milieu du spectacle." },
             { text: "Retourner à tes devoirs d'hôte", effects: { rep: +3 }, consequence: "Poli, mais tu passes à côté de quelque chose." }
@@ -10704,7 +10717,7 @@ const GUEST_MOMENTS = [
             { text: "Trier à la porte toi-même", effects: { rep: +12, energy: -8 }, consequence: "Ton implication personnelle impressionne tes invités." },
         ] },
     { id: "gm_model", need: (g, gs) => gs.romance.partner && g.filter(id => { const c = CHARS_BY_ID[id]; return c && (c.cat || "").includes("mode"); }).length >= 4,
-        emoji: "💋", title: "Ta partenaire remarque un manège",
+        emoji: "💋", title: "Ta compagne remarque un manège",
         context: "Plusieurs mannequins gravitent autour de toi depuis le début de la soirée, et ta compagne l'a parfaitement noté.",
         choices: [
             { text: "Rester collé à elle toute la nuit", effects: { rel: { jenna_ortega: +22 }, romance: { suspicion: -18 } }, consequence: "Le message est clair pour tout le monde." },
@@ -12246,7 +12259,7 @@ const ACHIEVEMENTS = [
     { id: "survived_100", emoji: "📅", title: "100 Actions", desc: "Effectuer 100 actions au total.", check: gs => gs.totalActions >= 100 },
     { id: "grammy_winner", emoji: "🏆", title: "Vainqueur aux Grammy", desc: "Remporter au moins un Grammy Award.", check: gs => (gs.grammyHistory || []).some(g => g.winsCount > 0) },
     { id: "billboard_1", emoji: "📈", title: "Numéro 1 au Billboard", desc: "Placer un son ou un album en tête de ton classement.", check: gs => (gs.discography || []).some(d => d.peakPosition === 1) || (gs.discography || []).some(d => (d.trackBreakdown || []).some(t => t.peakPosition === 1)) },
-    { id: "married", emoji: "💍", title: "Marié(e)", desc: "Officialiser un mariage.", check: gs => gs.romance.status === "marie" },
+    { id: "married", emoji: "💍", title: "Marié", desc: "Officialiser un mariage.", check: gs => gs.romance.status === "marie" },
     { id: "parent", emoji: "👶", title: "Parent", desc: "Avoir un enfant.", check: gs => (gs.children || []).length >= 1 },
     { id: "big_family", emoji: "👨‍👩‍👧‍👦", title: "Grande Famille", desc: "Avoir 3 enfants ou plus.", check: gs => (gs.children || []).length >= 3 },
     { id: "property_collector", emoji: "🏰", title: "Collectionneur Immobilier", desc: "Posséder 6 propriétés.", check: gs => (gs.properties || []).filter(p => p.owned).length >= 6 },
@@ -12256,7 +12269,7 @@ const ACHIEVEMENTS = [
     { id: "grammy_night", emoji: "🏆", title: "Nuit des Grammy", desc: "Vivre la nuit du triomphe aux Grammy Awards.", check: gs => gs.rep >= 85 },
     { id: "hundred_million", emoji: "💰", title: "Cent Millions", desc: "Atteindre 100M$ de cash.", check: gs => gs.money >= 100000000 },
     { id: "billionaire", emoji: "💎", title: "Milliardaire", desc: "Atteindre 1B$ de cash.", check: gs => gs.money >= 1000000000 },
-    { id: "married_2", emoji: "💒", title: "Union Éternelle", desc: "Rester marié(e) pendant 5 ans sans rupture.", check: gs => gs.romance.status === "marie" && gs.romance.marriedDate && (gs.currentDate - gs.romance.marriedDate) >= 5 * 365 * 86400000 },
+    { id: "married_2", emoji: "💒", title: "Union Éternelle", desc: "Rester marié pendant 5 ans sans rupture.", check: gs => gs.romance.status === "marie" && gs.romance.marriedDate && (gs.currentDate - gs.romance.marriedDate) >= 5 * 365 * 86400000 },
     { id: "movie_hit", emoji: "🎬", title: "Star de Cinéma", desc: "Sortir un film rentable.", check: gs => (gs.filmography || []).some(m => m.profit > 0) },
     { id: "movie_blockbuster", emoji: "🍿", title: "Blockbuster", desc: "Dépasser 500M$ de box-office sur un seul film.", check: gs => (gs.filmography || []).some(m => m.boxOffice >= 500000000) },
     { id: "tour_world", emoji: "🌍", title: "Tournée Mondiale Réussie", desc: "Réaliser une tournée monde entier bénéficiaire.", check: gs => (gs.tourHistory || []).some(t => t.region === "Monde entier" && (t.revenue - t.cost) > 0) },
@@ -12683,10 +12696,10 @@ function generateFeatProposal(gs) {
     return {
         id: `featprop_${Date.now()}`, cat: "music", sub: "feat_proposal", rarity: "rare", emoji: "🎤",
         title: `${artist.name} propose un feat`, chars: [artist.id],
-        context: `${artist.name} t'envoie une maquette inachevée : "${title}". Il/elle aimerait t'entendre dessus.`,
+        context: `${artist.name} t'envoie une maquette inachevée : "${title}". ${isFemaleChar(CHARS_BY_ID[artist.id]) ? "Elle" : "Il"} aimerait t'entendre dessus.`,
         choices: [
             { text: "Accepter et enregistrer ta partie", effects: { rel: { [artist.id]: +15 } }, special: "ACCEPT_FEAT", featArtist: artist.id, featTitle: title, consequence: "Une collaboration de plus à ta discographie." },
-            { text: "Décliner poliment", effects: { rel: { [artist.id]: -5 } }, consequence: "Il/elle comprend, peut-être une prochaine fois." },
+            { text: "Décliner poliment", effects: { rel: { [artist.id]: -5 } }, consequence: "Le refus passe bien. Peut-être une prochaine fois." },
         ],
     };
 }
@@ -15249,7 +15262,7 @@ function buildFeed(gs) {
     // 6) Vie perso
     if (gs.romance.partner) {
         const p = CHARS_BY_ID[gs.romance.partner];
-        const st = gs.romance.status === "marie" ? "marié(e)" : gs.romance.status === "fiancee" ? "fiancé(e)" : "en couple";
+        const st = gs.romance.status === "marie" ? "marié" : gs.romance.status === "fiancee" ? "fiancé" : "en couple";
         out.push({ t: "life", e: "❤️", title: `${st} avec ${(p === null || p === void 0 ? void 0 : p.name) || "—"}`, sub: `Fidélité ${gs.romance.fidelity} · Suspicion ${gs.romance.suspicion}`, col: "#ff6bb5" });
     }
     if ((gs.children || []).length) {
@@ -16563,7 +16576,7 @@ function FiscoGame() {
                 dispatch({ type: "ADD_TIMELINE", entry: { type: "elite", emoji: sc.emoji, title: sc.t(c) } });
                 addLog(`[CERCLE] ${sc.t(c)} (${r.name})`);
                 setCalAlert({ emoji: sc.emoji, title: `${c.emoji || "👁️"} ${sc.t(c)}`,
-                    desc: `${r.emoji} ${r.name} · ${c.bio || c.cat || ""}\n\n${sc.d(c, r)}` });
+                    desc: `${r.emoji} ${r.name} · ${bioFor(c) || c.cat || ""}\n\n${sc.d(c, r)}` });
             }
         }
         // ── Le cercle vit sa vie, que tu y participes ou non ──
@@ -17255,7 +17268,7 @@ function FiscoGame() {
                         addLog(`[DÉCÈS] ${pick.name} — ${roleLabel(pick)}`);
                         setCalAlert({ emoji: "🕯️", title: `${pick.name} est décédé${isFemaleChar(pick) ? "e" : ""}`,
                             desc: wasClose
-                                ? `${pick.name} s'est éteint(e). C'était quelqu'un qui comptait vraiment pour toi. Le milieu est sous le choc, et toi plus encore. Certaines absences ne se comblent jamais.`
+                                ? `${pick.name} s'est ${isFemaleChar(pick) ? "éteinte" : "éteint"}. C'était quelqu'un qui comptait vraiment pour toi. Le milieu est sous le choc, et toi plus encore. Certaines absences ne se comblent jamais.`
                                 : `${pick.name} nous a quitté${isFemaleChar(pick) ? "e" : ""}s. ${tributeFor(pick)}` });
                     }
                 }
@@ -17673,7 +17686,7 @@ function FiscoGame() {
         const grammyWins = (gs.grammyHistory || []).reduce((a, g) => a + g.winsCount, 0);
         const age = yearsElapsed(gs.currentDate, FISCO_BIRTHDATE);
         const familyLine = gs.romance.status === "marie"
-            ? `Marié(e) à ${((_a = CHARS_BY_ID[gs.romance.partner]) === null || _a === void 0 ? void 0 : _a.name) || "son/sa partenaire"}${(gs.children || []).length ? `, parent de ${(gs.children || []).length} enfant(s)` : ""}.`
+            ? `Marié à ${((_a = CHARS_BY_ID[gs.romance.partner]) === null || _a === void 0 ? void 0 : _a.name) || "sa compagne"}${(gs.children || []).length ? `, père de ${(gs.children || []).length} enfant${(gs.children || []).length > 1 ? "s" : ""}` : ""}.`
             : gs.romance.status === "couple" ? `En couple avec ${((_b = CHARS_BY_ID[gs.romance.partner]) === null || _b === void 0 ? void 0 : _b.name) || "quelqu'un"}.`
                 : gs.romance.status === "celibataire" ? "Célibataire, libre de tout attachement."
                     : "Le cœur encore en reconstruction.";
@@ -17710,7 +17723,7 @@ function FiscoGame() {
             toast("Ce n'est pas le bon moment pour ça.", "#ff9f1c");
             return;
         }
-        const partnerName = ((_a = CHARS_BY_ID[gs.romance.partner]) === null || _a === void 0 ? void 0 : _a.name) || "ton/ta partenaire";
+        const partnerName = ((_a = CHARS_BY_ID[gs.romance.partner]) === null || _a === void 0 ? void 0 : _a.name) || "ta compagne";
         dispatch({ type: "SET_ROMANCE", romance: { status: "marie", fidelity: Math.min(100, gs.romance.fidelity + 10), marriedDate: gs.currentDate } });
         dispatch({ type: "APPLY", effects: { rep: +20, rel: { [gs.romance.partner]: +30 } } });
         dispatch({ type: "ADD_TIMELINE", entry: { type: "famille", emoji: "💍", title: `Mariage avec ${partnerName}` } });
@@ -20215,7 +20228,7 @@ function FiscoGame() {
             if (!gs.romance.partner)
                 return null; // pas de partenaire actuellement : pas d'action à afficher
             const p = CHARS_BY_ID[gs.romance.partner];
-            return { ...a, label: (p === null || p === void 0 ? void 0 : p.name.split(" ")[0]) || "Partenaire", emoji: (p === null || p === void 0 ? void 0 : p.emoji) || "❤️", ctx: `Fisco appelle ${(p === null || p === void 0 ? void 0 : p.name) || "sa/son partenaire"}`, rel: gs.romance.partner };
+            return { ...a, label: (p === null || p === void 0 ? void 0 : p.name.split(" ")[0]) || "Partenaire", emoji: (p === null || p === void 0 ? void 0 : p.emoji) || "❤️", ctx: `Fisco appelle ${(p === null || p === void 0 ? void 0 : p.name) || "sa compagne"}`, rel: gs.romance.partner };
         }).filter(Boolean)
             // Les scènes meurent avec ceux qu'elles mettent en scène
             .filter(a => {
@@ -22535,7 +22548,7 @@ function FiscoGame() {
                             c.emoji,
                             " ",
                             c.name),
-                        react_1.default.createElement("div", { style: { fontSize: 9.5, color: "rgba(255,255,255,.4)", marginTop: 2 } }, c.bio || c.cat))))))),
+                        react_1.default.createElement("div", { style: { fontSize: 9.5, color: "rgba(255,255,255,.4)", marginTop: 2 } }, bioFor(c) || c.cat))))))),
                 (f.pick === "rival" || f.pick === "erase" || f.pick === "seat") && (react_1.default.createElement(react_1.default.Fragment, null,
                     react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(212,175,55,.7)", letterSpacing: 2, fontFamily: "'Space Mono',monospace", marginBottom: 6 } }, f.pick === "rival" ? "QUEL RIVAL ?" : f.pick === "erase" ? "QUI EFFACER ?" : "QUI PLACER ?"),
                     react_1.default.createElement("input", { value: favorFilter, onChange: e => setFavorFilter(e.target.value), placeholder: "Rechercher\u2026", style: { ...inputStyle, marginBottom: 7, fontSize: 12 } }),
@@ -22547,7 +22560,7 @@ function FiscoGame() {
                             " ",
                             c.name),
                         react_1.default.createElement("div", { style: { fontSize: 9.5, color: "rgba(255,255,255,.4)", marginTop: 2 } },
-                            c.bio || c.cat,
+                            bioFor(c) || c.cat,
                             isElite(c) ? " · 👁️ cercle" : ""))))))),
                 f.pick === "seat" && sel && (react_1.default.createElement(react_1.default.Fragment, null,
                     react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(212,175,55,.7)", letterSpacing: 2, fontFamily: "'Space Mono',monospace", marginBottom: 6 } }, "O\u00D9 LE PLACER ?"),
@@ -24895,10 +24908,10 @@ function FiscoGame() {
         react_1.default.createElement("div", { style: { maxWidth: 420, width: "100%", background: "linear-gradient(135deg,#2a0f1f,#1a0f2f)", border: "1px solid rgba(199,125,255,.35)", borderRadius: 14, padding: "22px 18px", maxHeight: "85vh", overflowY: "auto" } },
             react_1.default.createElement("div", { style: { fontFamily: "'Bebas Neue',cursive", fontSize: 20, color: "#c77dff", letterSpacing: 2, marginBottom: 4 } }, "\u2764\uFE0F VIE AMOUREUSE"),
             react_1.default.createElement("div", { style: { fontSize: 12, color: "rgba(255,255,255,.6)", marginBottom: 16 } },
-                gs.romance.status === "fiancee" && `Fiancé(e) à ${(_j = CHARS_BY_ID[gs.romance.partner]) === null || _j === void 0 ? void 0 : _j.name}.`,
+                gs.romance.status === "fiancee" && `Fiancé à ${(_j = CHARS_BY_ID[gs.romance.partner]) === null || _j === void 0 ? void 0 : _j.name}.`,
                 gs.romance.status === "marie" && `Marié à ${(_k = CHARS_BY_ID[gs.romance.partner]) === null || _k === void 0 ? void 0 : _k.name}.${(gs.children || []).length ? ` ${(gs.children || []).length} enfant(s).` : ""}`,
                 gs.romance.status === "couple" && `En couple avec ${(_l = CHARS_BY_ID[gs.romance.partner]) === null || _l === void 0 ? void 0 : _l.name}.`,
-                gs.romance.status === "deuil" && ((gs.arcs.breakup_grief || 0) >= 3 ? "Le deuil est fait. Prêt(e) à tourner la page." : "En plein deuil de la rupture — laisse du temps au temps."),
+                gs.romance.status === "deuil" && ((gs.arcs.breakup_grief || 0) >= 3 ? "Le deuil est fait. Prêt à tourner la page." : "En plein deuil de la rupture — laisse du temps au temps."),
                 gs.romance.status === "celibataire" && "Célibataire, disponible pour une nouvelle rencontre."),
             gs.romance.locked && gs.romance.partner && (react_1.default.createElement("div", { style: { background: "rgba(212,175,55,.08)", border: "1px solid rgba(212,175,55,.32)", borderRadius: 10, padding: 11, marginBottom: 12 } },
                 react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(212,175,55,.75)", letterSpacing: 2, fontFamily: "'Space Mono',monospace", marginBottom: 5 } }, "UNION ARRANG\u00C9E PAR LE CERCLE"),
@@ -24966,7 +24979,7 @@ function FiscoGame() {
                                 react_1.default.createElement("span", null,
                                     react_1.default.createElement("div", { style: { fontSize: 13, fontWeight: 700 } }, c.name),
                                     react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(255,255,255,.4)" } },
-                                        c.bio,
+                                        bioFor(c),
                                         " \u00B7 lien ",
                                         Math.round(rel.score || 0)))));
                         }),
@@ -25803,7 +25816,7 @@ function FiscoGame() {
                                 const ROMANTIC_STATUSES = ["fiancee", "marie", "couple", "compagne"];
                                 const rawStatus = ((rel === null || rel === void 0 ? void 0 : rel.status) || "inconnu");
                                 const isDead = (gs.deceased || []).includes(c.id);
-                                const statusLabel = isDead ? "† décédé(e)" : isPartner
+                                const statusLabel = isDead ? (isFemaleChar(c) ? "† décédée" : "† décédé") : isPartner
                                     ? (gs.romance.status === "marie" ? "femme" : gs.romance.status === "fiancee" ? "fiancée" : "compagne")
                                     : (isEx || ROMANTIC_STATUSES.includes(rawStatus) || rawStatus === "femme" || rawStatus === "ex") ? "ex"
                                         : rawStatus.replace(/_/g, " ");
