@@ -7815,6 +7815,19 @@ const SFX = {
         sub(c, { freq: 70, to: 32, dur: 1.3, vol: 0.1, delay: 0.1, rev: 0.4 });
     },
     // ── Moments majeurs ──
+    // Le silence se fait, puis une cloche grave et un accord qui monte très
+    // lentement : on doit sentir que rien ne sera pareil après ce choix.
+    destiny: c => {
+        sub(c, { freq: 52, to: 38, dur: 3.4, vol: 0.13, rev: 0.6 });
+        v(c, { type: "sine", freq: 104, dur: 3.2, vol: 0.075, attack: 0.02, rev: 0.65 });
+        v(c, { type: "triangle", freq: 156, dur: 2.8, vol: 0.03, attack: 0.05, detune: 6, rev: 0.6 });
+        [196, 233, 294, 349].forEach((f, i) => {
+            v(c, { type: "sine", freq: f, dur: 3.6, vol: 0.045, delay: 0.35 + i * 0.28, attack: 0.6, rev: 0.7 });
+            v(c, { type: "triangle", freq: f * 2, dur: 2.4, vol: 0.011, delay: 0.35 + i * 0.28, attack: 0.7, detune: 9, rev: 0.65 });
+        });
+        sweep(c, { dur: 2.6, vol: 0.022, from: 220, to: 3200, q: 1.4, delay: 0.5, rev: 0.6 });
+        v(c, { type: "sine", freq: 784, dur: 2.2, vol: 0.028, delay: 1.6, attack: 0.9, rev: 0.75 });
+    },
     elite: c => {
         sweep(c, { dur: 1.1, vol: 0.03, from: 300, to: 4200, q: 1.8, rev: 0.5 });
         [130, 196, 261, 329, 392].forEach((f, i) => {
@@ -15628,6 +15641,22 @@ function FiscoGame() {
         if (next && next !== gs.musicTier)
             dispatch({ type: "SET_MUSIC", tier: next });
     }, [gs.elite, gs.inResistance, gs.falltosSacrificed, gs.musicTier]);
+    // ── Les moments qui font basculer une vie se jouent dans le silence ──
+    // La musique s'éteint en fondu, un son grave tombe, et elle ne revient
+    // qu'une fois la décision prise.
+    const [solemnOpen, setSolemnOpen] = (0, react_1.useState)(false);
+    (0, react_1.useEffect)(() => {
+        if (!solemnOpen)
+            return;
+        stopMusic(1.4);
+        const t = setTimeout(() => { try {
+            const c = audioCtx();
+            if (sfxRef.current && c && SFX.destiny)
+                SFX.destiny(c);
+        }
+        catch (e) { } }, 420);
+        return () => clearTimeout(t);
+    }, [solemnOpen]);
     // Le navigateur n'autorise le son qu'après un geste : on démarre au premier clic.
     const musicArmed = (0, react_1.useRef)(false);
     (0, react_1.useEffect)(() => {
@@ -15636,6 +15665,8 @@ function FiscoGame() {
             stopMusic();
             return;
         }
+        if (solemnOpen)
+            return; // on ne relance rien tant que la proposition est à l'écran
         if (!tier)
             return;
         if (musicArmed.current) {
@@ -15646,7 +15677,7 @@ function FiscoGame() {
         window.addEventListener("pointerdown", arm, { once: true });
         window.addEventListener("keydown", arm, { once: true });
         return () => { window.removeEventListener("pointerdown", arm); window.removeEventListener("keydown", arm); };
-    }, [gs.musicTier, gs.musicOn]);
+    }, [gs.musicTier, gs.musicOn, solemnOpen]);
     // On coupe tout en quittant la page
     (0, react_1.useEffect)(() => () => stopMusic(0), []);
     (0, react_1.useEffect)(() => { setYeCloned(!!gs.yeCloned); }, [gs.yeCloned]);
@@ -18829,6 +18860,8 @@ function FiscoGame() {
     const [mentalModal, setMentalModal] = (0, react_1.useState)(false);
     const [postStreamModal, setPostStreamModal] = (0, react_1.useState)(false);
     const [eliteOffer, setEliteOffer] = (0, react_1.useState)(false);
+    // La proposition du cercle impose le silence : on le signale au moteur audio
+    (0, react_1.useEffect)(() => { setSolemnOpen(!!eliteOffer); }, [eliteOffer]);
     const [storyModal, setStoryModal] = (0, react_1.useState)(null);
     const [favorPick, setFavorPick] = (0, react_1.useState)(null);
     const [favorFilter, setFavorFilter] = (0, react_1.useState)("");
