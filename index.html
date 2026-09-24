@@ -6176,7 +6176,7 @@ function isEliteUntouchable(c) {
     return cat.includes("politique") || cat.includes("business");
 }
 // Ceux qui dénoncent publiquement le cercle et s'en prennent à ceux qui le rejoignent.
-const ELITE_ENEMIES = ["kanye_west", "dieudonne", "candace_owens", "alain_soral"];
+const ELITE_ENEMIES = ["kanye_west", "dieudonne", "candace_owens", "alain_soral", "ryan_garcia"];
 // Les méthodes de clash tolérées contre un membre du cercle.
 const ELITE_SAFE_MODES = new Set(["cl_subtil", "cl_direct", "cl_humour", "cl_morceau", "cl_live"]);
 // ─── HIÉRARCHIE INTERNE ─────────────────────────────────────────────────────
@@ -6367,6 +6367,12 @@ function eliteRecruitPool(gs) {
         if (Object.prototype.hasOwnProperty.call(dejà, c.id))
             return false;
         if (ELITE_NAMED.has(c.id) || ELITE_ARCHITECTS.has(c.id))
+            return false;
+        // Ceux du centre anti-élite ne rejoindront jamais le cercle : c'est toute
+        // leur raison d'être. (Kanye fait exception, mais par la voie du clone.)
+        if (ELITE_ENEMIES.includes(c.id))
+            return false;
+        if (RESISTANCE_ALLIES.includes(c.id))
             return false;
         const cat = (c.cat || "").toLowerCase();
         if (cat.includes("politique") || cat.includes("business"))
@@ -6932,7 +6938,7 @@ const WAR_MISSIONS = [
         winT: "Candace reste",
         winD: "Elle a refusé au bout de six semaines, sans emphase et sans discours.\n\nElle t'a simplement dit : « Si j'y vais, je deviens exactement ce qu'on dénonce. Et je le saurai chaque matin. »\n\nElle n'aura jamais la Maison-Blanche. Elle a autre chose.",
         loseT: "Candace a accepté",
-        loseD: "Elle a annoncé sa candidature trois mois plus tard. Elle sera élue, puis réélue — huit ans.\n\nElle ne t'attaquera jamais publiquement. Elle ne prononcera simplement plus jamais ton nom, ni celui du dossier.\n\nC'est plus efficace que n'importe quelle attaque.",
+        loseD: "Elle a annoncé sa candidature trois mois plus tard. Elle sera élue, puis réélue — huit ans.\n\nElle ne t'attaquera jamais publiquement. Elle ne prononcera simplement plus jamais ton nom, ni celui du dossier.\n\nC'est plus efficace que n'importe quelle attaque. **Elle figure désormais dans le cercle intérieur** — dans tes contacts, marquée comme les autres.",
         winFx: { rep: +14 }, loseFx: { rep: -12, stress: +35 }, loseAlly: "candace_owens", loseToElite: "candace_owens" },
     { id: "wm_soral", emoji: "👓", title: "Sortir Soral de prison", ally: "alain_soral", days: 90, chance: 0.45, cost: 18000000,
         brief: "Condamnation ferme sur un dossier ancien, ressorti au moment précis où il s'apprêtait à publier.\n\nLa peine est disproportionnée et tout le monde le sait. Son fonds d'archives — vingt ans de travail — est sous scellés.",
@@ -16766,7 +16772,7 @@ function FiscoGame() {
     }, [importData, toast]);
     // calendar & pending events
     (0, react_1.useEffect)(() => {
-        var _a, _b, _c, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
+        var _a, _b, _c, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
         const d = new Date(gs.currentDate);
         const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
         if (lastDay.current === key)
@@ -17751,8 +17757,12 @@ function FiscoGame() {
                 killFalltos: !win && m.killFalltos,
                 killWho: !win ? (m.killOnLose || null) : null });
             dispatch({ type: "APPLY", effects: { ...(win ? m.winFx : m.loseFx), deliberate: true } });
-            if (!win && m.loseToElite)
+            if (!win && m.loseToElite) {
                 dispatch({ type: "APPLY", effects: { rel: { [m.loseToElite]: -60 }, deliberate: true } });
+                // Deuxième exception, avec le clone de Kanye : quelqu'un du centre
+                // anti-élite peut basculer, mais seulement par ce chemin-là.
+                dispatch({ type: "ELITE_RECRUIT", map: { [m.loseToElite]: ((_k = m.eliteLvl) !== null && _k !== void 0 ? _k : 4) } });
+            }
             dispatch({ type: "ADD_TIMELINE", entry: { type: "elite", emoji: m.emoji, title: win ? m.winT : m.loseT } });
             addLog(`[MISSION] ${win ? m.winT : m.loseT}`);
             sfx(win ? "success" : "danger");
@@ -17761,9 +17771,9 @@ function FiscoGame() {
         // ── Retour d'une infiltration ──
         if (phase === "game" && !ending && !anyOverlayOpen() && gs.infiltration && gs.currentDate >= gs.infiltration.endDate) {
             const who = gs.infiltration.who;
-            const burned = Math.random() < ((_k = INFILTRATION_RISK[who]) !== null && _k !== void 0 ? _k : 0.4);
-            const ev = burned ? Math.round(((_l = INFIL_YIELD[who]) !== null && _l !== void 0 ? _l : 30) * 0.25) : ((_m = INFIL_YIELD[who]) !== null && _m !== void 0 ? _m : 30);
-            const name = who === "__self__" ? "Toi" : (((_o = ALLIES_SPEC[who]) === null || _o === void 0 ? void 0 : _o.name) || "Ton agent");
+            const burned = Math.random() < ((_l = INFILTRATION_RISK[who]) !== null && _l !== void 0 ? _l : 0.4);
+            const ev = burned ? Math.round(((_m = INFIL_YIELD[who]) !== null && _m !== void 0 ? _m : 30) * 0.25) : ((_o = INFIL_YIELD[who]) !== null && _o !== void 0 ? _o : 30);
+            const name = who === "__self__" ? "Toi" : (((_p = ALLIES_SPEC[who]) === null || _p === void 0 ? void 0 : _p.name) || "Ton agent");
             dispatch({ type: "END_INFILTRATION", who, burned, ev, expo: burned ? 34 : 12 });
             if (!burned)
                 dispatch({ type: "OPINION", delta: 4 });
@@ -18368,7 +18378,7 @@ function FiscoGame() {
                     const pick = (close.length && Math.random() < 0.45 ? close : candidates)[Math.floor(Math.random() * (close.length && Math.random() < 0.45 ? close.length : candidates.length))];
                     if (pick) {
                         const rel = getRel(gs, pick.id);
-                        const wasClose = ((_p = rel === null || rel === void 0 ? void 0 : rel.score) !== null && _p !== void 0 ? _p : 0) >= 55;
+                        const wasClose = ((_q = rel === null || rel === void 0 ? void 0 : rel.score) !== null && _q !== void 0 ? _q : 0) >= 55;
                         dispatch({ type: "CHAR_DEATH", id: pick.id });
                         if (wasClose) {
                             dispatch({ type: "APPLY", effects: { stress: +25, energy: -15 } });
