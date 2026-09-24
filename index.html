@@ -6177,6 +6177,10 @@ function isEliteUntouchable(c) {
 }
 // Ceux qui dénoncent publiquement le cercle et s'en prennent à ceux qui le rejoignent.
 const ELITE_ENEMIES = ["kanye_west", "dieudonne", "candace_owens", "alain_soral", "ryan_garcia"];
+// Ceux qui ne rejoindront JAMAIS le cercle par une entrée ordinaire.
+// Le registre des membres refuse leur inscription sauf demande explicite
+// (force:true), réservée aux deux bascules écrites dans l'histoire.
+const CIRCLE_NEVER = new Set(["falltos", "kanye_west", "candace_owens", "ryan_garcia", "dieudonne", "alain_soral"]);
 // Les méthodes de clash tolérées contre un membre du cercle.
 const ELITE_SAFE_MODES = new Set(["cl_subtil", "cl_direct", "cl_humour", "cl_morceau", "cl_live"]);
 // ─── HIÉRARCHIE INTERNE ─────────────────────────────────────────────────────
@@ -6370,9 +6374,7 @@ function eliteRecruitPool(gs) {
             return false;
         // Ceux du centre anti-élite ne rejoindront jamais le cercle : c'est toute
         // leur raison d'être. (Kanye fait exception, mais par la voie du clone.)
-        if (ELITE_ENEMIES.includes(c.id))
-            return false;
-        if (RESISTANCE_ALLIES.includes(c.id))
+        if (CIRCLE_NEVER.has(c.id) || ELITE_ENEMIES.includes(c.id) || RESISTANCE_ALLIES.includes(c.id))
             return false;
         const cat = (c.cat || "").toLowerCase();
         if (cat.includes("politique") || cat.includes("business"))
@@ -15067,10 +15069,18 @@ function gameReducerInner(state, action) {
             if (!(state.newCast || {})[action.id])
                 return state;
             return { ...state, newCast: { ...state.newCast, [action.id]: { ...state.newCast[action.id], bio: action.bio } } };
-        case "ELITE_RECRUIT":
-            // Le cercle coopte : chaque entrant est noté avec son rang d'entrée
-            return { ...state, newElites: { ...(state.newElites || {}), ...action.map },
+        case "ELITE_RECRUIT": {
+            // Le cercle coopte : chaque entrant est noté avec son rang d'entrée.
+            // Dernier verrou : le centre anti-élite ne passe pas par cette porte.
+            const propre = {};
+            Object.entries(action.map || {}).forEach(([id, lvl]) => {
+                if (!action.force && CIRCLE_NEVER.has(id))
+                    return;
+                propre[id] = lvl;
+            });
+            return { ...state, newElites: { ...(state.newElites || {}), ...propre },
                 lastRecruitYear: action.year !== undefined ? action.year : state.lastRecruitYear };
+        }
         case "RANK_SEEN":
             return { ...state, rankSeen: action.lvl };
         case "START_CIRCLE_OP":
@@ -17761,7 +17771,7 @@ function FiscoGame() {
                 dispatch({ type: "APPLY", effects: { rel: { [m.loseToElite]: -60 }, deliberate: true } });
                 // Deuxième exception, avec le clone de Kanye : quelqu'un du centre
                 // anti-élite peut basculer, mais seulement par ce chemin-là.
-                dispatch({ type: "ELITE_RECRUIT", map: { [m.loseToElite]: ((_k = m.eliteLvl) !== null && _k !== void 0 ? _k : 4) } });
+                dispatch({ type: "ELITE_RECRUIT", map: { [m.loseToElite]: ((_k = m.eliteLvl) !== null && _k !== void 0 ? _k : 4) }, force: true });
             }
             dispatch({ type: "ADD_TIMELINE", entry: { type: "elite", emoji: m.emoji, title: win ? m.winT : m.loseT } });
             addLog(`[MISSION] ${win ? m.winT : m.loseT}`);
