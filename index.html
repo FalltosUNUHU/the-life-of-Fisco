@@ -158,6 +158,7 @@ const CHARS = {
     el_bale: { id: "el_bale", name: "Gareth Bale", emoji: "🏌️", cat: "sport", loc: "Londres", bio: "Ancien ailier du Real Madrid." },
     el_r9: { id: "el_r9", name: "Ronaldo Nazário", emoji: "🇧🇷", cat: "sport", loc: "Madrid", bio: "Le Phénomène, devenu dirigeant de club." },
     el_beckham: { id: "el_beckham", name: "David Beckham", emoji: "🕶️", cat: "sport", loc: "Miami", bio: "Icône planétaire et propriétaire de club." },
+    ap_steinberg: { id: "ap_steinberg", name: "Joseph Steinberg", emoji: "🗝️", cat: "business", loc: "TelAviv", bio: "On ne lui connaît ni fonction, ni société, ni adresse. Les autres se déplacent pour le voir." },
     ap_sebban: { id: "ap_sebban", name: "Eliyahou Sebban", emoji: "🕯️", cat: "business", loc: "TelAviv", bio: "Personne ne sait exactement ce qu'il fait. Tout le monde attend son avis." },
     ap_luzzatto: { id: "ap_luzzatto", name: "Jacob Luzzatto", emoji: "📜", cat: "business", loc: "Milan", bio: "Aucune photographie de lui n'existe publiquement." },
     ap_segre: { id: "ap_segre", name: "Gabriel Segre", emoji: "🔑", cat: "business", loc: "Paris", bio: "Il n'apparaît dans aucun registre, aucun conseil, aucun organigramme." },
@@ -6101,11 +6102,11 @@ const POST_STREAMING_MODELS = [
 // ─── LES ÉLITES ─────────────────────────────────────────────────────────────
 // Un cercle que rien n'annonce et dont l'existence même se devine plutôt qu'elle ne se prouve.
 const ELITE_SYMBOL = "👁️";
-const ELITE_NAMED = new Set(["s_tyla", "sommer_ray", "ariana_grande", "billie_eilish", "doja_cat", "dua_lipa", "jennie", "sabrina_carpenter", "tate_mcrae", "zendaya", "act_us_tom_holland", "lily_rose_depp", "emrata", "gigi_hadid", "hailey_bieber", "charli_damelio", "i_dixie_d_amelio", "i_nabilla", "jenna_ortega", "rick_owens", "el_kris", "el_jack_lang", "kendrick_lamar", "lil_wayne", "usher", "el_dr_dre", "snoop_dogg", "eminem", "shakira",
+const ELITE_NAMED = new Set(["angele", "act_fr_pierre_niney", "aya_nakamura", "s_tyla", "sommer_ray", "ariana_grande", "billie_eilish", "doja_cat", "dua_lipa", "jennie", "sabrina_carpenter", "tate_mcrae", "zendaya", "act_us_tom_holland", "lily_rose_depp", "emrata", "gigi_hadid", "hailey_bieber", "charli_damelio", "i_dixie_d_amelio", "i_nabilla", "jenna_ortega", "rick_owens", "el_kris", "el_jack_lang", "kendrick_lamar", "lil_wayne", "usher", "el_dr_dre", "snoop_dogg", "eminem", "shakira",
     "ar_david_ren_de_rothschild", "ar_nathaniel_philip_victor_james_rothschild", "ar_ariane_de_rothschild", "ar_alexandre_de_rothschild", "ar_david_mayer_de_rothschild", "ar_eric_de_rothschild", "ar_douard_tienne_de_rothschild", "ar_benjamin_de_rothschild", "ar_saskia_de_rothschild", "ar_emma_rothschild", "ar_no_mie_de_rothschild", "ar_pietro_no_gennaro_de_rothschild", "ar_chlo_de_rothschild", "ar_leopold_james_de_rothschild", "ar_jessica_de_rothschild", "ar_kate_emma_rothschild", "ar_lavinia_de_rothschild", "ar_alice_ad_la_de_de_rothschild", "ar_bethsab_e_de_rothschild", "ar_david_raoul_guy_de_rothschild", "ar_john_davison_rockefeller_iv", "ar_david_rockefeller_jr", "ar_steven_clark_rockefeller", "ar_peter_c_rockefeller", "ar_ariana_rockefeller", "ar_valerie_rockefeller_wayne", "ar_alida_rockefeller_messinger", "ar_nelson_aldrich_rockefeller_jr", "ar_mark_fitler_rockefeller", "ar_laurance_rockefeller_jr", "ar_lucy_rockefeller_waletzky", "ar_marion_french_rockefeller", "ar_eileen_rockefeller", "ar_justin_aldrich_rockefeller", "ar_john_davison_rockefeller_v", "ar_steven_clark_rockefeller_jr", "ar_winthrop_paul_rockefeller_jr", "ar_andrea_davidson_rockefeller", "ar_katherine_cluett_rockefeller", "ar_winthrop_paul_rockefeller", "ar_william_mountbatten_windsor", "ar_catherine_elizabeth_middleton", "ar_roi_charles_iii", "ar_reine_camilla", "ar_prince_harry", "ar_meghan_markle", "ar_princess_anne", "ar_prince_edward", "ar_sophie_duchess_of_edinburgh", "ar_zara_tindall", "ar_princess_beatrice", "ar_princess_eugenie", "ar_peter_phillips",
     "el_cr7", "el_messi", "el_zidane", "el_pique", "el_bale", "el_r9", "el_beckham", "f_kylian_mbapp",
     "neymar", "f_sergio_ramos", "f_harry_kane", "f_rodri", "f_jules_kound",
-    "ap_sebban", "ap_luzzatto", "ap_segre",
+    "ap_steinberg", "ap_sebban", "ap_luzzatto", "ap_segre",
     "ap_abecassis", "ap_azoulay", "ap_bensoussan", "ap_elbaz", "ap_goldstein", "ap_katz", "ap_weiss", "act_fr_jean_reno", "act_fr_g_rard_depardieu", "act_fr_vincent_cassel", "act_fr_omar_sy", "act_fr_jean_dujardin", "el_patrick_bruel", "act_fr_ad_le_exarchopoulos", "Diddy", "act_us_angelina_jolie", "act_us_brad_pitt", "act_us_denzel_washington", "act_us_george_clooney", "act_us_jamie_foxx", "act_us_keanu_reeves", "act_us_leonardo_dicaprio", "act_us_morgan_freeman", "act_us_robert_downey_jr", "act_us_samuel_l_jackson", "act_us_tom_cruise", "act_us_will_smith", "b_lebron_james", "beyonce", "booba", "bruno_mars", "e_lucian_grainge", "e_rob_stringer", "el_celine_dion", "el_danny_glover", "el_de_niro", "el_jen_aniston", "el_jim_carrey", "el_jlo", "el_johnny_depp", "el_katt_williams", "el_katy_perry", "el_lady_gaga", "el_madonna", "el_shaq", "el_steve_harvey", "el_timberlake", "jay_z", "kendall_jenner", "kim_k", "kylie_jenner", "maitre_gims", "megan_fox", "miley_cyrus", "naomi_campbell", "nicki_minaj", "pharrell", "pusha_t", "drake", "rick_ross", "taylor_swift", "the_weeknd"]);
 // Tous les politiques et les plus grands patrons en font partie d'office.
 const ELITE_BUSINESS_TIER = new Set(["e_larry_fink", "e_jamie_dimon", "e_ray_dalio", "e_steve_schwarzman", "e_ken_griffin",
@@ -6148,10 +6149,18 @@ function guestPrestige(c, gs) {
 // Quand le clone est en place, Kanye devient officiellement un membre du cercle
 let _yeCloned = false;
 function setYeCloned(v) { _yeCloned = v; }
+// ── Le cercle ne se referme jamais : il coopte ──
+// Les entrants de la partie en cours sont tenus dans un registre à part,
+// synchronisé depuis l'état à chaque rendu. id → niveau de rang.
+let _joined = {};
+function setJoinedElites(m) { _joined = m || {}; }
+function joinedRank(id) { return Object.prototype.hasOwnProperty.call(_joined, id) ? _joined[id] : null; }
 function isElite(c) {
     if (!c)
         return false;
     if (c.id === "kanye_west" && _yeCloned)
+        return true;
+    if (joinedRank(c.id) !== null)
         return true;
     const cat = (c.cat || "").toLowerCase();
     // Le pouvoir politique et économique en fait partie par nature
@@ -6195,7 +6204,7 @@ const ELITE_RANKS = [
 // Le dernier rang : hors d'atteinte, y compris pour toi
 const ELITE_ARCHITECTS = new Set([
     "ar_david_ren_de_rothschild", "ar_nathaniel_philip_victor_james_rothschild", "ar_ariane_de_rothschild", "ar_alexandre_de_rothschild", "ar_david_mayer_de_rothschild", "ar_eric_de_rothschild", "ar_douard_tienne_de_rothschild", "ar_benjamin_de_rothschild", "ar_saskia_de_rothschild", "ar_emma_rothschild", "ar_no_mie_de_rothschild", "ar_pietro_no_gennaro_de_rothschild", "ar_chlo_de_rothschild", "ar_leopold_james_de_rothschild", "ar_jessica_de_rothschild", "ar_kate_emma_rothschild", "ar_lavinia_de_rothschild", "ar_alice_ad_la_de_de_rothschild", "ar_bethsab_e_de_rothschild", "ar_david_raoul_guy_de_rothschild", "ar_john_davison_rockefeller_iv", "ar_david_rockefeller_jr", "ar_steven_clark_rockefeller", "ar_peter_c_rockefeller", "ar_ariana_rockefeller", "ar_valerie_rockefeller_wayne", "ar_alida_rockefeller_messinger", "ar_nelson_aldrich_rockefeller_jr", "ar_mark_fitler_rockefeller", "ar_laurance_rockefeller_jr", "ar_lucy_rockefeller_waletzky", "ar_marion_french_rockefeller", "ar_eileen_rockefeller", "ar_justin_aldrich_rockefeller", "ar_john_davison_rockefeller_v", "ar_steven_clark_rockefeller_jr", "ar_winthrop_paul_rockefeller_jr", "ar_andrea_davidson_rockefeller", "ar_katherine_cluett_rockefeller", "ar_winthrop_paul_rockefeller", "ar_william_mountbatten_windsor", "ar_catherine_elizabeth_middleton", "ar_roi_charles_iii", "ar_reine_camilla", "ar_prince_harry", "ar_meghan_markle", "ar_princess_anne", "ar_prince_edward", "ar_sophie_duchess_of_edinburgh", "ar_zara_tindall", "ar_princess_beatrice", "ar_princess_eugenie", "ar_peter_phillips",
-    "ap_sebban", "ap_luzzatto", "ap_segre",
+    "ap_steinberg", "ap_sebban", "ap_luzzatto", "ap_segre",
     "ap_abecassis", "ap_azoulay", "ap_bensoussan", "ap_elbaz", "ap_goldstein", "ap_katz", "ap_weiss",
     // Ceux qui gèrent l'argent de tout le monde sans que personne ne connaisse leur visage
     "e_larry_fink", "e_rob_kapito", "e_rob_goldstein", "e_martin_small", "e_manuel_alvarez",
@@ -6300,6 +6309,7 @@ const ELITE_SEAT = new Set([
     "el_johnny_depp", "naomi_campbell", "act_us_robert_downey_jr", "act_us_samuel_l_jackson",
 ]);
 const ELITE_MEMBER = new Set([
+    "angele", "act_fr_pierre_niney", "aya_nakamura",
     "s_tyla", "sommer_ray", "ariana_grande", "billie_eilish", "doja_cat", "dua_lipa", "jennie",
     "sabrina_carpenter", "tate_mcrae", "zendaya", "act_us_tom_holland", "lily_rose_depp",
     "emrata", "gigi_hadid", "hailey_bieber", "charli_damelio", "i_dixie_d_amelio", "i_nabilla",
@@ -6324,6 +6334,9 @@ function memberRank(c) {
     if (!c || !isElite(c))
         return null;
     const cat = (c.cat || "").toLowerCase();
+    const jr = joinedRank(c.id);
+    if (jr !== null)
+        return ELITE_RANKS[Math.max(0, Math.min(5, jr))];
     if (ELITE_ARCHITECTS.has(c.id))
         return ELITE_RANKS[5];
     if (ELITE_INNER.has(c.id))
@@ -6341,6 +6354,47 @@ function memberRank(c) {
     if (cat.includes("business"))
         return ELITE_RANKS[3];
     return ELITE_RANKS[0];
+}
+// ── Qui le cercle peut encore aller chercher ──
+// Uniquement des noms que le monde entier connaît : on n'entre pas là-dedans
+// parce qu'on est prometteur, mais parce qu'on est devenu incontournable.
+function eliteRecruitPool(gs) {
+    const dejà = gs.newElites || {};
+    const morts = new Set(gs.deceased || []);
+    return [...Object.values(CHARS), ...Object.values(gs.newCast || {})].filter(c => {
+        if (!c || !c.id || morts.has(c.id))
+            return false;
+        if (Object.prototype.hasOwnProperty.call(dejà, c.id))
+            return false;
+        if (ELITE_NAMED.has(c.id) || ELITE_ARCHITECTS.has(c.id))
+            return false;
+        const cat = (c.cat || "").toLowerCase();
+        if (cat.includes("politique") || cat.includes("business"))
+            return false; // déjà dedans d'office
+        if (!["music", "cinema", "sport", "mode", "media"].some(k => cat.includes(k)))
+            return false;
+        // Enfant d'un membre : il entre par la filiation, pas par la cooptation
+        if (c.parentId)
+            return false;
+        const tier = featTierOf(c.id);
+        return tier === "elite" || tier === "big";
+    });
+}
+// Les enfants : ceux d'un architecte y sont dès la naissance, les autres
+// peuvent être cooptés à partir de seize ans.
+function kidEliteLevel(gs, kid) {
+    if (!kid || !kid.parentId)
+        return null;
+    if (ELITE_ARCHITECTS.has(kid.parentId))
+        return 5;
+    const pc = CHARS_BY_ID[kid.parentId] || (gs.newCast || {})[kid.parentId];
+    if (!pc || !isElite(pc))
+        return null;
+    const pr = memberRank(pc);
+    if (!pr)
+        return null;
+    // On n'hérite pas du rang du parent : on entre un cran en dessous, au minimum Initié
+    return Math.max(1, Math.min(3, (pr.lvl || 0) - 1));
 }
 // ─── LA SORTIE : LA VOIE DE FALLTOS ─────────────────────────────────────────
 // Une seule personne au monde peut t'en sortir vivant, et elle ne demande rien d'autre
@@ -8713,7 +8767,7 @@ const CIRCLE_OPS = [
         win: "Le programme est salué, les images tournent, et une ministre te remercie publiquement. Tu n'as pas touché un centime, et c'est vérifiable.\n\nCe qui est arrivé au reste ne te sera jamais expliqué. Tu as appris à ne plus poser la question.",
         lose: "L'opération n'est pas allée au bout. Les structures montées pour l'occasion se retrouvent exposées, et quelqu'un devra expliquer pourquoi elles existaient.",
         reward: { money: 0, rep: +10 } },
-    { id: "co_kane", emoji: "⚽", title: "Le transfert impossible", months: 3, minRank: 1, service: 3, avail: kaneAvailable,
+    { id: "co_kane", emoji: "⚽", title: "Le transfert impossible", months: 3, minRank: 0, service: 3, avail: kaneAvailable, first: true,
         tag: "Offrir un club — et une reconstruction — à un membre que plus personne ne veut.",
         brief: "Harry Kane est membre du cercle. Depuis dix jours, une tempête médiatique dont personne ne connaît vraiment l'origine l'entoure, et chaque club européen qui envisageait de le signer s'est retiré en quarante-huit heures. Sa carrière se termine, là, maintenant.\n\nOn t'appelle. Le message tient en une phrase : « Tu possèdes un club. Lui, il a besoin d'un club. »\n\nPersonne ne te cache ce que ça va te coûter. Les supporters des Earthquakes vont protester, la presse va t'attaquer, et une partie du public ne te regardera plus pareil. C'est le prix d'un service rendu à quelqu'un qui s'en souviendra.",
         steps: [
@@ -9091,6 +9145,169 @@ const CIRCLE_OPS = [
         lose: "La fondation n'a pas vu le jour. On te remercie de ton temps, avec une politesse qui te glace.",
         reward: { money: 0, rep: +16, fame: +4 },
         after: { mental: { purpose: -18 } } },
+    { id: "co_bateau", emoji: "🎞️", title: "Petit Bateau", months: 4, minRank: 2, service: 5, fr: true,
+        tag: "Produire un film français conçu pour diviser — et le porter jusqu'au bout.",
+        brief: "On te remet un scénario intitulé **« Petit Bateau »**. Casting exclusivement français, budget confortable, distribution nationale déjà calée.\n\nTu le lis en une soirée. Ce n'est pas subtil : le film n'a aucune ambition artistique et une seule fonction, celle d'installer une peur et de l'attacher à des visages. On ne t'a pas choisi pour ton talent de producteur — on t'a choisi parce que ton nom rendra le film impossible à balayer d'un revers de main.\n\nOn t'a même dit ce qu'il allait se passer : le film sera un échec, le public te lâchera, et la profession te boycottera. On te précise que les cérémonies, elles, continueront de t'accueillir. On dit ça comme on donne une garantie.",
+        steps: [
+            { id: "bt1", emoji: "🎬", label: "Produire le film « Petit Bateau », casting 100% français",
+                how: "Onglet Business → Films. Titre exact « Petit Bateau », et uniquement des acteurs français au casting (l'onglet 🇫🇷 du casting est là pour ça).",
+                auto: (gs, op) => (gs.filmography || []).some(m => (m.date || 0) >= op.startedAt
+                    && normTxt(m.title) === "petit bateau"
+                    && (m.cast || []).length > 0
+                    && (m.cast || []).every(x => { const c = CHARS_BY_ID[x.id] || (gs.newCast || {})[x.id]; return x.id === "__fisco__" || (c && actorZone(c) === "fr"); })) },
+            { id: "bt2", emoji: "📣", label: "Défendre le film en promotion",
+                how: "On te demandera d'assumer publiquement, pas de t'excuser.",
+                act: { btn: "📣 Assurer la promo", effects: { rep: -26, stress: +38 },
+                    out: "Tu enchaînes les plateaux avec la même phrase : « C'est une fiction, les gens sont assez grands. »\n\nDeux comédiens du film demandent à être retirés de l'affiche. Une association porte plainte. Ta propre équipe cesse de te regarder en face pendant les trajets." } },
+            { id: "bt3", emoji: "🪦", label: "Encaisser l'échec sans le renier",
+                how: "Le film va se planter. Il ne faut surtout pas t'en désolidariser.",
+                act: { btn: "🪦 Ne rien renier", effects: { rep: -18, fame: -4, stress: +40 },
+                    out: "Le film fait un score catastrophique et une presse unanime contre lui. Des salles le déprogramment au bout de dix jours.\n\nTu ne t'excuses pas, tu ne le désavoues pas, tu ne dis plus rien du tout. C'était exactement la consigne." } },
+        ],
+        win: "Le film est un désastre, et c'était prévu. Ce qu'on voulait, ce n'est pas qu'il marche : c'est qu'il existe, qu'il soit signé d'un nom aimé, et qu'il laisse une trace.\n\nTu perds une partie de ton public français pour longtemps. En revanche, les cérémonies continuent de t'inviter, de te récompenser, de te placer au premier rang — et ce décalage-là, entre un pays qui te lâche et une industrie qui te célèbre, dit tout de qui décide vraiment.",
+        lose: "Le film n'a pas vu le jour, ou pas dans les conditions demandées. Le scénario repartira vers quelqu'un d'autre, moins encombrant et moins aimé — donc moins efficace.",
+        reward: { money: 150000000 },
+        after: { mental: { purpose: -26 }, boycott: true } },
+    { id: "co_symbole", emoji: "〽️", title: "Le symbole", months: 4, minRank: 2, service: 5, fr: true,
+        tag: "Rendre un signe omniprésent en France sans jamais savoir ce qu'il signifie.",
+        brief: "La consigne est d'une simplicité déroutante : un album, un film et une collection FOH-0, tous construits autour du même symbole — **〽️**.\n\nPartout. Sur les pochettes, les affiches, les vêtements, la scénographie. Sans explication, sans manifeste, sans un mot. Tu demandes ce qu'il veut dire. On te répond que ce n'est pas la question et qu'il vaut mieux, pour toi, que tu n'en saches rien.\n\nTu acceptes parce que ça ne ressemble à rien de grave.",
+        avail: gs => !(gs.soldBusinesses || {}).foh0,
+        steps: [
+            { id: "sy1", emoji: "💿", label: "Sortir l'album « 〽️ »",
+                how: "Musique → un album ou un EP portant exactement ce titre.",
+                auto: (gs, op) => (gs.discography || []).some(d => (d.releaseDate || 0) >= op.startedAt && (d.type === "album" || d.type === "EP") && String(d.title || "").includes("〽")) },
+            { id: "sy2", emoji: "🎞️", label: "Produire le film « 〽️ »",
+                how: "Business → Films, avec le symbole dans le titre.",
+                auto: (gs, op) => (gs.filmography || []).some(m => (m.date || 0) >= op.startedAt && String(m.title || "").includes("〽")) },
+            { id: "sy3", emoji: "👕", label: "Sortir la collection « 〽️ »",
+                how: "Business → FOH-0, avec le symbole dans le nom de la collection.",
+                auto: (gs, op) => (gs.foh0Collections || []).some(c => (c.date || 0) >= op.startedAt && String(c.name || "").includes("〽")) },
+        ],
+        win: "En quatre mois, le symbole est partout : tags, avatars, pancartes, vitrines. Des gens qui ne t'écoutent pas le portent sans savoir d'où il vient.\n\nPuis l'élection approche, et trois mouvements aux visions radicalement opposées se l'approprient la même semaine, chacun lui donnant un sens que tu n'avais pas prévu — parce qu'il n'en avait aucun. C'était toute l'idée : fabriquer un signe vide, et laisser chacun y mettre sa France.\n\nTu comprends à ce moment-là que tu n'as pas vendu un album. Tu as livré un contenant.",
+        lose: "Le symbole n'a pas pris. Il reste une coquetterie graphique sur trois produits, et le dispositif s'arrête là.",
+        reward: { money: 170000000, fame: +6 },
+        after: { mental: { purpose: -18 } } },
+    { id: "co_talent", emoji: "🌟", title: "Le programme", months: 4, minRank: 2, service: 5, fr: true,
+        tag: "Lancer un tremplin prestigieux qui sert aussi à sélectionner autre chose.",
+        brief: "Un grand programme de découverte des futurs talents français : chanteurs, acteurs, mannequins, créateurs. Financement du cercle, ton nom sur la porte, et un prestige immédiat.\n\nIl y a deux sélections. La première est réelle, artistique, honnête — c'est celle dont tout le monde parlera. La seconde n'est écrite nulle part : elle réserve certaines opportunités à ceux qui acceptent certaines invitations.\n\nTon rôle s'arrête à la première. On te demande simplement de ne jamais regarder la seconde, et de ne pas t'étonner que certains candidats brillants disparaissent des radars.",
+        avail: gs => !(gs.soldBusinesses || {}).unuhu,
+        steps: [
+            { id: "tl1", emoji: "🚀", label: "Lancer le programme",
+                how: "Conférence de presse, jury, partenaires, dotation.",
+                act: { btn: "🚀 Lancer le programme", effects: { money: -30000000, rep: +18, stress: +14 },
+                    out: "Onze mille candidatures en trois semaines. Des gamins qui n'ont jamais eu une seule chance envoient des vidéos filmées dans leur chambre.\n\nTu regardes les cent premières toi-même. C'est la meilleure journée que tu aies passée depuis longtemps." } },
+            { id: "tl2", emoji: "✍️", label: "Signer trois lauréats chez UNUHU",
+                how: "Business → UNUHU Records : signe trois artistes pendant la campagne.",
+                auto: (gs, op) => (gs.unuhuRoster || []).filter(a => (a.signedDate || 0) >= op.startedAt).length >= 3 },
+            { id: "tl3", emoji: "🙈", label: "Ne pas demander où sont passés les autres",
+                how: "Quatre finalistes ont cessé d'être programmés. Aucun n'a rien annoncé.",
+                act: { btn: "🙈 Ne pas poser la question", effects: { rep: -10, stress: +36 },
+                    out: "Tu remarques leur absence à la troisième soirée. Personne n'en parle, et quand tu prononces un des prénoms, la conversation se déplace toute seule.\n\nUne des finalistes t'écrit un message de quatre lignes. Tu le lis. Tu ne réponds pas, et tu supprimes la conversation." } },
+        ],
+        win: "Le programme devient une institution. Il révèle de vrais talents, il change réellement des vies, et il est cité en exemple partout.\n\nIl sert aussi, chaque année, à faire passer devant une poignée de jeunes gens une porte dont tu ne sauras jamais ce qu'il y a derrière. Les deux choses sont vraies en même temps, et c'est ce qui rend la chose imparable.",
+        lose: "Le programme n'a pas abouti. Il faudra le monter autrement, avec un parrain moins crédible et donc moins utile.",
+        reward: { money: 120000000, rep: +8 },
+        after: { mental: { purpose: -22 } } },
+    { id: "co_archive", emoji: "🗄️", title: "L'archive", months: 4, minRank: 3, service: 6,
+        tag: "Devenir la porte par laquelle on approche ceux qui ne sont pas encore dedans.",
+        brief: "Le cercle tient une archive. On ne t'en montre rien, on ne t'en explique pas le contenu, on ne te dit même pas où elle se trouve. On te dit seulement à quoi elle sert : à savoir, sur chaque personnalité qui compte et qui n'est pas des leurs, ce qu'il faudrait pour l'approcher.\n\nTon rôle n'est pas de fouiller. Ton rôle est d'ouvrir : invitations, collaborations, festivals, contrats UNUHU. Chaque personne qui entre dans ton orbite entre dans la leur, et son dossier s'épaissit tout seul, sans que tu aies à lever le petit doigt.\n\nOn te donne cinq noms pour commencer. On ne te dira jamais pourquoi ceux-là.",
+        steps: [
+            { id: "ar1", emoji: "📇", label: "Recevoir la liste",
+                how: "Cinq noms sur une feuille, sans commentaire.",
+                act: { btn: "📇 Prendre la liste", effects: { stress: +18 },
+                    out: "Alphonso Davies. François Civil. Arda Güler. Benoît Magimel. GloRilla.\n\nCinq métiers, quatre pays, aucun point commun apparent. Tu retournes la feuille : il n'y a rien au dos." } },
+            { id: "ar2", emoji: "🤝", label: "Les faire entrer dans ton orbite",
+                how: "Rapproche-toi d'au moins trois d'entre eux — soirées, collaborations, invitations. Il faut que le lien dépasse 45.",
+                auto: (gs) => ["f_alphonso_davies", "act_fr_fran_ois_civil", "f_arda_g_ler", "act_fr_beno_t_magimel", "glorilla"]
+                    .filter(id => ((gs.relations || {})[id] || {}).score >= 45).length >= 3 },
+            { id: "ar3", emoji: "🗄️", label: "Ne jamais demander ce qu'il y a dedans",
+                how: "Les dossiers s'écrivent sans toi. C'est la seule chose qu'on te demande de respecter.",
+                act: { btn: "🗄️ Refermer le dossier", effects: { rep: -8, stress: +34 },
+                    out: "Tu n'as rien fourni, rien espionné, rien transmis. Tu as juste invité des gens à dîner.\n\nEt pourtant, quatre mois plus tard, on te remercie pour la qualité de ce qui a été collecté. Tu ne sauras jamais ce que ça veut dire, et c'est précisément ce qui t'empêche de dormir." } },
+        ],
+        win: "Les cinq dossiers existent. Tu n'en as pas lu une ligne et tu n'en liras jamais une.\n\nOn te dit qu'à ce stade, tu vaux plus par les gens que tu connais que par ce que tu produis. Ce n'est pas un compliment : c'est un constat, et il te range définitivement de leur côté.",
+        lose: "Tu n'as pas ouvert assez de portes. Les cinq restent hors de portée, et l'archive devra les approcher autrement — plus salement.",
+        reward: { money: 230000000 },
+        after: { mental: { purpose: -20, anxiety: +18 } } },
+    { id: "co_fete", emoji: "🎭", title: "La soirée dont on ne parle pas", months: 3, minRank: 3, service: 6,
+        tag: "Prêter tes murs à une réception dont tu ne connaîtras jamais l'objet.",
+        brief: "On te demande d'ouvrir l'une de tes propriétés une nuit. Pas d'invités de ta part, pas de photographes, pas de personnel à toi : tout est fourni.\n\nTu seras présent, parce que c'est ta maison et que ton absence se remarquerait. Tu n'auras accès qu'au rez-de-chaussée.\n\nOn te précise qu'au matin, tout aura été remis en état, et qu'il n'y aura strictement rien à raconter.",
+        steps: [
+            { id: "ft1", emoji: "🏠", label: "Ouvrir tes murs",
+                how: "Organise une soirée pendant la campagne — c'est la couverture officielle.",
+                auto: (gs, op) => (gs.partyHistory || []).some(x => (x.date || 0) >= op.startedAt && !x.invited) },
+            { id: "ft2", emoji: "🚪", label: "Rester au rez-de-chaussée",
+                how: "Deux étages te sont interdits chez toi, pour une nuit.",
+                act: { btn: "🚪 Ne pas monter", effects: { stress: +40 },
+                    out: "Tu passes la nuit dans ton propre salon avec des gens que tu n'as pas invités, à faire semblant d'être l'hôte d'une fête qui n'est pas la tienne.\n\nÀ deux heures du matin, tu entends quelque chose à l'étage. Tu montes le son." } },
+            { id: "ft3", emoji: "🧹", label: "Ne rien demander au matin",
+                how: "Tout est propre. Trop propre.",
+                act: { btn: "🧹 Fermer la porte", effects: { money: +90000000, rep: -6, stress: +36 },
+                    out: "À sept heures, il n'y a plus personne, plus un verre, plus une trace. Ta gouvernante te dit que l'étage a été nettoyé par une équipe extérieure.\n\nTu n'y remontes pas de la semaine." } },
+        ],
+        win: "Il ne s'est rien passé. C'est la version officielle, c'est la seule version, et c'est celle que tu répéteras à ta propre mémoire pendant des années.\n\nOn te remercie d'avoir été un hôte discret. C'est le compliment le plus glaçant qu'on t'ait fait.",
+        lose: "La soirée n'a pas eu lieu chez toi. On a trouvé un autre endroit, et on a noté que tu n'étais pas à l'aise avec ce genre de service.",
+        reward: { money: 0 },
+        after: { mental: { anxiety: +28, purpose: -20 } } },
+    { id: "co_couronne", emoji: "💍", title: "L'alliance", months: 4, minRank: 3, service: 6,
+        tag: "Faire entrer une famille du cercle dans la tienne.",
+        brief: "On ne parle plus de contrats mais de descendance. Le cercle fonctionne depuis des générations par alliances, et ton nom a désormais assez de valeur pour qu'on veuille le mêler au leur.\n\nOn ne te demande pas d'aimer qui que ce soit. On te demande une apparition commune, un calendrier, et une histoire crédible que la presse racontera toute seule.\n\nCe qui te dérange n'est pas ce qu'on te demande. C'est la facilité avec laquelle tu y réfléchis.",
+        steps: [
+            { id: "cr1", emoji: "📸", label: "Officialiser publiquement",
+                how: "Au moins trois publications pendant la campagne.",
+                auto: (gs, op) => (gs.socialFeed || []).filter(x => (x.date || 0) >= op.startedAt).length >= 3 },
+            { id: "cr2", emoji: "🥂", label: "La présenter au cercle",
+                how: "Une réception, des photos officielles, un communiqué.",
+                act: { btn: "🥂 Faire les présentations", effects: { rep: +14, fame: +7, stress: +26 },
+                    out: "Tout le monde joue parfaitement. Elle aussi, et c'est ce qui te trouble le plus : elle a été élevée pour ce genre de soirée, et elle s'y ennuie avec une élégance que tu n'auras jamais." } },
+            { id: "cr3", emoji: "💍", label: "Tenir la version officielle",
+                how: "Quatre mois sans une fausse note.",
+                act: { btn: "💍 Tenir le récit", effects: { rep: +10, stress: +32 },
+                    out: "Quatre mois de couvertures de magazines, de sorties calées et de sourires calibrés. Personne ne doute une seconde.\n\nVous vous êtes parlé sincèrement deux fois. Les deux fois, c'était pour organiser la suite." } },
+        ],
+        win: "L'alliance est actée. Deux familles, deux patrimoines, une image parfaite — et, quelque part dans un registre que tu ne verras jamais, une ligne de plus dans un arbre généalogique qui se construit depuis deux siècles.\n\nOn te dit que tu as compris comment ça marche. C'est vrai, et ça ne te réjouit pas.",
+        lose: "L'alliance ne s'est pas faite. On te le pardonne poliment, et on te range dans une catégorie dont tu ne sortiras plus : celle des utiles, pas des leurs.",
+        reward: { money: 280000000, rep: +8 },
+        after: { mental: { loneliness: +26 } } },
+    { id: "co_memoire", emoji: "📖", title: "Réécrire dix ans", months: 4, minRank: 4, service: 8,
+        tag: "Faire disparaître une décennie entière de ta propre histoire.",
+        brief: "Il y a, dans ton parcours, une période qui gêne. Pas un crime, pas un scandale : des fréquentations, des dates, des présences à des endroits où quelqu'un d'autre était aussi.\n\nOn va la retirer. Archives de presse, fiches en ligne, photothèques, ta propre documentation officielle. Rien ne sera falsifié au sens strict : les éléments seront simplement retirés, un par un, par des ayants droit qui en ont parfaitement le droit.\n\nDans deux ans, ces dix années auront la texture d'une rumeur. Y compris pour toi.",
+        steps: [
+            { id: "mm1", emoji: "🗂️", label: "Livrer ta propre documentation",
+                how: "Contrats, agendas, photos personnelles de la période.",
+                act: { btn: "🗂️ Tout remettre", effects: { stress: +34 },
+                    out: "Tu passes deux nuits à trier. Il y a là-dedans des photos où tu es heureux, avec des gens dont tu n'ai plus de nouvelles.\n\nElles partent avec le reste." } },
+            { id: "mm2", emoji: "📖", label: "Publier la version officielle",
+                how: "Au moins trois publications pendant la campagne, sur la nouvelle version de ton histoire.",
+                auto: (gs, op) => (gs.socialFeed || []).filter(x => (x.date || 0) >= op.startedAt).length >= 3 },
+            { id: "mm3", emoji: "🧯", label: "Corriger ceux qui se souviennent",
+                how: "Quelques personnes rectifieront publiquement. Il faudra les contredire.",
+                act: { btn: "🧯 Démentir", effects: { rep: -12, stress: +42 },
+                    out: "Trois personnes rappellent des faits exacts. Tu les contredis calmement, sans agressivité, avec des documents à l'appui — des documents produits pour l'occasion.\n\nL'une d'elles t'écrit en privé : « Je sais que tu sais. » Tu ne réponds pas." } },
+        ],
+        win: "Les dix années n'existent plus nulle part de manière vérifiable. Quand on t'interroge dessus, tu réponds ce qui est écrit, et c'est devenu presque naturel.\n\nIl t'arrive, certains soirs, de ne plus savoir toi-même dans quel ordre les choses se sont passées. On t'avait prévenu que ce serait le cas. On ne t'avait pas dit que ce serait reposant.",
+        lose: "Les archives ont résisté. Trop de sources, trop de témoins, trop de traces — et désormais quelqu'un sait que tu as essayé de les effacer.",
+        reward: { money: 320000000 },
+        after: { mental: { purpose: -30, anxiety: +24 } } },
+    { id: "co_relais2", emoji: "🕸️", title: "Recruter à ta place", months: 4, minRank: 4, service: 8,
+        tag: "Devenir celui qui va chercher les autres.",
+        brief: "On ne te demande plus de rendre des services : on te demande d'aller chercher ceux qui en rendront après toi.\n\nTrois noms par an, choisis par toi, approchés par toi. Des gens au sommet, qui ne se doutent de rien, et à qui tu feras la même proposition qu'on t'a faite un jour — avec les mêmes mots, dans le même ordre, en sachant exactement ce que tu es en train de leur prendre.\n\nC'est le dernier échelon avant de ne plus rien avoir à prouver.",
+        steps: [
+            { id: "rc1", emoji: "🍸", label: "Approcher les trois",
+                how: "Organise une soirée pendant la campagne — c'est là que ça se fait.",
+                auto: (gs, op) => (gs.partyHistory || []).some(x => (x.date || 0) >= op.startedAt && !x.invited) },
+            { id: "rc2", emoji: "🎤", label: "Les rapprocher de toi",
+                how: "Sors un projet avec des invités pendant la campagne.",
+                auto: (gs, op) => (gs.discography || []).some(d => (d.releaseDate || 0) >= op.startedAt) },
+            { id: "rc3", emoji: "🕸️", label: "Faire la proposition",
+                how: "Les mêmes mots qu'on t'a dits. Tu t'en souviens parfaitement.",
+                act: { btn: "🕸️ Leur proposer", effects: { rep: -6, stress: +44 },
+                    out: "Tu leur parles d'un cercle très fermé, réservé aux plus grands noms. Tu les félicites pour leur ascension exceptionnelle. Tu leur dis qu'ils y ont leur place.\n\nDeux acceptent le soir même. Le troisième demande à réfléchir, et tu reconnais exactement la tête que tu faisais." } },
+        ],
+        win: "Deux entrées, peut-être trois. On te remercie, et on te fait comprendre que c'était le vrai examen : celui qui recrute n'est plus un invité, il est le cercle.\n\nTu repenses à l'homme qui t'a abordé, des années plus tôt. Tu te demandes ce qu'il est devenu, et tu réalises que tu viens de le devenir.",
+        lose: "Personne n'a signé. On met ça sur le compte de ton approche, et on te retire ce dossier sans en reparler.",
+        reward: { money: 350000000, fame: +4 },
+        after: { mental: { purpose: -24 } } },
     { id: "co_silence", emoji: "🤐", title: "Le silence du secteur", months: 3, minRank: 2, service: 4,
         tag: "Faire en sorte qu'une industrie entière regarde ailleurs, au même moment.",
         brief: "Une enquête est bouclée. Elle concerne un pan entier de l'industrie musicale, et elle sortira — on ne peut pas l'arrêter. Ce qu'on peut faire, c'est choisir ce qui sortira le même jour.\n\nIl faut donc quelque chose d'énorme, annoncé à la bonne heure, qui occupe chaque rédaction culturelle de la planète pendant soixante-douze heures.\n\nOn te laisse choisir quoi. On ne te laisse pas choisir la date.",
@@ -10687,6 +10904,29 @@ const MOVIE_ROLES = [
     { id: "support", label: "Rôle secondaire", weight: 1 },
     { id: "cameo", label: "Caméo", weight: 0.5 },
 ];
+// Français, américain, ou ni l'un ni l'autre : on trie sur l'identifiant du
+// casting quand il le dit, sinon sur le lieu de vie.
+const FR_PLACES = new Set(["France", "Paris", "Nice", "Marseille", "Lyon", "Bruxelles", "Bourg-en-Bresse"]);
+const US_PLACES = new Set(["USA", "LosAngeles", "Los Angeles", "NewYork", "New York", "Atlanta", "Miami", "LA", "LasVegas", "Detroit", "Chicago", "Houston", "Memphis", "Maryland"]);
+// Quelques-uns vivent en France sans être français : le lieu ne suffit pas.
+const ZONE_FORCE = { el_johnny_depp: "us" };
+function actorZone(c) {
+    if (!c)
+        return "autre";
+    if (ZONE_FORCE[c.id])
+        return ZONE_FORCE[c.id];
+    const id = String(c.id || "");
+    if (id.startsWith("act_fr_") || id.startsWith("act_fr2_"))
+        return "fr";
+    if (id.startsWith("act_us_") || id.startsWith("act_us2_"))
+        return "us";
+    if (FR_PLACES.has(c.loc))
+        return "fr";
+    if (US_PLACES.has(c.loc))
+        return "us";
+    return "autre";
+}
+const CAST_ZONES = [{ id: "all", label: "Tous", emoji: "🎬" }, { id: "fr", label: "Français", emoji: "🇫🇷" }, { id: "us", label: "Américains", emoji: "🇺🇸" }];
 function getActingPool(searchActive, extraCast, gs) {
     const extra = Object.values(extraCast || {});
     // Fisco peut faire tourner ses proches : amis, famille, partenaire — ils acceptent par affection
@@ -13567,7 +13807,7 @@ const INIT = {
     eliteSince: null, sacrifices: [], warMission: null, warMissionsDone: [], docLeaked: false, eliteInfluence: 0, favorsUsed: [], circleNews: [], evidence: 0, exposure: 0, activeOps: [], pendingCM: null, cmDone: [], activeOp: null, opsDone: [], targetExposure: {}, exposedTargets: [],
     allyState: { falltos: "actif", kanye_west: "actif", candace_owens: "actif", alain_soral: "actif", dieudonne: "actif", ryan_garcia: "actif", justin_bieber: "absent", the_weeknd: "absent" },
     inResistance: false, awardsBanned: false, conspiracist: false, tutorialDone: false, baptismDate: null, faithStart: null, faithStage: 0, faithDone: false, exElite: false,
-    npcKids: [], warrant: null, mourning: false, mourningTold: false, boughtGrammys: [], lawShield: false, openCountries: [], mediaCycle: null, kaineEnded: null, eliteMet: [], mkStage: {}, mkActive: null, mkFails: [], mkDone: {}, sacrificesDone: [], festivalDisaster: null, sabotaged: [], erased: [], seatsPlaced: [], lawsPassed: [], exitStrikes: [], resistanceTried: false, resistDeclinedAt: null, musicTier: null, musicOn: true, falltosSacrificed: false, lastFalltosOffer: null, eliteService: 0, eliteMission: null, eliteMissionsDone: [], circleOp: null, circleOpsDone: [], circleOpsFailed: [], lastCircleOpAt: null, eliteEndDone: false, lastEliteOffer: null, eliteOfferAt: null, eliteRefused: false, pendingDeath: null, elite: false, eliteOffered: false, eliteStrikes: 0, eliteFallen: false, hits: [], postStreaming: null, lastSummerHitYear: null, mentalAspects: { anxiety: 22, burnout: 18, loneliness: 25, purpose: 78 }, therapy: null, addictions: [],
+    npcKids: [], warrant: null, mourning: false, mourningTold: false, boughtGrammys: [], lawShield: false, openCountries: [], mediaCycle: null, kaineEnded: null, eliteMet: [], newElites: {}, lastRecruitYear: null, mkStage: {}, mkActive: null, mkFails: [], mkDone: {}, sacrificesDone: [], festivalDisaster: null, sabotaged: [], erased: [], seatsPlaced: [], lawsPassed: [], exitStrikes: [], resistanceTried: false, resistDeclinedAt: null, musicTier: null, musicOn: true, falltosSacrificed: false, lastFalltosOffer: null, eliteService: 0, rankSeen: null, eliteMission: null, eliteMissionsDone: [], circleOp: null, circleOpsDone: [], circleOpsFailed: [], lastCircleOpAt: null, eliteEndDone: false, lastEliteOffer: null, eliteOfferAt: null, eliteRefused: false, pendingDeath: null, elite: false, eliteOffered: false, eliteStrikes: 0, eliteFallen: false, hits: [], postStreaming: null, lastSummerHitYear: null, mentalAspects: { anxiety: 22, burnout: 18, loneliness: 25, purpose: 78 }, therapy: null, addictions: [],
     reissues: [], endedRuns: null, atoneLog: [], pendingLeak: null, betrayals: [], industryEra: null, eraIndex: 0, eraAdapted: [], secrets: [], secretThreat: null,
     objectives: [], objectivesDone: [], timeline: [], grief: null, callbacks: [],
     healthAspects: { voice: 88, body: 85, sleep: 80, mind: 82 },
@@ -14821,6 +15061,12 @@ function gameReducerInner(state, action) {
             if (!(state.newCast || {})[action.id])
                 return state;
             return { ...state, newCast: { ...state.newCast, [action.id]: { ...state.newCast[action.id], bio: action.bio } } };
+        case "ELITE_RECRUIT":
+            // Le cercle coopte : chaque entrant est noté avec son rang d'entrée
+            return { ...state, newElites: { ...(state.newElites || {}), ...action.map },
+                lastRecruitYear: action.year !== undefined ? action.year : state.lastRecruitYear };
+        case "RANK_SEEN":
+            return { ...state, rankSeen: action.lvl };
         case "START_CIRCLE_OP":
             // On fige l'instant de départ : toutes les étapes se mesurent à partir de là
             return { ...state, circleOp: { id: action.id, startedAt: state.currentDate,
@@ -16326,6 +16572,9 @@ function FiscoGame() {
     // On coupe tout en quittant la page
     (0, react_1.useEffect)(() => () => stopMusic(0), []);
     (0, react_1.useEffect)(() => { setYeCloned(!!gs.yeCloned); }, [gs.yeCloned]);
+    // Le registre des entrants doit être connu des fonctions pures (isElite, memberRank)
+    setJoinedElites(gs.newElites || {});
+    (0, react_1.useEffect)(() => { setJoinedElites(gs.newElites || {}); }, [gs.newElites]);
     const sfx = (0, react_1.useCallback)(name => {
         if (!sfxRef.current)
             return;
@@ -17799,6 +18048,76 @@ function FiscoGame() {
             if (gs.newCast[PROTEGE.id].bio !== attendu)
                 dispatch({ type: "CAST_BIO", id: PROTEGE.id, bio: attendu });
         }
+        // ── Le cercle coopte, chaque année ──
+        // Environ cinq nouveaux noms par an, choisis parmi les plus grands encore
+        // dehors. Les enfants de membres entrent par filiation à leurs seize ans ;
+        // ceux des Architectes y sont depuis toujours.
+        if (phase === "game" && !ending && d.getMonth() === 0 && d.getDate() === 22 && gs.lastRecruitYear !== d.getFullYear()) {
+            const annee = d.getFullYear();
+            const pool = eliteRecruitPool(gs);
+            const combien = Math.min(pool.length, 4 + Math.floor(Math.random() * 3)); // 4 à 6
+            const tirés = [];
+            const copie = [...pool];
+            for (let k = 0; k < combien; k++)
+                tirés.push(...copie.splice(Math.floor(Math.random() * copie.length), 1));
+            const map = {};
+            tirés.forEach(c => {
+                const t = featTierOf(c.id);
+                // Les noms les plus énormes n'entrent pas par la petite porte
+                map[c.id] = t === "elite" ? (Math.random() < 0.45 ? 2 : 1) : 1;
+            });
+            // Les enfants qui ont eu seize ans dans l'année
+            const seize = (gs.npcKids || []).filter(k => {
+                if (Object.prototype.hasOwnProperty.call(gs.newElites || {}, k.id))
+                    return false;
+                const age = (gs.currentDate - k.birth) / (365.25 * 86400000);
+                return age >= 16 && age < 17.2;
+            });
+            const parFiliation = [];
+            seize.forEach(k => {
+                const lvl = kidEliteLevel(gs, k);
+                if (lvl !== null) {
+                    map[k.id] = lvl;
+                    parFiliation.push(k);
+                }
+            });
+            if (Object.keys(map).length) {
+                dispatch({ type: "ELITE_RECRUIT", map, year: annee });
+                const nom = c => `${c.emoji || "•"} ${c.name}`;
+                const lignes = [
+                    tirés.length ? `**Cooptés cette année**\n${tirés.map(nom).join("\n")}` : "",
+                    parFiliation.length ? `**Entrés par filiation**\n${parFiliation.map(k => `${nom(k)} — enfant de ${k.parentName}`).join("\n")}` : "",
+                ].filter(Boolean).join("\n\n");
+                addLog(`[CERCLE] ${Object.keys(map).length} nouvelles entrées`);
+                if (gs.elite && !gs.eliteFallen && !anyOverlayOpen()) {
+                    setCalAlert({ emoji: "👁️", title: `Les entrées de ${annee}`,
+                        desc: `Une liste circule en début d'année. Aucun nom n'y est commenté, aucune raison n'y est donnée.\n\n${lignes}\n\nTu les retrouveras dans tes contacts, marqués comme les autres.` });
+                }
+            }
+            else {
+                dispatch({ type: "ELITE_RECRUIT", map: {}, year: annee });
+            }
+        }
+        // ── On vient de te monter d'un rang ──
+        // Le cercle ne prévient jamais : on s'en aperçoit en se voyant ouvrir des
+        // portes qui étaient fermées la veille. Le jeu, lui, te le dit.
+        if (phase === "game" && !ending && gs.elite && !gs.eliteFallen) {
+            const lvl = eliteRank(gs).lvl;
+            if (gs.rankSeen === null || gs.rankSeen === undefined) {
+                // Première ouverture (ou sauvegarde d'avant cette version) : on note le
+                // rang actuel sans rien annoncer rétroactivement.
+                dispatch({ type: "RANK_SEEN", lvl });
+            }
+            else if (lvl > gs.rankSeen) {
+                dispatch({ type: "RANK_SEEN", lvl });
+                if (!anyOverlayOpen()) {
+                    sfx("elite");
+                    addLog(`[CERCLE] Nouveau rang — ${ELITE_RANKS[lvl].name}`);
+                    dispatch({ type: "ADD_TIMELINE", entry: { type: "elite", emoji: ELITE_RANKS[lvl].emoji, title: `Élevé au rang de ${ELITE_RANKS[lvl].name}` } });
+                    setRankUp({ from: gs.rankSeen, to: lvl });
+                }
+            }
+        }
         // ── Les campagnes du cercle : proposition, rappel, échéance ──
         // On ne peut en mener qu'une à la fois. Refuser en coûte une, échouer aussi.
         if (phase === "game" && !ending && !anyOverlayOpen() && !gs.inPrison && gs.elite && !gs.eliteFallen
@@ -17809,7 +18128,14 @@ function FiscoGame() {
             const pool = CIRCLE_OPS.filter(o => !faits.has(o.id) && rank >= o.minRank && (!o.avail || o.avail(gs)));
             // Un an écoulé : la proposition finit toujours par tomber, sans être
             // rivée au même jour chaque année.
-            if (pool.length && Math.random() < 0.6) {
+            // Le dossier Kane passe avant tout le reste : sa carrière se joue en
+            // quelques semaines, on ne le garde pas sous le coude pendant des années.
+            const menees = (gs.circleOpsDone || []).length + (gs.circleOpsFailed || []).length;
+            const urgent = menees < 2 ? pool.filter(o => o.first) : [];
+            if (urgent.length) {
+                setCircleOpOffer(urgent[Math.floor(Math.random() * urgent.length)]);
+            }
+            else if (pool.length && Math.random() < 0.6) {
                 // On privilégie ce qui correspond à ton rang : plus tu montes, plus ce
                 // qu'on te confie est sale. Les campagnes d'entrée de gamme finissent
                 // par ne plus t'être proposées du tout.
@@ -17844,6 +18170,8 @@ function FiscoGame() {
                         if (def.after) {
                             if (def.after.mental)
                                 dispatch({ type: "MENTAL", deltas: def.after.mental });
+                            if (def.after.boycott)
+                                dispatch({ type: "SET_BOYCOTT", value: true });
                             if (def.after.addiction && !(gs.addictions || []).length && Math.random() < 0.55) {
                                 const a = ADDICTIONS[Math.floor(Math.random() * ADDICTIONS.length)];
                                 dispatch({ type: "ADD_ADDICTION", add: a });
@@ -19612,6 +19940,9 @@ function FiscoGame() {
     const [mentalModal, setMentalModal] = (0, react_1.useState)(false);
     const [postStreamModal, setPostStreamModal] = (0, react_1.useState)(false);
     const [eliteOffer, setEliteOffer] = (0, react_1.useState)(false);
+    const [movieCastZone, setMovieCastZone] = (0, react_1.useState)("all"); // 🎬 / 🇫🇷 / 🇺🇸
+    const [seriesCastZone, setSeriesCastZone] = (0, react_1.useState)("all");
+    const [rankUp, setRankUp] = (0, react_1.useState)(null); // montée en rang
     const [circleOpOffer, setCircleOpOffer] = (0, react_1.useState)(null); // campagne proposée
     const [circleOpModal, setCircleOpModal] = (0, react_1.useState)(false); // suivi de la campagne
     const [opStepModal, setOpStepModal] = (0, react_1.useState)(null); // étape à jouer
@@ -24185,6 +24516,68 @@ function FiscoGame() {
                     Math.round(resistOdds(gs) * 100),
                     "% DE CHANCES"),
                 react_1.default.createElement("button", { onClick: () => { setResistanceOffer(false); dispatch({ type: "DECLINE_RESISTANCE" }); toast("Tu refuses pour l'instant. Ils reviendront.", "#888"); }, style: { padding: "12px", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.15)", color: "rgba(255,255,255,.6)", borderRadius: 9, fontFamily: "'Bebas Neue',cursive", fontSize: 14, letterSpacing: 2, cursor: "pointer" } }, "REFUSER \u2014 VIVRE EN PAIX"))))) : null;
+    // ── Écran de promotion : ce que tu gagnes, et ce qu'il reste à faire ──
+    const RankUpOv = rankUp ? (() => {
+        const r = ELITE_RANKS[rankUp.to], nx = ELITE_RANKS.find(x => x.lvl === rankUp.to + 1 && x.lvl < 5) || null;
+        const q = nx ? rankRequirements(gs, nx) : null;
+        const lignes = nx ? [
+            ["🤝 Services rendus", `${q.service.have}/${q.service.need}`, q.service.ok],
+            ...(nx.years ? [["📅 Ancienneté", `${q.years.have} / ${q.years.need} ans`, q.years.ok]] : []),
+            ...(nx.wealth ? [["💰 Fortune", `${fmtMoney(Math.max(0, q.wealth.have))} / ${fmtMoney(q.wealth.need)}`, q.wealth.ok]] : []),
+            ...(nx.sacrifice ? [["🕯️ Sacrifices", `${q.sacrifice.have}/${q.sacrifice.need} consentis`, q.sacrifice.ok]] : []),
+        ] : [];
+        return (react_1.default.createElement("div", { className: "overlay-anim", style: { position: "fixed", inset: 0, zIndex: 286, background: "rgba(0,0,0,.96)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", overflowY: "auto" } },
+            react_1.default.createElement("div", { className: "modal-anim", style: { maxWidth: 390, width: "100%", maxHeight: "92vh", overflowY: "auto", margin: "auto", background: "linear-gradient(150deg,#08080c,#1a1508 55%,#08080c)", border: "1px solid rgba(212,175,55,.6)", borderRadius: 14, padding: "24px 18px" } },
+                react_1.default.createElement("div", { style: { textAlign: "center", marginBottom: 14 } },
+                    react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(212,175,55,.75)", letterSpacing: 5, fontFamily: "'Space Mono',monospace" } }, "LE CERCLE T'A \u00C9LEV\u00C9"),
+                    react_1.default.createElement("div", { style: { fontSize: 54, margin: "8px 0 2px", filter: "drop-shadow(0 0 26px rgba(212,175,55,.55))" } }, r.emoji),
+                    react_1.default.createElement("div", { style: { fontFamily: "'Bebas Neue',cursive", fontSize: 26, color: "#d4af37", letterSpacing: 2 } }, r.name.toUpperCase()),
+                    react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(255,255,255,.35)", fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums", marginTop: 3 } },
+                        ELITE_RANKS[rankUp.from].emoji,
+                        " ",
+                        ELITE_RANKS[rankUp.from].name,
+                        " \u2192 ",
+                        r.emoji,
+                        " ",
+                        r.name,
+                        " \u00B7 rang ",
+                        r.lvl,
+                        "/4")),
+                react_1.default.createElement("div", { style: { fontSize: 12.5, color: "rgba(255,255,255,.75)", lineHeight: 1.65, marginBottom: 14, fontStyle: "italic", textAlign: "center" } },
+                    "\u00AB ",
+                    r.desc,
+                    " \u00BB"),
+                react_1.default.createElement("div", { style: { background: "rgba(105,255,138,.05)", border: "1px solid rgba(105,255,138,.28)", borderRadius: 10, padding: 12, marginBottom: 10 } },
+                    react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(105,255,138,.8)", letterSpacing: 2, fontFamily: "'Space Mono',monospace", marginBottom: 7 } }, "CE QUE \u00C7A T'APPORTE"),
+                    react_1.default.createElement("div", { style: { fontSize: 11.5, color: "rgba(255,255,255,.78)", lineHeight: 1.6, marginBottom: 8 } }, r.perk),
+                    [
+                        ["🏛️ Impôts", `${Math.round(r.taxCut * 100)}% de ce que paient les autres`],
+                        ["⚖️ Poids face à la justice", `${r.justice}`],
+                        ["⭐ Célébrité amplifiée", `×${Math.min(1.6, r.fameMult).toFixed(2)}`],
+                        ["🛡️ Atteintes à ta réputation", `amorties à ${Math.round((1 - Math.max(0.45, r.repShield)) * 100)}%`],
+                    ].map((x, i) => (react_1.default.createElement("div", { key: i, style: { display: "flex", justifyContent: "space-between", fontSize: 10.5, marginBottom: 3 } },
+                        react_1.default.createElement("span", { style: { color: "rgba(255,255,255,.5)" } }, x[0]),
+                        react_1.default.createElement("span", { style: { color: "#69ff8a", fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums" } }, x[1]))))),
+                nx ? (react_1.default.createElement("div", { style: { background: "rgba(212,175,55,.06)", border: "1px solid rgba(212,175,55,.3)", borderRadius: 10, padding: 12, marginBottom: 14 } },
+                    react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(212,175,55,.8)", letterSpacing: 2, fontFamily: "'Space Mono',monospace", marginBottom: 7 } },
+                        "POUR ATTEINDRE ",
+                        nx.emoji,
+                        " ",
+                        nx.name.toUpperCase()),
+                    lignes.map((x, i) => (react_1.default.createElement("div", { key: i, style: { display: "flex", justifyContent: "space-between", fontSize: 10.5, marginBottom: 4 } },
+                        react_1.default.createElement("span", { style: { color: x[2] ? "rgba(105,255,138,.8)" : "rgba(255,255,255,.55)" } }, x[0]),
+                        react_1.default.createElement("span", { style: { color: x[2] ? "#69ff8a" : "rgba(255,255,255,.45)", fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums" } },
+                            x[1],
+                            x[2] ? " ✓" : "")))),
+                    react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(255,255,255,.4)", marginTop: 7, lineHeight: 1.5, fontStyle: "italic" } }, nx.sacrifice
+                        ? "À partir d'ici, le travail ne suffit plus. On te demandera quelque chose qu'on ne te décrira jamais à l'avance."
+                        : "Tu monteras automatiquement dès que toutes ces conditions seront réunies. Il n'y a rien à demander."))) : (react_1.default.createElement("div", { style: { background: "rgba(212,175,55,.06)", border: "1px solid rgba(212,175,55,.3)", borderRadius: 10, padding: 12, marginBottom: 14, fontSize: 11.5, color: "rgba(255,255,255,.7)", lineHeight: 1.6 } },
+                    "Tu as atteint le plus haut rang accessible. Au-dessus, il n'y a que les Architectes \u2014 et on n'y entre pas, on y na\u00EEt.",
+                    react_1.default.createElement("br", null),
+                    react_1.default.createElement("br", null),
+                    react_1.default.createElement("span", { style: { color: "#ff8b8b" } }, "\u00C0 ce niveau, la moindre erreur devient fatale."))),
+                react_1.default.createElement("button", { onClick: () => { sfx("click"); setRankUp(null); }, style: { width: "100%", padding: "13px", background: "linear-gradient(135deg,rgba(212,175,55,.3),rgba(140,110,30,.24))", border: "1px solid rgba(212,175,55,.55)", color: "#d4af37", borderRadius: 9, fontFamily: "'Bebas Neue',cursive", fontSize: 16, letterSpacing: 2.5, cursor: "pointer" } }, "COMPRIS"))));
+    })() : null;
     const CircleOpOfferOv = circleOpOffer ? (react_1.default.createElement("div", { className: "overlay-anim", style: { position: "fixed", inset: 0, zIndex: 283, background: "rgba(0,0,0,.96)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", overflowY: "auto" } },
         react_1.default.createElement("div", { className: "modal-anim", style: { maxWidth: 400, width: "100%", maxHeight: "92vh", overflowY: "auto", margin: "auto", background: "linear-gradient(150deg,#08080c,#161206 60%,#08080c)", border: "1px solid rgba(212,175,55,.5)", borderRadius: 14, padding: "22px 17px" } },
             react_1.default.createElement("div", { style: { textAlign: "center", marginBottom: 12 } },
@@ -25578,7 +25971,15 @@ function FiscoGame() {
                                 react_1.default.createElement("button", { onClick: () => setSeriesPick(p => ({ ...p, cast: p.cast.filter(x => x.id !== c.id) })), style: { background: "none", border: "none", color: "rgba(255,100,100,.6)", cursor: "pointer", fontSize: 13 } }, "\u2715"))),
                         react_1.default.createElement("input", { value: c.characterName || "", onChange: e => setSeriesPick(p => ({ ...p, cast: p.cast.map(x => x.id === c.id ? { ...x, characterName: e.target.value } : x) })), placeholder: "Nom du personnage (vide = joue son propre r\u00F4le)", style: { ...inputStyle, fontSize: 10, padding: "6px 8px" } })));
                 }))),
-                seriesPick.cast.length < seriesPick.platform.capRoles && (react_1.default.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14, maxHeight: 150, overflowY: "auto" } }, sortPeople(getActingPool(seriesCastFilter.trim().length > 0, gs.newCast, gs).filter(c => c.name.toLowerCase().includes(seriesCastFilter.toLowerCase()) && !seriesPick.cast.some(x => x.id === c.id)), gs, "cast").slice(0, 80).map(c => (react_1.default.createElement("button", { key: c.id, onClick: () => setSeriesPick(p => ({ ...p, cast: [...p.cast, { id: c.id, role: "support", characterName: "" }] })), style: { padding: "5px 9px", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", color: "rgba(255,255,255,.6)", borderRadius: 20, fontSize: 10, cursor: "pointer" } },
+                seriesPick.cast.length < seriesPick.platform.capRoles && (react_1.default.createElement("div", { style: { display: "flex", gap: 5, marginBottom: 7 } }, CAST_ZONES.map(z => (react_1.default.createElement("button", { key: z.id, onClick: () => setSeriesCastZone(z.id), style: { flex: 1, padding: "6px 4px",
+                        background: seriesCastZone === z.id ? "rgba(77,208,225,.18)" : "rgba(255,255,255,.035)",
+                        border: seriesCastZone === z.id ? "1px solid rgba(77,208,225,.45)" : "1px solid rgba(255,255,255,.1)",
+                        color: seriesCastZone === z.id ? "#4dd0e1" : "rgba(255,255,255,.45)",
+                        borderRadius: 7, fontSize: 10, cursor: "pointer", fontFamily: "'Space Mono',monospace" } },
+                    z.emoji,
+                    " ",
+                    z.label))))),
+                seriesPick.cast.length < seriesPick.platform.capRoles && (react_1.default.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14, maxHeight: 150, overflowY: "auto" } }, sortPeople(getActingPool(seriesCastFilter.trim().length > 0, gs.newCast, gs).filter(c => c.name.toLowerCase().includes(seriesCastFilter.toLowerCase()) && !seriesPick.cast.some(x => x.id === c.id) && (seriesCastZone === "all" || actorZone(c) === seriesCastZone)), gs, "cast").slice(0, 80).map(c => (react_1.default.createElement("button", { key: c.id, onClick: () => setSeriesPick(p => ({ ...p, cast: [...p.cast, { id: c.id, role: "support", characterName: "" }] })), style: { padding: "5px 9px", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", color: "rgba(255,255,255,.6)", borderRadius: 20, fontSize: 10, cursor: "pointer" } },
                     c.emoji,
                     " ",
                     c.name,
@@ -25670,7 +26071,15 @@ function FiscoGame() {
                                 react_1.default.createElement("button", { onClick: () => setMoviePick(p => ({ ...p, cast: p.cast.filter(x => x.id !== c.id) })), style: { background: "none", border: "none", color: "rgba(255,100,100,.6)", cursor: "pointer", fontSize: 13 } }, "\u2715"))),
                         react_1.default.createElement("input", { value: c.characterName || "", onChange: e => setMoviePick(p => ({ ...p, cast: p.cast.map(x => x.id === c.id ? { ...x, characterName: e.target.value } : x) })), placeholder: `Nom du personnage (vide = joue son propre rôle)`, style: { ...inputStyle, fontSize: 10, padding: "6px 8px" } })));
                 }))),
-                moviePick.cast.length < moviePick.budget.capRoles && (react_1.default.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14, maxHeight: 160, overflowY: "auto" } }, sortPeople(getActingPool(movieCastFilter.trim().length > 0, gs.newCast, gs).filter(c => c.name.toLowerCase().includes(movieCastFilter.toLowerCase()) && !moviePick.cast.some(x => x.id === c.id)), gs, "cast").slice(0, 80).map(c => (react_1.default.createElement("button", { key: c.id, onClick: () => setMoviePick(p => ({ ...p, cast: [...p.cast, { id: c.id, role: "support", characterName: "" }] })), style: { padding: "5px 9px", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", color: "rgba(255,255,255,.6)", borderRadius: 20, fontSize: 10, cursor: "pointer" } },
+                moviePick.cast.length < moviePick.budget.capRoles && (react_1.default.createElement("div", { style: { display: "flex", gap: 5, marginBottom: 7 } }, CAST_ZONES.map(z => (react_1.default.createElement("button", { key: z.id, onClick: () => setMovieCastZone(z.id), style: { flex: 1, padding: "6px 4px",
+                        background: movieCastZone === z.id ? "rgba(77,208,225,.18)" : "rgba(255,255,255,.035)",
+                        border: movieCastZone === z.id ? "1px solid rgba(77,208,225,.45)" : "1px solid rgba(255,255,255,.1)",
+                        color: movieCastZone === z.id ? "#4dd0e1" : "rgba(255,255,255,.45)",
+                        borderRadius: 7, fontSize: 10, cursor: "pointer", fontFamily: "'Space Mono',monospace" } },
+                    z.emoji,
+                    " ",
+                    z.label))))),
+                moviePick.cast.length < moviePick.budget.capRoles && (react_1.default.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 14, maxHeight: 160, overflowY: "auto" } }, sortPeople(getActingPool(movieCastFilter.trim().length > 0, gs.newCast, gs).filter(c => c.name.toLowerCase().includes(movieCastFilter.toLowerCase()) && !moviePick.cast.some(x => x.id === c.id) && (movieCastZone === "all" || actorZone(c) === movieCastZone)), gs, "cast").slice(0, 80).map(c => (react_1.default.createElement("button", { key: c.id, onClick: () => setMoviePick(p => ({ ...p, cast: [...p.cast, { id: c.id, role: "support", characterName: "" }] })), style: { padding: "5px 9px", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)", color: "rgba(255,255,255,.6)", borderRadius: 20, fontSize: 10, cursor: "pointer" } },
                     c.emoji,
                     " ",
                     c.name,
@@ -27847,6 +28256,7 @@ function FiscoGame() {
             InfoPanel),
         CreatorOv,
         EventOv,
+        RankUpOv,
         CircleOpOfferOv,
         CircleOpOv,
         OpStepOv,
