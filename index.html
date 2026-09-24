@@ -8578,6 +8578,613 @@ const OBJECTIVE_POOL = [
 ];
 // ─── BRIEFINGS D'ENTRÉE ─────────────────────────────────────────────────────
 // Ce qu'on t'explique le premier jour, dans un camp comme dans l'autre.
+// ─── LES CAMPAGNES DU CERCLE ────────────────────────────────────────────────
+// Des opérations longues — trois à quatre mois — en plusieurs étapes que tu dois
+// accomplir toi-même dans le jeu. Rien n'est automatique : tant qu'une étape
+// n'est pas réellement faite, elle reste ouverte. À l'échéance, une campagne
+// inachevée compte comme un faux pas.
+// Deux natures d'étapes :
+//   auto(gs,op) → le jeu vérifie ton état de partie (un titre sorti, un joueur
+//                 signé, une collection lancée…). Tu la remplis en jouant.
+//   act         → une action qui n'existe que dans la campagne : un plateau
+//                 télé avec une réplique imposée, un rapport à transmettre.
+function normTxt(s) { return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim(); }
+// Les titres sortis depuis le début de la campagne
+function opTracks(gs, op) {
+    return (gs.discography || []).filter(d => (d.releaseDate || 0) >= op.startedAt)
+        .flatMap(d => (d.trackBreakdown || []).map(t => ({ ...t, project: d })));
+}
+function opTrackNamed(gs, op, titre) {
+    const cible = normTxt(titre);
+    return opTracks(gs, op).find(t => normTxt(t.title) === cible) || null;
+}
+const CIRCLE_OPS = [
+    { id: "co_scandale", emoji: "🔥", title: "Le scandale de l'année", months: 4, minRank: 0, service: 3,
+        tag: "Occuper toute la place médiatique pendant qu'un texte passe ailleurs.",
+        brief: "Un texte doit être voté en France : l'identité numérique obligatoire. Le calendrier parlementaire est prêt, les rapporteurs sont acquis, et il ne manque qu'une chose — que personne ne regarde ce jour-là.\n\nC'est là que tu interviens. On ne te demande pas de défendre la loi. On te demande d'être, pendant quatre mois, le sujet de toutes les conversations en France. Peu importe ce qu'on dit de toi, du moment qu'on parle de toi.\n\nOn a même choisi le titre du morceau.",
+        steps: [
+            { id: "sc1", emoji: "🎵", label: "Sortir un titre intitulé « Pas Vos Papiers »",
+                how: "Va dans Musique, crée un single ou place un morceau portant exactement ce titre sur un projet, et sors-le.",
+                auto: (gs, op) => !!opTrackNamed(gs, op, "Pas Vos Papiers") },
+            { id: "sc2", emoji: "💥", label: "Publier une provocation sur X",
+                how: "Onglet Réseaux : publie sur X. Le contenu t'appartient, l'important est que ça parte de ton compte.",
+                auto: (gs, op) => (gs.socialFeed || []).some(x => x.platform === "twitter" && (x.date || 0) >= op.startedAt) },
+            { id: "sc3", emoji: "📺", label: "Passer au JT de TF1 et tenir la ligne",
+                how: "Le cercle a écrit ta réponse. Tu la diras mot pour mot, ou tu ne la diras pas.",
+                act: { btn: "🎬 Enregistrer le plateau",
+                    question: "« Certains vous accusent d'attiser la haine. Que répondez-vous aux Français que votre morceau choque ? »",
+                    script: "Je ne demande à personne de m'aimer. Je demande qu'on me laisse dire ce que je pense, et qu'on laisse les autres penser le contraire.",
+                    options: [
+                        { id: "mot", label: "Réciter la réponse mot pour mot", ok: true,
+                            effects: { rep: -14, fame: +9, stress: +18 },
+                            out: "Tu la dis exactement comme elle est écrite, sans une virgule de trop. Le plateau se fige une seconde, puis l'extrait part. Deux millions de vues avant minuit, et trois jours de débat national." },
+                        { id: "adouci", label: "L'adoucir, avec tes propres mots", ok: false, partial: true,
+                            effects: { rep: -4, fame: +3, stress: +10 },
+                            out: "Tu gardes l'idée mais tu arrondis les angles. Ça passe bien. Beaucoup trop bien : personne ne s'énerve, personne ne partage, et le lendemain le sujet est mort.\n\nLe cercle attendait un incendie. Tu as allumé une bougie." },
+                        { id: "refus", label: "Refuser de dire ça à l'antenne", ok: false,
+                            effects: { rep: +8, stress: +26 },
+                            out: "Tu poses le papier sur la table et tu réponds ce que tu penses vraiment. Le journaliste apprécie. Ton attaché de presse blêmit.\n\nÀ Paris, quelqu'un raccroche sans rien dire." }
+                    ] } },
+            { id: "sc4", emoji: "📨", label: "Transmettre la revue de presse au cercle",
+                how: "Une fois le bruit installé, on veut les chiffres : audiences, retombées, volume de conversations.",
+                act: { btn: "📨 Transmettre le dossier", effects: { stress: +8 },
+                    out: "Tu envoies quatre-vingts pages que tu n'as pas lues, compilées par une agence que tu n'as pas choisie. Accusé de réception, rien d'autre." } },
+        ],
+        // Le morceau ne doit pas devenir un hit : on veut du bruit, pas un succès
+        penalty: (gs, op) => {
+            const t = opTrackNamed(gs, op, "Pas Vos Papiers");
+            return (t && (t.streams || 0) > 400000000) ? "Le morceau a marché. Beaucoup trop. Les gens se sont mis à l'écouter au lieu de s'en indigner, et le débat s'est déplacé sur la musique. Le cercle voulait une polémique, pas un tube." : null;
+        },
+        win: "La loi est passée un mardi matin, en quinze minutes, dans un hémicycle à moitié vide. Aucun journal ne l'a mise en une : ils étaient tous sur toi.\n\nPersonne ne fera jamais le lien. C'était précisément l'objectif.",
+        lose: "Le calendrier a glissé, le texte est reparti en commission, et quelqu'un a eu le temps de le lire. Ce n'était pas censé arriver.",
+        reward: { money: 120000000, fame: +6 } },
+    { id: "co_tournee", emoji: "🌍", title: "La tournée mondiale", months: 4, minRank: 1, service: 4,
+        tag: "Mesurer, salle après salle, ce qu'un public accepte d'avaler.",
+        brief: "Quatre-vingts dates. Quatre versions du show, distribuées par zone : paroles modifiées, symboles ajoutés, mise en scène retravaillée, messages diffusés sur les écrans entre deux morceaux.\n\nOn ne te demande pas d'y croire. On te demande de les jouer, et de faire remonter ce que tu observes — où ça passe, où ça bloque, où le public reprend en chœur sans avoir compris ce qu'il chante.\n\nCe que tu appelles une tournée, eux l'appellent un protocole.",
+        steps: [
+            { id: "tr1", emoji: "🎤", label: "Lancer une tournée d'au moins 20 dates",
+                how: "Onglet Musique → Tournée détaillée. Compose une tournée d'au moins vingt villes et pars.",
+                auto: (gs, op) => (gs.detailedTour && (gs.detailedTour.cities || []).length >= 20 && (gs.detailedTour.startDate || 0) >= op.startedAt)
+                    || (gs.tourHistory || []).some(t => (t.date || 0) >= op.startedAt && (t.dates || 0) >= 20) },
+            { id: "tr2", emoji: "🧪", label: "Jouer les quatre versions du show",
+                how: "Chaque version modifie un élément. Tu les testes au fil des dates, sans rien annoncer.",
+                act: { btn: "🧪 Appliquer les quatre versions", effects: { stress: +16, energy: -14, rep: -5 },
+                    out: "Version A : deux mots changés dans le troisième couplet. Version B : un symbole projeté pendant l'intro, jamais expliqué. Version C : un message de huit secondes entre deux titres. Version D : les trois à la fois.\n\nPersonne n'a rien remarqué. C'est la donnée la plus intéressante du protocole." } },
+            { id: "tr3", emoji: "📊", label: "Transmettre les relevés de réaction",
+                how: "Ton équipe filme les salles, compte les reprises en chœur, mesure les silences.",
+                act: { btn: "📊 Envoyer les relevés", effects: { stress: +12 },
+                    out: "Le rapport fait cent quarante pages. Les zones sont classées par « perméabilité ». La tienne y figure aussi — on ne te l'a pas caché, et c'est peut-être le plus troublant." } },
+        ],
+        win: "Le protocole est bouclé. Quelque part, une carte du monde se colore en quatre teintes, et des décisions qui n'ont rien à voir avec la musique s'appuieront dessus pendant dix ans.\n\nTu as rempli quatre-vingts salles de gens heureux. Tu es le seul à savoir ce que tu leur as fait chanter.",
+        lose: "La tournée n'est pas allée au bout, les relevés sont inexploitables, et le protocole devra être repris de zéro avec quelqu'un d'autre.",
+        reward: { money: 180000000, fame: +8 } },
+    { id: "co_unuhu", emoji: "🏷️", title: "L'opération UNUHU", months: 4, minRank: 1, service: 4,
+        avail: gs => !(gs.soldBusinesses || {}).unuhu,
+        tag: "Fabriquer une vague musicale, et la faire passer pour une génération.",
+        brief: "On ne te demande pas de signer des mauvais artistes. On te demande de signer les bons — et de leur faire écrire ce qu'on veut entendre.\n\nTrois noms à fort potentiel, un son, un imaginaire : l'argent facile, le statut, les bouteilles, la nuit qui ne finit jamais. TikTok fera le reste, les clubs suivront, les radios aussi.\n\nEt quand on te posera la question, tu répondras que c'est simplement ce que la jeunesse écoute en ce moment.",
+        steps: [
+            { id: "un1", emoji: "✍️", label: "Signer 3 artistes de potentiel 75 ou plus",
+                how: "Onglet Business → UNUHU Records. Signe trois artistes dont le potentiel atteint au moins 75.",
+                auto: (gs, op) => (gs.unuhuRoster || []).filter(a => (a.signedDate || 0) >= op.startedAt && (a.potential || 0) >= 75).length >= 3 },
+            { id: "un2", emoji: "🎚️", label: "Orienter leur direction artistique",
+                how: "Les textes, les clips, l'imagerie : tout passe par toi.",
+                act: { btn: "🎚️ Valider la ligne artistique", effects: { stress: +14, rep: -8 },
+                    out: "Tu valides trois projets en une après-midi. Les trois disent la même chose avec des mots différents, et les trois vont marcher.\n\nUn des artistes te demande si c'est vraiment ce qu'il doit faire. Tu lui réponds que oui." } },
+            { id: "un3", emoji: "🗣️", label: "Présenter la vague comme un fait de société",
+                how: "Une interview, une phrase, et l'affaire est entendue.",
+                act: { btn: "🗣️ Donner ta lecture", effects: { rep: -10, fame: +7, stress: +12 },
+                    out: "« Les gamins n'inventent rien, ils racontent le monde qu'on leur a laissé. »\n\nLa phrase est reprise partout, y compris par ceux qui te critiquent. Elle est parfaite, et ce n'est pas toi qui l'as écrite." } },
+        ],
+        win: "En quatre mois, trois artistes sortis de nulle part occupent les playlists de la moitié d'un continent. Personne ne parle d'une opération : on parle d'une génération.\n\nTon label n'a jamais rapporté autant.",
+        lose: "La vague n'a pas pris. Les artistes ne sont pas signés, ou le son ne s'est pas imposé, et le créneau s'est refermé.",
+        reward: { money: 200000000, fame: +5, bizAdjust: { unuhu: 140000 } } },
+    { id: "co_miracle", emoji: "🎗️", title: "Le faux miracle", months: 4, minRank: 2, service: 5,
+        avail: gs => !(gs.soldBusinesses || {}).foh0 && !(gs.soldBusinesses || {}).bahasco && !(gs.soldBusinesses || {}).unuhu,
+        tag: "Prêter ton nom, ta célébrité et ta crédibilité à une opération caritative qui n'en est pas une.",
+        brief: "Un programme pour la jeunesse défavorisée française, financé par UNUHU, FOH-0 et Bahasco. Tout est déjà écrit : la structure, les partenaires, les visuels, les chiffres qui seront communiqués.\n\nTon rôle s'arrête à ton nom. Tu n'encaisses rien, tu ne signes aucun virement, tu ne sauras jamais où va l'argent — et c'est exactement pour ça qu'on t'a choisi : personne ne cherchera derrière un homme qui ne gagne rien à l'opération.\n\nUne partie des fonds transitera par des sociétés dont tu n'entendras jamais le nom.",
+        steps: [
+            { id: "mi1", emoji: "👕", label: "Sortir une collection FOH-0",
+                how: "Onglet Business → FOH-0. Lance une collection au profit affiché du programme.",
+                auto: (gs, op) => (gs.foh0Collections || []).some(c => (c.date || 0) >= op.startedAt) },
+            { id: "mi2", emoji: "🍹", label: "Lancer une boisson Bahasco en édition 6 mois",
+                how: "Onglet Business → Bahasco. Choisis bien l'édition limitée de six mois.",
+                auto: (gs, op) => (gs.bahascoDrinks || []).some(x => (x.date || 0) >= op.startedAt && /6/.test(String(x.edition || ""))) },
+            { id: "mi3", emoji: "🎤", label: "Donner un concert caritatif",
+                how: "Un concert entièrement reversé au programme, annoncé comme tel.",
+                act: { btn: "🎤 Monter le concert", effects: { money: -9000000, rep: +16, energy: -20, stress: +10 },
+                    out: "Salle comble, diffusion en direct, et des gens qui pleurent dans le public. Rien de tout ça n'est faux : ils y croient, et toi tu sais." } },
+            { id: "mi4", emoji: "📺", label: "Passer chez The Late Show et tenir la ligne",
+                how: "Le cercle a préparé ta réponse. Mot pour mot.",
+                act: { btn: "🎬 Enregistrer le plateau",
+                    question: "« Where does the money actually go? Walk us through it. »",
+                    script: "Chaque euro va à une structure indépendante, auditée, qui rend des comptes publics. Je n'ai pas accès à ces fonds, et c'est très bien comme ça.",
+                    options: [
+                        { id: "mot", label: "Réciter la réponse mot pour mot", ok: true,
+                            effects: { rep: +12, fame: +8, stress: +22 },
+                            out: "Tu la dis avec la conviction de quelqu'un qui n'a rien à cacher — et tu n'as effectivement rien à cacher, puisqu'on ne t'a rien dit. Le plateau applaudit.\n\nC'est la phrase la plus honnête que tu aies jamais prononcée, et c'est un mensonge." },
+                        { id: "adouci", label: "Rester vague sur les chiffres", ok: false, partial: true,
+                            effects: { rep: +2, stress: +16 },
+                            out: "Tu esquives poliment. Colbert n'insiste pas, mais deux journalistes le remarquent et écrivent dessus la semaine suivante.\n\nOn t'avait donné une réponse blindée. Tu as préféré improviser." },
+                        { id: "refus", label: "Dire que tu ne sais pas où va l'argent", ok: false,
+                            effects: { rep: -6, stress: +34 },
+                            out: "Un silence de trois secondes à l'antenne, une éternité à la télévision. Tu viens de dire la vérité en direct devant plusieurs millions de personnes.\n\nLe lendemain, deux des sociétés partenaires sont dissoutes." }
+                    ] } },
+        ],
+        win: "Le programme est salué, les images tournent, et une ministre te remercie publiquement. Tu n'as pas touché un centime, et c'est vérifiable.\n\nCe qui est arrivé au reste ne te sera jamais expliqué. Tu as appris à ne plus poser la question.",
+        lose: "L'opération n'est pas allée au bout. Les structures montées pour l'occasion se retrouvent exposées, et quelqu'un devra expliquer pourquoi elles existaient.",
+        reward: { money: 0, rep: +10 } },
+    { id: "co_kane", emoji: "⚽", title: "Le transfert impossible", months: 3, minRank: 1, service: 3, avail: kaneAvailable,
+        tag: "Offrir un club — et une reconstruction — à un membre que plus personne ne veut.",
+        brief: "Harry Kane est membre du cercle. Depuis dix jours, une tempête médiatique dont personne ne connaît vraiment l'origine l'entoure, et chaque club européen qui envisageait de le signer s'est retiré en quarante-huit heures. Sa carrière se termine, là, maintenant.\n\nOn t'appelle. Le message tient en une phrase : « Tu possèdes un club. Lui, il a besoin d'un club. »\n\nPersonne ne te cache ce que ça va te coûter. Les supporters des Earthquakes vont protester, la presse va t'attaquer, et une partie du public ne te regardera plus pareil. C'est le prix d'un service rendu à quelqu'un qui s'en souviendra.",
+        steps: [
+            { id: "ka1", emoji: "✍️", label: "Signer Harry Kane aux San Jose Earthquakes",
+                how: "Onglet Business → San Jose → Marché des transferts. Il est disponible, et personne ne te le disputera.",
+                auto: (gs) => (gs.sanJoseSquad || []).some(j => normTxt(j.name) === "harry kane") },
+            { id: "ka2", emoji: "📢", label: "Assumer le transfert publiquement",
+                how: "Une conférence de presse, sans détour et sans conseiller en communication.",
+                act: { btn: "📢 Prendre la parole", effects: { rep: -18, fame: +6, stress: +24 },
+                    out: "Tu montes seul au pupitre. Tu ne défends pas ce qu'on lui reproche : tu défends l'idée qu'un homme puisse encore travailler.\n\nLa salle n'est pas convaincue. Une banderole apparaît au stade le week-end suivant, et elle te vise nommément." } },
+            { id: "ka3", emoji: "🛡️", label: "Tenir bon jusqu'à ce que le terrain parle",
+                how: "Ne rien lâcher pendant que ça hurle, et le laisser jouer.",
+                act: { btn: "🛡️ Tenir", effects: { stress: +20, rep: -6 },
+                    out: "Six semaines de sifflets, de tribunes à moitié vides et d'éditos assassins. Tu ne réponds à rien.\n\nPuis il marque. Puis il remarque. Puis il devient le meilleur joueur que ce club ait jamais aligné, et les mêmes tribunes se lèvent pour lui." } },
+        ],
+        win: "Kane est indispensable, le club joue le titre, et le public a pardonné — d'abord à lui, ensuite à toi. La presse a changé d'angle sans jamais s'excuser.\n\nEt quelque part, un membre du cercle sait précisément ce qu'il te doit.",
+        lose: "Le transfert ne s'est pas fait. Sa carrière s'arrête, et on n'oubliera pas qui pouvait l'en empêcher.",
+        reward: { money: 0, rep: +8, fame: +5 } },
+    { id: "co_heritier", emoji: "🎬", title: "Fabriquer une célébrité", months: 3, minRank: 1, service: 3,
+        tag: "Transformer Milo Ravenne, parfait inconnu, en nom connu de tous — en quatre-vingt-dix jours.",
+        brief: "On te confie quelqu'un : **Milo Ravenne**, vingt-deux ans, Paris. Aucun talent particulier, aucune histoire, aucun public. Un visage, une allure, et un nom de famille qu'on ne t'expliquera pas.\n\nEn trois mois, il doit être connu. Pas respecté, pas admiré : connu. Le cercle veut mesurer ce qu'il faut exactement de relais, d'argent et de mise en scène pour fabriquer une notoriété à partir de rien.\n\nSi ça marche, ce sera la démonstration que plus personne n'a besoin d'être bon. Et Milo restera là, dans ton entourage, pour te le rappeler.",
+        protege: true,
+        steps: [
+            { id: "he1", emoji: "📸", label: "Faire exister Milo sur tes réseaux",
+                how: "Publie au moins trois fois depuis tes comptes pendant la campagne : il apparaîtra sur chacune.",
+                auto: (gs, op) => (gs.socialFeed || []).filter(x => (x.date || 0) >= op.startedAt).length >= 3 },
+            { id: "he2", emoji: "🎬", label: "Le placer dans un de tes clips",
+                how: "Tourne un clip pendant la campagne : il y tiendra un rôle.",
+                auto: (gs, op) => (gs.clipography || []).some(c => (c.date || 0) >= op.startedAt) },
+            { id: "he3", emoji: "🍾", label: "L'imposer dans la nuit",
+                how: "Organise une soirée pendant la campagne : il y sera présenté comme un proche.",
+                auto: (gs, op) => (gs.partyHistory || []).some(x => (x.date || 0) >= op.startedAt && !x.invited) },
+            { id: "he4", emoji: "📈", label: "Livrer la mesure au cercle",
+                how: "Reach, sentiment, taux de reconnaissance en rue.",
+                act: { btn: "📈 Transmettre la mesure", effects: { stress: +12, rep: -8 },
+                    out: "Quatre-vingt-dix jours, et Milo est reconnu dans la rue. Le rapport conclut par une phrase que tu relis deux fois : « Coût inférieur aux projections. Reproductible. »" } },
+        ],
+        win: "Milo Ravenne est célèbre. Il ne sait toujours rien faire, et ça n'a plus aucune importance : il est invité partout, cité partout, copié partout.\n\nTu as mis quinze ans à te faire un nom. Lui a mis trois mois, et tu as tenu le stylo. Il figure désormais dans tes contacts, et il ne partira plus.",
+        lose: "L'expérience n'a pas abouti. Milo retourne d'où il vient, et on cherchera un autre parrain. Il ne te rappellera jamais — mais il n'oubliera pas.",
+        reward: { money: 90000000 } },
+    // ═══ CAMPAGNES FRANÇAISES ═══
+    // Fisco est un emblème national là-bas. C'est exactement pour ça qu'on
+    // l'utilise — et ces campagnes-là sont les plus sales.
+    { id: "co_drapeau", emoji: "🇫🇷", title: "L'enfant du pays", months: 4, minRank: 1, service: 4, fr: true,
+        tag: "Se laisser transformer en symbole national, et savoir précisément à quoi ce symbole va servir.",
+        brief: "Tu es, en France, quelque chose que l'argent n'achète pas : un gamin abandonné dans une forêt de l'Ain, devenu le plus grand. Ton histoire est enseignée dans les écoles de la République sans que personne ne t'ait demandé ton avis.\n\nLe cercle veut cette histoire. Pas ta musique — ton histoire. Une commémoration, une décoration, une phrase, et six mois plus tard on fera passer sous ton visage des choses que tu n'aurais jamais signées.\n\nOn ne te demande pas de mentir. On te demande de te taire, en grand, et de sourire au bon moment.",
+        steps: [
+            { id: "dr1", emoji: "🎖️", label: "Accepter la décoration",
+                how: "Une cérémonie officielle, un ruban, des photographes, et tout un pays qui te regarde.",
+                act: { btn: "🎖️ Accepter la distinction", effects: { rep: +18, fame: +7, stress: +16 },
+                    out: "On te remet ça dans une cour d'honneur, devant deux cents personnes et onze caméras. Ta mère adoptive n'existe pas, ton père non plus, et tout le monde pleure quand même.\n\nLe soir, un homme que tu n'avais jamais vu te glisse : « Vous venez de nous rendre un immense service. » Tu n'as pourtant rien fait d'autre que d'être là." } },
+            { id: "dr2", emoji: "🎤", label: "Jouer pour la commémoration",
+                how: "Une date en France pendant la campagne — un concert, une tournée, peu importe, mais chez toi.",
+                auto: (gs, op) => (gs.tourHistory || []).some(t => (t.date || 0) >= op.startedAt && (t.region === "France" || t.region === "Europe"))
+                    || (gs.detailedTour && (gs.detailedTour.startDate || 0) >= op.startedAt && (gs.detailedTour.cities || []).some(c => c.zone === "FR")) },
+            { id: "dr3", emoji: "🗣️", label: "Prononcer la phrase",
+                how: "Quatorze mots, écrits ailleurs, qui seront repris pendant dix ans.",
+                act: { btn: "🎬 Monter à la tribune",
+                    question: "« Qu'est-ce que la France vous a donné, à vous qu'elle avait laissé dehors ? »",
+                    script: "Ce pays m'a ramassé quand je n'étais rien. Je ne lui demanderai jamais de comptes.",
+                    options: [
+                        { id: "mot", label: "Prononcer la phrase, mot pour mot", ok: true,
+                            effects: { rep: +20, fame: +9, stress: +28 },
+                            out: "Tu la dis, et la cour se lève. La phrase fait la une de six quotidiens le lendemain, la couverture d'un magazine la semaine suivante, et un slogan de campagne l'année d'après.\n\nElle est belle. Elle est fausse. Ce pays ne t'a pas ramassé : tu t'es relevé seul, et tu le sais mieux que personne." },
+                        { id: "vrai", label: "Dire ce qui s'est vraiment passé dans cette forêt", ok: false,
+                            effects: { rep: -12, stress: +40 },
+                            out: "Tu parles de l'hiver, de la faim, des services qui ne sont jamais venus, et du fait que personne n'a rien demandé pendant des années.\n\nLa salle se fige. La retransmission coupe au bout de quarante secondes. Ce que tu viens de dire est vrai, vérifiable, et parfaitement inutilisable pour eux." },
+                        { id: "esquive", label: "Remercier poliment et descendre", ok: false, partial: true,
+                            effects: { rep: +4, stress: +18 },
+                            out: "Tu dis merci, tu souris, tu descends. Personne ne peut te le reprocher, et personne ne s'en souviendra non plus.\n\nOn t'avait donné quatorze mots. Tu en as dit trois." }
+                    ] } },
+        ],
+        win: "Six mois plus tard, ton visage apparaît sur une campagne d'affichage que tu n'as jamais validée, avec ta phrase en dessous. Ton avocate te dit qu'on ne peut rien faire : tu l'as prononcée en public, dans une cour d'honneur, devant l'État.\n\nDeux textes passent dans la foulée. Personne ne les lit. Tout le monde a vu l'affiche.",
+        lose: "Le symbole n'a pas pris. On te remercie froidement, et ce qu'on devait faire passer devra l'être autrement — plus cher, plus visible, plus risqué.",
+        reward: { money: 140000000, fame: +5 } },
+    { id: "co_clash", emoji: "🥊", title: "Le clash qu'on a écrit pour toi", months: 3, minRank: 0, service: 3, fr: true,
+        tag: "Déclencher, à la date exacte qu'on t'impose, une guerre que tu n'as pas choisie.",
+        brief: "Le rap français occupe une place qu'aucun autre sujet n'occupe : quand deux grands noms s'affrontent, la France entière regarde ailleurs pendant trois semaines.\n\nLe cercle a besoin de ces trois semaines. Pas de toi, pas de ta musique : de ces trois semaines-là, précisément, et de rien d'autre.\n\nOn t'a choisi la cible, on t'a écrit l'angle, on t'a donné la date. Tu n'auras pas à mentir : tout ce qu'on te fera dire est vrai, sorti du contexte qui le rendait supportable.",
+        steps: [
+            { id: "cl1", emoji: "💥", label: "Ouvrir les hostilités sur X",
+                how: "Onglet Réseaux, un post sur X pendant la campagne. Le reste partira tout seul.",
+                auto: (gs, op) => (gs.socialFeed || []).some(x => x.platform === "twitter" && (x.date || 0) >= op.startedAt) },
+            { id: "cl2", emoji: "🎵", label: "Sortir le morceau « Rien À Te Dire »",
+                how: "Musique → crée un titre portant exactement ce nom et sors-le.",
+                auto: (gs, op) => !!opTrackNamed(gs, op, "Rien A Te Dire") || !!opTrackNamed(gs, op, "Rien À Te Dire") },
+            { id: "cl3", emoji: "🎙️", label: "Entretenir le feu une semaine de plus",
+                how: "Le cercle veut vingt et un jours. Tu en es à quatorze.",
+                act: { btn: "🎙️ Relancer", effects: { rep: -14, fame: +8, stress: +30, energy: -14 },
+                    out: "Tu ressors une vieille histoire que personne n'avait oubliée mais que tout le monde avait eu la décence de laisser tranquille.\n\nÇa tient sept jours de plus. Sa maison de disques annule une sortie, son sponsor se retire, et un communiqué de sa famille demande qu'on arrête.\n\nOn te dit que c'est suffisant. On ne te dit pas pour quoi." } },
+        ],
+        win: "Vingt et un jours de guerre en une. Trois textes sont passés pendant ce temps, deux nominations aussi, et une affaire judiciaire s'est éteinte faute de lecteurs.\n\nToi tu as gagné le clash, et tout le monde te l'accorde. Tu es le seul à savoir que le clash n'était pas le sujet.",
+        lose: "Le clash n'a pas pris, ou pas assez longtemps. L'espace est resté libre, et ce qui devait passer inaperçu a été lu ligne par ligne.",
+        reward: { money: 110000000, fame: +7 } },
+    { id: "co_banlieue", emoji: "🏙️", title: "Le rapport qu'on ne lira pas", months: 4, minRank: 2, service: 5, fr: true,
+        tag: "Occuper l'espace médiatique français pendant qu'un rapport sur les quartiers est enterré.",
+        brief: "Un rapport parlementaire est prêt. Il documente, chiffres à l'appui, ce que valent trente ans de politique de la ville dans les quartiers d'où viennent la moitié de tes auditeurs. Ses conclusions sont mauvaises pour beaucoup de monde.\n\nOn ne peut pas l'empêcher de sortir. On peut, en revanche, faire en sorte que la seule voix qui aurait pu le porter — la tienne — soit occupée ailleurs, à vendre autre chose, ce jour-là.\n\nOn te demande de lancer une opération commerciale massive. Rien de politique, rien de sale. Juste d'être très occupé au mauvais moment.",
+        avail: gs => !(gs.soldBusinesses || {}).foh0,
+        steps: [
+            { id: "bl1", emoji: "👕", label: "Lancer une collection FOH-0",
+                how: "Onglet Business → FOH-0, une collection lancée pendant la campagne.",
+                auto: (gs, op) => (gs.foh0Collections || []).some(c => (c.date || 0) >= op.startedAt) },
+            { id: "bl2", emoji: "📱", label: "Saturer tes réseaux",
+                how: "Au moins quatre publications pendant la campagne, tous réseaux confondus.",
+                auto: (gs, op) => (gs.socialFeed || []).filter(x => (x.date || 0) >= op.startedAt).length >= 4 },
+            { id: "bl3", emoji: "🙈", label: "Ne pas commenter le rapport",
+                how: "On te posera la question. Une seule fois, et en direct.",
+                act: { btn: "🙈 Botter en touche", effects: { rep: -16, stress: +34 },
+                    out: "« Je ne suis pas un homme politique, je fais de la musique. »\n\nLa phrase est nette, honnête en apparence, et elle clôt le sujet. Le rapport sort le lendemain, repris par deux journaux, oublié en quarante-huit heures.\n\nTrois semaines plus tard, un gamin de Vaulx-en-Velin t'écrit un message de onze lignes. Tu le lis en entier. Tu ne réponds pas." } },
+        ],
+        win: "Le rapport est mort. Personne ne l'a censuré, personne ne l'a attaqué : il est simplement sorti un jour où tu occupais tout l'espace, et la France avait autre chose à regarder.\n\nOn te remercie chaleureusement. C'est la première fois que ça te retourne l'estomac.",
+        lose: "Tu n'as pas occupé l'espace. Le rapport a été lu, commenté, repris — et tu as été le premier à qui on a demandé ce qu'il en pensait.",
+        reward: { money: 160000000 },
+        after: { mental: { purpose: -16 } } },
+    // ═══ CAMPAGNES LES PLUS DURES ═══
+    { id: "co_martyr", emoji: "🩸", title: "Livrer quelqu'un", months: 3, minRank: 3, service: 6,
+        tag: "Désigner un artiste de ton label et le laisser être détruit publiquement.",
+        brief: "Il faut un coupable. Pas pour un crime : pour une séquence. Une affaire sérieuse remonte vers des gens que le cercle protège, et il faut que la meute ait quelqu'un d'autre à dévorer pendant qu'on nettoie.\n\nOn te demande de fournir ce quelqu'un. Un artiste de ton label, choisi par toi, dont on sortira des éléments — vrais, sortis de leur contexte — au moment où l'autre affaire deviendra dangereuse.\n\nIl ne sera pas poursuivi. Il sera simplement fini. On te précise qu'il ne faut pas qu'il soit innocent au point que ça se retourne.",
+        avail: gs => !(gs.soldBusinesses || {}).unuhu && (gs.unuhuRoster || []).length >= 1,
+        steps: [
+            { id: "ma1", emoji: "📁", label: "Désigner le nom",
+                how: "Quelqu'un de ton propre label. Le cercle attend un seul nom.",
+                act: { btn: "📁 Transmettre un nom", effects: { stress: +40, rep: -6 },
+                    out: "Tu écris un prénom et un nom sur un papier, dans une pièce où il n'y a personne d'autre que toi. Ça prend quatre secondes.\n\nTu as signé cet artiste il y a des années. Tu étais à son premier concert. Tu connais le nom de sa mère." } },
+            { id: "ma2", emoji: "🤐", label: "Ne pas le défendre",
+                how: "Quand ça sortira, tout le monde regardera ce que tu fais. Il faudra ne rien faire.",
+                act: { btn: "🤐 Rester silencieux", effects: { rep: -20, stress: +38 },
+                    out: "Ça sort un mardi. En trois jours, il perd ses partenaires, ses dates, sa distribution et la moitié de ses écoutes.\n\nIl t'appelle onze fois. Tu regardes ton téléphone sonner, à chaque fois, jusqu'au bout.\n\nÀ la douzième, tu bloques le numéro." } },
+            { id: "ma3", emoji: "✂️", label: "Le sortir du label",
+                how: "La séquence doit se terminer proprement.",
+                act: { btn: "✂️ Rompre le contrat", effects: { rep: -10, stress: +30, bizAdjust: { unuhu: -30000 } },
+                    out: "Le communiqué fait deux phrases. « UNUHU Records met fin, d'un commun accord, à sa collaboration avec l'artiste. » Il n'y a aucun accord et il n'y a rien de commun.\n\nIl ne sortira plus jamais rien. Tu le recroiseras une fois, des années plus tard, dans un aéroport. Il te regardera sans rien dire." } },
+        ],
+        win: "L'autre affaire s'est éteinte sans qu'un seul nom en sorte. La séquence a duré onze jours, elle a consommé un homme, et personne ne fera jamais le rapprochement.\n\nLe cercle t'a monté d'un cran. Tu n'as pas dormi depuis trois semaines.",
+        lose: "Tu n'es pas allé au bout. L'autre affaire a suivi son cours, elle a touché quelqu'un qu'on protégeait, et on sait exactement pourquoi.",
+        reward: { money: 260000000 },
+        after: { mental: { purpose: -28, anxiety: +26 }, addiction: true } },
+    { id: "co_algo", emoji: "📉", title: "Fermer un robinet", months: 4, minRank: 2, service: 5,
+        tag: "Faire disparaître des plateformes une scène entière, sans que personne ne la censure.",
+        brief: "Il y a une scène qui monte. Une centaine d'artistes, aucun label, un discours qui circule et qui commence à coûter de l'argent à des gens qui n'en perdent jamais.\n\nOn ne va rien interdire : c'est salissant, c'est illégal, et ça crée des martyrs. On va simplement occuper toutes les places qu'ils occupaient — playlists, radios, algorithmes — jusqu'à ce qu'ils ne soient plus nulle part.\n\nIl faut pour ça un volume que seul quelqu'un comme toi peut produire. Et une faveur du cercle, que tu devras demander toi-même.",
+        avail: gs => !(gs.soldBusinesses || {}).unuhu,
+        steps: [
+            { id: "al1", emoji: "💿", label: "Inonder : deux projets pendant la campagne",
+                how: "Deux sorties — albums, EP ou singles — pendant la fenêtre.",
+                auto: (gs, op) => (gs.discography || []).filter(d => (d.releaseDate || 0) >= op.startedAt).length >= 2 },
+            { id: "al2", emoji: "🎬", label: "Un clip pour occuper l'espace visuel",
+                how: "Un clip tourné pendant la campagne.",
+                auto: (gs, op) => (gs.clipography || []).some(c => (c.date || 0) >= op.startedAt) },
+            { id: "al3", emoji: "🔌", label: "Verrouiller les plateformes",
+                how: "Le cercle ouvre les portes. Tu n'auras qu'à dire oui.",
+                act: { btn: "🔌 Donner le feu vert", effects: { money: +80000000, rep: -14, stress: +26 },
+                    out: "En six semaines, leurs titres sortent des playlists éditoriales, puis des recommandations, puis des résultats de recherche pour les requêtes générales.\n\nRien n'a été supprimé. Tout est encore en ligne, accessible, parfaitement légal. Simplement, plus personne ne tombe dessus par hasard — et par hasard, c'était comme ça que tout le monde les avait découverts." } },
+        ],
+        win: "La scène existe toujours. Elle joue devant deux cents personnes au lieu de vingt mille, et dans dix-huit mois la moitié de ces artistes auront un vrai travail.\n\nPersonne ne les a censurés. C'est bien le plus terrible.",
+        lose: "Tu n'as pas produit le volume nécessaire. La scène a tenu, elle a grossi, et elle commence à être invitée dans des endroits où on la prend au sérieux.",
+        reward: { money: 180000000, bizAdjust: { unuhu: 90000 } } },
+    // ═══ RANG 0-1 — On te teste ═══
+    { id: "co_marque", emoji: "💼", title: "Le blanchiment d'image", months: 3, minRank: 0, service: 2,
+        tag: "Rendre aimable une entreprise que tout le monde déteste, sans jamais la nommer.",
+        brief: "Un groupe industriel sort d'une affaire qui lui a coûté dix ans de réputation. Il ne cherche pas à se défendre : il cherche à disparaître derrière autre chose.\n\nCe sera toi. Une collection, une boisson, une campagne — rien ne portera son nom, et pourtant tout sera financé par lui. Dans deux ans, les études d'image montreront un redressement que personne ne saura expliquer.\n\nTu ne mens pas. Tu vends ce que tu vends d'habitude. C'est précisément la beauté du dispositif.",
+        avail: gs => !(gs.soldBusinesses || {}).foh0 && !(gs.soldBusinesses || {}).bahasco,
+        steps: [
+            { id: "mq1", emoji: "👕", label: "Lancer une collection FOH-0",
+                how: "Onglet Business → FOH-0, pendant la campagne.",
+                auto: (gs, op) => (gs.foh0Collections || []).some(c => (c.date || 0) >= op.startedAt) },
+            { id: "mq2", emoji: "🍹", label: "Lancer une boisson Bahasco",
+                how: "Onglet Business → Bahasco, pendant la campagne.",
+                auto: (gs, op) => (gs.bahascoDrinks || []).some(x => (x.date || 0) >= op.startedAt) },
+            { id: "mq3", emoji: "🤝", label: "Encaisser sans poser de question",
+                how: "Le virement arrive d'une holding dont tu ne connaîtras jamais l'actionnaire.",
+                act: { btn: "🤝 Accepter le financement", effects: { money: +70000000, rep: -8, stress: +14 },
+                    out: "Ton directeur financier te demande d'où ça vient. Tu lui réponds que ce n'est pas sa question. C'est la première fois que tu lui parles comme ça." } },
+        ],
+        win: "Deux ans plus tard, les baromètres d'opinion remontent pour un groupe dont personne n'a réentendu parler. On te fait passer le graphique par un intermédiaire, sans commentaire.\n\nLa courbe commence exactement le mois de ta collection.",
+        lose: "Le dispositif n'a pas tourné. Le groupe devra payer des agences de communication à prix d'or pour un résultat dix fois moindre.",
+        reward: { money: 60000000 } },
+    { id: "co_prix", emoji: "🏆", title: "La cérémonie arrangée", months: 3, minRank: 1, service: 3,
+        tag: "Recevoir un prix que tu n'as pas mérité, pour qu'un autre ne l'ait pas.",
+        brief: "Une récompense majeure doit échapper à quelqu'un. Pas parce qu'il est mauvais — au contraire : parce que ce qu'il dit depuis deux ans dérange, et qu'une consécration lui donnerait une tribune qu'on ne pourrait plus lui retirer.\n\nOn a besoin d'un nom incontestable en face. Le tien. Tu n'auras rien à faire d'autre qu'exister, sortir quelque chose et monter sur scène quand on t'appellera.\n\nTu sais déjà que tu ne l'auras pas volé au sens strict. Tu sais aussi que tu ne l'auras pas gagné.",
+        steps: [
+            { id: "px1", emoji: "💿", label: "Sortir un projet éligible",
+                how: "Un album ou un EP sorti pendant la campagne.",
+                auto: (gs, op) => (gs.discography || []).some(d => (d.releaseDate || 0) >= op.startedAt && (d.type === "album" || d.type === "EP")) },
+            { id: "px2", emoji: "🎬", label: "Assurer la campagne de promotion",
+                how: "Un clip sorti pendant la campagne.",
+                auto: (gs, op) => (gs.clipography || []).some(c => (c.date || 0) >= op.startedAt) },
+            { id: "px3", emoji: "🏆", label: "Monter chercher le prix",
+                how: "Le vote est connu depuis trois semaines. Le discours est à toi.",
+                act: { btn: "🏆 Monter sur scène", effects: { rep: +14, fame: +8, stress: +24 },
+                    out: "Tu remercies ton équipe, ta famille, ton public. Tu es sincère à chaque mot.\n\nDeux rangs derrière, l'autre applaudit. Il t'écrira le lendemain pour te féliciter, sans ironie, et c'est ce message-là que tu n'arriveras pas à oublier." } },
+        ],
+        win: "Il n'a pas eu le prix. Sa tournée suivante se joue dans des salles plus petites, et ce qu'il disait depuis deux ans n'est plus repris nulle part.\n\nToi, tu as un trophée de plus sur une étagère qui en compte déjà beaucoup.",
+        lose: "La cérémonie s'est passée sans toi. Il est monté sur scène, il a parlé onze minutes, et la vidéo tourne encore.",
+        reward: { money: 70000000, fame: +6 } },
+    { id: "co_doc", emoji: "🎥", title: "Le documentaire autorisé", months: 3, minRank: 1, service: 3,
+        tag: "Laisser écrire ta vie par quelqu'un d'autre, pour que personne ne l'écrive vraiment.",
+        brief: "Deux journalistes travaillent depuis longtemps sur un film qui ne te ferait pas de cadeau — ni à toi, ni surtout à ceux qui t'entourent depuis ton arrivée dans le cercle.\n\nLa parade est classique et imparable : sortir avant eux un film officiel, plus beau, plus émouvant, avec des images que personne d'autre ne peut avoir. Le leur sortira ensuite, et passera pour une redite jalouse.\n\nOn a déjà le réalisateur. On a déjà le montage. On n'a pas encore ton accord.",
+        steps: [
+            { id: "dc1", emoji: "📸", label: "Ouvrir tes archives",
+                how: "Tout : les images d'avant, la forêt, Nice, les premières scènes.",
+                act: { btn: "📸 Livrer les archives", effects: { stress: +18, rep: +6 },
+                    out: "Tu envoies des cartons entiers que tu n'avais jamais rouverts. Il y a des photos dessus dont tu ne te souvenais pas.\n\nUne équipe que tu n'as pas choisie va décider lesquelles racontent le mieux ton histoire." } },
+            { id: "dc2", emoji: "📱", label: "Porter la sortie",
+                how: "Au moins trois publications pendant la campagne.",
+                auto: (gs, op) => (gs.socialFeed || []).filter(x => (x.date || 0) >= op.startedAt).length >= 3 },
+            { id: "dc3", emoji: "🎞️", label: "Valider le montage final",
+                how: "Deux heures et six minutes. Tu n'as pas eu de droit de regard.",
+                act: { btn: "🎞️ Valider", effects: { rep: +16, fame: +7, stress: +20 },
+                    out: "C'est beau. C'est vraiment beau, et c'est ça qui te retourne : tout y est vrai, et pourtant ce n'est pas ta vie. Les trois années dont personne ne doit parler ont simplement été coupées au montage.\n\nTa propre histoire ne t'appartient plus." } },
+        ],
+        win: "Ton film fait quarante millions de vues en un mois. Le leur sort trois semaines plus tard et n'est jamais regardé.\n\nOn te dit que c'est un travail remarquable. Personne ne précise de quoi.",
+        lose: "Le film officiel n'est pas sorti à temps. Le leur est arrivé le premier, et il est excellent.",
+        reward: { money: 130000000, fame: +7 } },
+    // ═══ RANG 2 — On te confie des institutions ═══
+    { id: "co_ecole", emoji: "🎒", title: "Le programme scolaire", months: 4, minRank: 2, service: 5, fr: true,
+        tag: "Faire entrer ton nom dans les écoles françaises, et ce qu'on y met avec.",
+        brief: "Une fondation propose d'introduire ton parcours dans des dispositifs pédagogiques : mille établissements, un livret, des interventions. Le récit est déjà écrit, et il est magnifique.\n\nIl explique qu'on peut tout réussir seul, sans rien devoir à personne, à condition de le vouloir assez fort. C'est une phrase superbe, et c'est exactement ce qu'on veut faire entrer dans la tête de millions d'enfants — parce qu'une génération qui croit ça ne demande plus de comptes à personne.\n\nOn te demande ton nom, ta voix, et une préface.",
+        steps: [
+            { id: "ec1", emoji: "✍️", label: "Signer la préface",
+                how: "Deux pages écrites par quelqu'un d'autre, signées par toi.",
+                act: { btn: "✍️ Signer", effects: { rep: +14, stress: +20 },
+                    out: "Tu la lis deux fois. Il n'y a pas une phrase fausse et pas une phrase honnête. Nulle part on ne dit ce que ça coûte vraiment, ni combien n'y arrivent pas.\n\nTu signes en bas à droite." } },
+            { id: "ec2", emoji: "🎤", label: "Aller dans les établissements",
+                how: "Un concert ou une tournée en France pendant la campagne.",
+                auto: (gs, op) => (gs.tourHistory || []).some(t => (t.date || 0) >= op.startedAt)
+                    || (gs.detailedTour && (gs.detailedTour.startDate || 0) >= op.startedAt) },
+            { id: "ec3", emoji: "📚", label: "Laisser diffuser le livret",
+                how: "Mille établissements, à la rentrée.",
+                act: { btn: "📚 Donner l'accord", effects: { rep: +10, fame: +5, stress: +26 },
+                    out: "Des enfants de onze ans vont lire ton nom dans un cadre officiel. Beaucoup y croiront très fort.\n\nQuelques-uns réussiront et diront que c'est grâce à ça. Les autres penseront simplement qu'ils n'ont pas assez voulu." } },
+        ],
+        win: "Le dispositif est reconduit trois années de suite. On ne parle plus d'un artiste, on parle d'un modèle.\n\nUn professeur t'écrit pour te dire qu'il a arrêté de l'utiliser en classe. Sa lettre fait quatre pages. Tu la gardes.",
+        lose: "Le programme a été abandonné avant la rentrée. Le récit devra passer par des canaux moins crédibles qu'un visage aimé.",
+        reward: { money: 150000000, rep: +6 } },
+    { id: "co_greve", emoji: "✊", title: "Le mouvement qui s'éteint", months: 4, minRank: 2, service: 5, fr: true,
+        avail: gs => !(gs.soldBusinesses || {}).bahasco,
+        tag: "Faire retomber, par la fête, une colère sociale qui montait depuis des mois.",
+        brief: "Il y a en France un mouvement qui dure, qui tient, et qui commence à coûter très cher à des gens qui n'aiment pas ça. On a tout essayé pour le briser : rien n'a marché, parce qu'on l'a attaqué de face.\n\nOn va donc faire le contraire. Des concerts gratuits, une grande fête nationale, de la joie partout, et un week-end où il devient pénible d'être en colère.\n\nTu n'auras à dire du mal de personne. Il suffira que tu sois formidable au bon moment.",
+        steps: [
+            { id: "gr1", emoji: "🎪", label: "Organiser le grand rassemblement",
+                how: "Organise le Bahasco Music Festival pendant la campagne.",
+                auto: (gs, op) => (gs.festivalHistory || []).some(f => (f.date || 0) >= op.startedAt) },
+            { id: "gr2", emoji: "📱", label: "Inonder les réseaux d'images de fête",
+                how: "Au moins quatre publications pendant la campagne.",
+                auto: (gs, op) => (gs.socialFeed || []).filter(x => (x.date || 0) >= op.startedAt).length >= 4 },
+            { id: "gr3", emoji: "🕊️", label: "Appeler à l'apaisement",
+                how: "Une phrase raisonnable, que personne ne pourra te reprocher.",
+                act: { btn: "🕊️ Appeler au calme", effects: { rep: +8, stress: +30 },
+                    out: "« Moi je crois surtout qu'on a besoin de se retrouver. »\n\nRien de faux, rien d'agressif, rien de politique. La phrase est partout en six heures, et elle fait plus de dégâts que n'importe quel communiqué : elle transforme une revendication en mauvaise humeur." } },
+        ],
+        win: "Le mouvement s'éteint sans avoir été vaincu. Il se dissout dans un beau week-end, et quand il essaie de repartir, plus personne n'a le cœur à ça.\n\nOn ne t'a jamais demandé de prendre position. C'était tout l'intérêt de passer par toi.",
+        lose: "La fête n'a pas eu lieu, ou pas assez fort. Le mouvement a tenu, et il a obtenu une partie de ce qu'il demandait.",
+        reward: { money: 190000000 },
+        after: { mental: { purpose: -14 } } },
+    { id: "co_ville", emoji: "🏗️", title: "Le quartier qu'on efface", months: 4, minRank: 2, service: 4, fr: true,
+        tag: "Donner une image désirable à une opération qui va chasser ceux qui y vivent.",
+        brief: "Un quartier populaire français va être entièrement réaménagé. Sur le papier : rénovation, mixité, modernité. Dans les faits : les loyers tripleront, et personne de ceux qui y habitent aujourd'hui n'y sera encore dans cinq ans.\n\nCe genre d'opération échoue quand elle a l'air de ce qu'elle est. Elle réussit quand un artiste que le quartier aime vient y tourner, y jouer, et dire que c'est beau.\n\nOn a besoin d'une image. Une seule, mais la bonne.",
+        steps: [
+            { id: "vl1", emoji: "🎬", label: "Tourner un clip sur place",
+                how: "Un clip tourné pendant la campagne.",
+                auto: (gs, op) => (gs.clipography || []).some(c => (c.date || 0) >= op.startedAt) },
+            { id: "vl2", emoji: "🤝", label: "Apparaître à l'inauguration",
+                how: "Trente minutes, un ruban, des photos avec les élus.",
+                act: { btn: "🤝 Venir couper le ruban", effects: { rep: +10, money: +35000000, stress: +22 },
+                    out: "Il y a des gens du quartier derrière les barrières. Certains t'appellent par ton prénom, d'autres crient autre chose.\n\nTu serres des mains pendant vingt minutes et tu repars. La photo est parfaite." } },
+            { id: "vl3", emoji: "🙊", label: "Ne pas répondre aux habitants",
+                how: "Un collectif t'écrit. Publiquement.",
+                act: { btn: "🙊 Laisser sans réponse", effects: { rep: -14, stress: +30 },
+                    out: "La lettre ouverte fait deux pages et ne contient aucune insulte. Elle demande simplement si tu savais.\n\nTu savais. Tu ne réponds pas, et l'absence de réponse vaut réponse : au bout de trois semaines, le collectif se démobilise." } },
+        ],
+        win: "Le chantier démarre sans opposition organisée. Les images de ton clip servent de visuel au programme immobilier — tu ne l'avais pas prévu, et ton contrat l'autorisait.\n\nCinq ans plus tard, tu retournes tourner dans ce quartier. Tu n'y reconnais personne.",
+        lose: "L'opération s'enlise. Le collectif a tenu, la presse a suivi, et le programme est revu à la baisse.",
+        reward: { money: 120000000 } },
+    // ═══ RANG 3 — On te demande des gens ═══
+    { id: "co_temoin", emoji: "⚖️", title: "Le témoin qu'on décrédibilise", months: 3, minRank: 3, service: 6,
+        tag: "Démolir la parole de quelqu'un qui dit la vérité.",
+        brief: "Une personne s'apprête à témoigner. Ce qu'elle dira est exact, documenté, et met en cause quelqu'un que le cercle ne laissera pas tomber.\n\nOn ne va pas la faire taire — trop visible. On va faire en sorte que plus personne ne la croie. Il suffit pour cela qu'une figure aimée, respectée, sans intérêt apparent dans l'affaire, laisse entendre publiquement qu'elle ment.\n\nTu n'auras rien à prouver. Tu n'auras qu'à douter à voix haute, devant beaucoup de monde.",
+        steps: [
+            { id: "tm1", emoji: "🎙️", label: "Semer le doute en public",
+                how: "Une phrase, sur tes réseaux, pendant la campagne.",
+                auto: (gs, op) => (gs.socialFeed || []).some(x => (x.date || 0) >= op.startedAt) },
+            { id: "tm2", emoji: "📄", label: "Laisser sortir son passé",
+                how: "On a un dossier. Il est vrai, et il n'a rien à voir avec l'affaire.",
+                act: { btn: "📄 Laisser filer le dossier", effects: { rep: -12, stress: +38 },
+                    out: "Tout ce qui sort est exact. Des dettes, une vieille procédure, une période difficile qu'elle n'a jamais cachée à ses proches.\n\nEn quatre jours, elle n'est plus un témoin : elle est un cas. Son avocat renonce." } },
+            { id: "tm3", emoji: "🧊", label: "Tenir jusqu'à l'audience",
+                how: "Ne rien retirer, ne rien nuancer, ne rien regretter publiquement.",
+                act: { btn: "🧊 Ne rien retirer", effects: { rep: -8, stress: +40 },
+                    out: "L'audience se tient. Son témoignage est écarté pour défaut de crédibilité, en deux minutes.\n\nElle te cherche du regard dans la salle. Tu n'y es pas : tu regardes en direct depuis Nassau." } },
+        ],
+        win: "Le dossier s'effondre. La personne qu'on protégeait n'a jamais été inquiétée, et celle qui a parlé a tout perdu — son travail, sa réputation, et le droit d'être crue à l'avenir.\n\nOn te monte d'un cran. Tu n'as pas demandé sur quoi portait l'affaire, et on ne te l'a pas dit.",
+        lose: "Elle a été crue. L'audience a suivi son cours, et ce qui devait rester enterré figure désormais dans un dossier public.",
+        reward: { money: 240000000 },
+        after: { mental: { purpose: -24, anxiety: +22 } } },
+    { id: "co_heritage", emoji: "🕯️", title: "Reprendre ce qu'on a donné", months: 3, minRank: 3, service: 6,
+        tag: "Ruiner quelqu'un qui t'a aidé quand tu n'étais rien.",
+        brief: "Il y a, dans ton histoire, une personne qui t'a ouvert une porte à un moment où personne ne le faisait. Tu ne l'as jamais oubliée, et elle non plus.\n\nElle possède aujourd'hui une petite structure qui gêne, très légèrement, un montage beaucoup plus gros. On pourrait la racheter. On pourrait aussi la laisser mourir, ce qui coûte moins cher, à condition que quelqu'un lui ferme les dernières portes.\n\nTu es le seul qu'elle recevra encore.",
+        steps: [
+            { id: "hr1", emoji: "☎️", label: "Reprendre contact",
+                how: "Elle sera heureuse d'avoir de tes nouvelles.",
+                act: { btn: "☎️ L'appeler", effects: { stress: +24 },
+                    out: "Elle décroche à la deuxième sonnerie. Elle te demande des nouvelles de ta santé avant tout le reste, et elle est sincère.\n\nVous parlez quarante minutes. Tu n'abordes jamais le sujet." } },
+            { id: "hr2", emoji: "🚪", label: "Fermer les dernières portes",
+                how: "Deux appels suffisent. Tu ne parleras jamais d'elle en mal.",
+                act: { btn: "🚪 Passer les appels", effects: { money: +60000000, rep: -6, stress: +42 },
+                    out: "Tu ne dis rien de négatif. Tu dis simplement, à deux personnes, que tu ne serais pas à l'aise que ton nom apparaisse à côté du sien en ce moment.\n\nC'est tout. C'est suffisant. En six semaines, il ne lui reste plus un client." } },
+            { id: "hr3", emoji: "🕯️", label: "Ne pas répondre à sa dernière lettre",
+                how: "Elle ne demande pas d'argent.",
+                act: { btn: "🕯️ Laisser sans réponse", effects: { rep: -6, stress: +44 },
+                    out: "Une page, écrite à la main. Elle n'accuse personne et ne comprend pas ce qui s'est passé. Elle termine en te souhaitant de continuer longtemps.\n\nTu la relis six fois. Tu ne réponds pas." } },
+        ],
+        win: "La structure a disparu sans un bruit. Le montage est passé, et personne ne fera jamais le lien entre ces deux choses.\n\nTu as gagné soixante millions et un rang. Tu n'ouvres plus le tiroir où tu as rangé la lettre.",
+        lose: "Tu n'es pas allé jusqu'au bout. La structure a tenu, le montage a été retardé, et on a dû payer très cher ce que tu pouvais faire gratuitement.",
+        reward: { money: 60000000 },
+        after: { mental: { purpose: -30, loneliness: +24 }, addiction: true } },
+    { id: "co_relais", emoji: "📡", title: "Le relais permanent", months: 4, minRank: 3, service: 6,
+        tag: "Céder définitivement le contrôle de ta voix publique.",
+        brief: "Jusqu'ici, on te demandait des choses ponctuelles. Là, on te demande l'accès.\n\nUne équipe rédigera tes messages publics. Pas tous, pas toujours : seulement quand ce sera nécessaire, et tu ne sauras pas à l'avance lesquels. En échange, ta réputation devient intouchable, tes crises s'éteignent avant d'exister, et ton nom ne sera plus jamais associé à rien de négatif.\n\nOn te demande, très exactement, de cesser d'être la personne qui parle quand tu parles.",
+        steps: [
+            { id: "rl1", emoji: "🔑", label: "Donner les accès",
+                how: "Comptes, agenda, contacts presse.",
+                act: { btn: "🔑 Céder les accès", effects: { rep: +12, stress: +30 },
+                    out: "Le transfert prend une heure. Ton community manager te demande s'il doit démissionner : tu lui dis que non, qu'il gardera son poste et son salaire, et qu'il n'aura plus rien à faire." } },
+            { id: "rl2", emoji: "📱", label: "Laisser publier en ton nom",
+                how: "Au moins trois publications pendant la campagne. Ce ne sera pas toi qui les écriras.",
+                auto: (gs, op) => (gs.socialFeed || []).filter(x => (x.date || 0) >= op.startedAt).length >= 3 },
+            { id: "rl3", emoji: "🪞", label: "Ne pas reprendre la main",
+                how: "Une seule intervention personnelle rompt l'accord.",
+                act: { btn: "🪞 Laisser faire jusqu'au bout", effects: { rep: +14, fame: +6, stress: +36 },
+                    out: "Quatre mois. Tu lis tes propres messages en même temps que tout le monde. Certains sont meilleurs que ce que tu aurais écrit, et c'est ce qui fait le plus mal.\n\nUn ami d'enfance t'écrit : « T'as changé de façon d'écrire. » Tu réponds « non » — et c'est la première phrase de toi depuis seize semaines." } },
+        ],
+        win: "Ta réputation n'a jamais été aussi solide. Plus une crise, plus une polémique, plus un dérapage.\n\nPlus une phrase de toi non plus. Mais ça, personne ne le remarque.",
+        lose: "Tu as repris la main. L'accord tombe, et on te fait comprendre qu'on ne te proposera plus jamais ce niveau de protection.",
+        reward: { money: 210000000, rep: +10 },
+        after: { mental: { purpose: -20, loneliness: +18 } } },
+    // ═══ RANG 4 — Il n'y a plus de ligne ═══
+    { id: "co_succession", emoji: "👑", title: "La succession", months: 4, minRank: 4, service: 8,
+        tag: "Choisir qui, dans le cercle, doit tomber pour qu'un autre monte.",
+        brief: "Un siège se libère. Pas par départ : par décision. Deux membres sont en position, et le cercle ne tranchera pas lui-même — il ne tranche jamais lui-même.\n\nOn te confie le dossier des deux. Tout y est : ce qu'ils ont fait, ce qu'ils ont couvert, ce qui suffirait à en finir avec l'un ou l'autre. Tu choisis, tu transmets, et la machine s'occupe du reste.\n\nCelui que tu désignes ne sera pas tué. Il sera simplement effacé — et dans ce cercle, tu sais désormais que c'est pire.",
+        steps: [
+            { id: "su1", emoji: "📂", label: "Lire les deux dossiers",
+                how: "Quatre cents pages chacun. On te laisse une nuit.",
+                act: { btn: "📂 Ouvrir les dossiers", effects: { stress: +34 },
+                    out: "Tu lis jusqu'à cinq heures du matin. Les deux sont indéfendables, et les deux ont des enfants dont on a joint les photos scolaires — pas comme une menace, comme une donnée." } },
+            { id: "su2", emoji: "✒️", label: "Désigner celui qui tombe",
+                how: "Un nom. Pas de justification demandée.",
+                act: { btn: "✒️ Écrire un nom", effects: { rep: -10, stress: +46 },
+                    out: "Tu choisis en quarante secondes, et tu n'arriveras jamais à expliquer pourquoi celui-là.\n\nTrois semaines plus tard, il n'existe plus nulle part. Ni dans les registres, ni dans les photos, ni dans les souvenirs de ceux qui l'ont connu et qui te parlent de lui au passé sans savoir pourquoi." } },
+            { id: "su3", emoji: "👑", label: "Accueillir celui qui monte",
+                how: "Une réception. Il te devra tout, et il le sait.",
+                act: { btn: "👑 Présider la réception", effects: { money: +400000000, fame: +5, stress: +38 },
+                    out: "Il te remercie longuement, devant tout le monde, sans jamais dire de quoi.\n\nÀ un moment de la soirée, il te prend à part et te dit : « Vous savez que maintenant, c'est vous qu'ils regarderont. » Ce n'était pas une menace non plus." } },
+        ],
+        win: "Le siège est occupé. L'équilibre du cercle a bougé de quelques degrés, et tu es l'un des rares à savoir pourquoi.\n\nTu as décidé de la fin d'un homme en quarante secondes. Personne ne t'a rien demandé d'autre depuis.",
+        lose: "Tu n'as pas tranché. Le cercle a tranché à ta place, et il a retenu que tu n'en étais pas capable.",
+        reward: { money: 0, rep: +6 },
+        after: { mental: { purpose: -34, anxiety: +30 } } },
+    { id: "co_legs", emoji: "🏛️", title: "Écrire la suite", months: 4, minRank: 4, service: 8,
+        tag: "Mettre ton nom, et ton argent, au service de ce qui viendra après toi.",
+        brief: "On ne te demande plus de services : on te demande une succession. Une fondation à ton nom, dotée par toi, dirigée par eux, qui continuera de fonctionner très longtemps après ta mort.\n\nElle financera des bourses, des salles de concert, des programmes pour les jeunes — tout cela existera vraiment. Elle servira aussi, et surtout, de véhicule permanent pour des flux qu'il devient compliqué de faire passer ailleurs.\n\nTon nom dessus, pour toujours. C'est ce qu'on appelle, dans le cercle, être utile jusqu'au bout.",
+        steps: [
+            { id: "lg1", emoji: "🏛️", label: "Doter la fondation",
+                how: "Une somme considérable, sortie de ta poche.",
+                act: { btn: "🏛️ Verser la dotation", effects: { money: -300000000, rep: +22, stress: +22 },
+                    out: "Trois cents millions, virés en une seule opération. C'est le plus gros chèque que tu aies signé de ta vie, et il part vers une structure dont tu ne nommeras aucun administrateur." } },
+            { id: "lg2", emoji: "🎤", label: "La lancer publiquement",
+                how: "Un concert ou une tournée pendant la campagne, sous les couleurs de la fondation.",
+                auto: (gs, op) => (gs.tourHistory || []).some(t => (t.date || 0) >= op.startedAt)
+                    || (gs.detailedTour && (gs.detailedTour.startDate || 0) >= op.startedAt) },
+            { id: "lg3", emoji: "🖋️", label: "Signer les statuts définitifs",
+                how: "Quarante pages. Une clause t'écarte de la gouvernance.",
+                act: { btn: "🖋️ Signer", effects: { rep: +14, stress: +40 },
+                    out: "L'article 12 prévoit que le fondateur ne siège pas au conseil. Ton avocate te le fait remarquer trois fois.\n\nTu signes quand même. Ce que tu viens de créer te survivra, portera ton nom, fera du bien à des milliers de gens, et ne t'appartiendra jamais." } },
+        ],
+        win: "La fondation ouvre. Elle finance sa première promotion de boursiers dans l'année, et les visages sur les photos sont ceux d'enfants qui te ressemblent à quinze ans.\n\nTout cela est vrai. Tout cela est bien. Et tout cela sert aussi à autre chose, en permanence, sans que personne ne le sache jamais.",
+        lose: "La fondation n'a pas vu le jour. On te remercie de ton temps, avec une politesse qui te glace.",
+        reward: { money: 0, rep: +16, fame: +4 },
+        after: { mental: { purpose: -18 } } },
+    { id: "co_silence", emoji: "🤐", title: "Le silence du secteur", months: 3, minRank: 2, service: 4,
+        tag: "Faire en sorte qu'une industrie entière regarde ailleurs, au même moment.",
+        brief: "Une enquête est bouclée. Elle concerne un pan entier de l'industrie musicale, et elle sortira — on ne peut pas l'arrêter. Ce qu'on peut faire, c'est choisir ce qui sortira le même jour.\n\nIl faut donc quelque chose d'énorme, annoncé à la bonne heure, qui occupe chaque rédaction culturelle de la planète pendant soixante-douze heures.\n\nOn te laisse choisir quoi. On ne te laisse pas choisir la date.",
+        steps: [
+            { id: "si1", emoji: "💿", label: "Sortir un projet pendant la fenêtre",
+                how: "Un album, un EP, peu importe : il doit sortir pendant la campagne.",
+                auto: (gs, op) => (gs.discography || []).some(d => (d.releaseDate || 0) >= op.startedAt && (d.type === "album" || d.type === "EP")) },
+            { id: "si2", emoji: "🎬", label: "Accompagner d'un clip",
+                how: "Un clip sorti pendant la campagne, pour occuper l'espace visuel.",
+                auto: (gs, op) => (gs.clipography || []).some(c => (c.date || 0) >= op.startedAt) },
+            { id: "si3", emoji: "🕰️", label: "Respecter l'heure imposée",
+                how: "Ni avant, ni après. L'heure a été choisie par quelqu'un d'autre.",
+                act: { btn: "🕰️ Caler la sortie", effects: { stress: +14 },
+                    out: "Six heures du matin, heure de Paris. Ta sortie tombe pile, l'enquête sort quarante minutes plus tard, et personne ne la voit passer.\n\nLa journaliste qui y a consacré deux ans publiera un message amer le soir même. Il fera quatre cents partages." } },
+        ],
+        win: "L'enquête est sortie un jeudi. Elle a été reprise par deux sites spécialisés et personne d'autre. Le vendredi, tout le monde parlait de toi.\n\nLes gens dont elle parlait t'ont écrit. Ils n'ont pas dit merci, ils ont dit « bien joué ».",
+        lose: "Ta sortie n'est pas venue, ou pas à l'heure. L'enquête a eu le champ libre, et elle a fait le tour du monde.",
+        reward: { money: 150000000, fame: +4 } },
+    { id: "co_frontiere", emoji: "🛂", title: "Ouvrir une frontière", months: 4, minRank: 2, service: 5,
+        avail: gs => !(gs.soldBusinesses || {}).foh0,
+        tag: "Rendre fréquentable, par la culture, un pays que plus personne ne veut nommer.",
+        brief: "Un pays est infréquentable. Sanctions, communiqués, retraits de délégations : plus une marque occidentale n'ose y poser son nom.\n\nLe cercle a des intérêts là-bas, et la culture est la seule porte qui ne se ferme jamais complètement. Un concert, une collection, une image de foule heureuse — et dans dix-huit mois, les entreprises reviendront en disant qu'elles n'ont fait que suivre les artistes.\n\nTu seras le premier à y aller. C'est tout l'intérêt.",
+        steps: [
+            { id: "fr1", emoji: "🎤", label: "Jouer là-bas",
+                how: "Un concert privé, payé par un fonds qui ne sera jamais nommé.",
+                act: { btn: "🎤 Accepter la date", effects: { money: +60000000, rep: -22, stress: +26 },
+                    out: "Vingt-cinq mille personnes, un stade neuf, et des officiels au premier rang qui filment avec leur téléphone. Le public, lui, est venu pour toi et ne mérite aucun mépris.\n\nC'est ce qui rend la chose compliquée." } },
+            { id: "fr2", emoji: "👕", label: "Sortir une collection sur place",
+                how: "Onglet Business → FOH-0 : une collection lancée pendant la campagne.",
+                auto: (gs, op) => (gs.foh0Collections || []).some(c => (c.date || 0) >= op.startedAt) },
+            { id: "fr3", emoji: "📷", label: "Livrer les images",
+                how: "Des foules, des sourires, des drapeaux. Rien d'autre.",
+                act: { btn: "📷 Transmettre les images", effects: { stress: +12, rep: -6 },
+                    out: "Le montage dure quatre-vingt-dix secondes. Aucune parole, aucun commentaire, juste des visages heureux et une ville éclairée.\n\nIl sera diffusé pendant trois ans dans des réunions où tu n'auras jamais accès." } },
+        ],
+        win: "Dix-huit mois plus tard, deux grandes marques annoncent leur retour là-bas. Les communiqués parlent de « signaux culturels encourageants ».\n\nTu es le signal.",
+        lose: "L'opération a échoué. Le pays reste fermé, les intérêts du cercle avec, et quelqu'un a perdu beaucoup d'argent à cause de ton renoncement.",
+        reward: { money: 0, fame: +6 } },
+];
+function circleOp(id) { return CIRCLE_OPS.find(o => o.id === id) || null; }
+// Le protégé de la campagne « Fabriquer une célébrité » : un vrai personnage,
+// qui entre au casting, dont la fiche évolue à chaque étape, et qui reste dans
+// tes contacts une fois la campagne terminée.
+const PROTEGE = { id: "pg_milo_ravenne", name: "Milo Ravenne", emoji: "🕶️", cat: "media", loc: "Paris" };
+// Sa fiche change à chaque étape franchie : on doit le voir devenir quelqu'un.
+function protegeBio(gs) {
+    const op = (gs.circleOp && gs.circleOp.id === "co_heritier") ? gs.circleOp : null;
+    if (!op)
+        return PROTEGE_BIOS[3];
+    const def = circleOp("co_heritier");
+    const n = def ? def.steps.filter(st => opStepDone(gs, op, st)).length : 0;
+    return PROTEGE_BIOS[Math.min(3, n)];
+}
+const PROTEGE_BIOS = {
+    0: "Personne. On t'a confié son nom et rien d'autre.",
+    1: "Apparaît sur tes réseaux. Les commentaires demandent encore qui c'est.",
+    2: "Vu dans un de tes clips. On commence à reconnaître son visage sans savoir pourquoi.",
+    3: "Célèbre sans métier. Fabriqué en quatre-vingt-dix jours, et ça a marché.",
+};
+// Harry Kane est-il encore signable ? La campagne n'a de sens que dans ce cas.
+function kaneAvailable(gs) {
+    if ((gs.sanJoseSquad || []).some(j => normTxt(j.name) === "harry kane"))
+        return false;
+    if ((gs.soldBusinesses || {}).san_jose)
+        return false;
+    const POOL = (gs.playerGen && (gs.extraPlayers || []).length) ? gs.extraPlayers : PLAYER_POOL;
+    const k = POOL.find(x => normTxt(x.name) === "harry kane");
+    if (!k)
+        return false;
+    if ((gs.retiredPlayers || []).includes(k.id))
+        return false;
+    return retirementYear(k) > new Date(gs.currentDate).getFullYear();
+}
+// Une étape est-elle remplie ? (auto = vérifiée sur l'état, act = validée par toi)
+function opStepDone(gs, op, st) {
+    if ((op.done || []).includes(st.id))
+        return true;
+    if (st.auto) {
+        try {
+            return !!st.auto(gs, op);
+        }
+        catch (e) {
+            return false;
+        }
+    }
+    return false;
+}
+function opProgress(gs, op) {
+    const def = circleOp(op.id);
+    if (!def)
+        return { done: 0, total: 0, all: false };
+    const done = def.steps.filter(st => opStepDone(gs, op, st)).length;
+    return { done, total: def.steps.length, all: done >= def.steps.length };
+}
 const CIRCLE_TUTO = {
     elite: {
         color: "#d4af37",
@@ -12960,7 +13567,7 @@ const INIT = {
     eliteSince: null, sacrifices: [], warMission: null, warMissionsDone: [], docLeaked: false, eliteInfluence: 0, favorsUsed: [], circleNews: [], evidence: 0, exposure: 0, activeOps: [], pendingCM: null, cmDone: [], activeOp: null, opsDone: [], targetExposure: {}, exposedTargets: [],
     allyState: { falltos: "actif", kanye_west: "actif", candace_owens: "actif", alain_soral: "actif", dieudonne: "actif", ryan_garcia: "actif", justin_bieber: "absent", the_weeknd: "absent" },
     inResistance: false, awardsBanned: false, conspiracist: false, tutorialDone: false, baptismDate: null, faithStart: null, faithStage: 0, faithDone: false, exElite: false,
-    npcKids: [], warrant: null, mourning: false, mourningTold: false, boughtGrammys: [], lawShield: false, openCountries: [], mediaCycle: null, kaineEnded: null, eliteMet: [], mkStage: {}, mkActive: null, mkFails: [], mkDone: {}, sacrificesDone: [], festivalDisaster: null, sabotaged: [], erased: [], seatsPlaced: [], lawsPassed: [], exitStrikes: [], resistanceTried: false, resistDeclinedAt: null, musicTier: null, musicOn: true, falltosSacrificed: false, lastFalltosOffer: null, eliteService: 0, eliteMission: null, eliteMissionsDone: [], eliteEndDone: false, lastEliteOffer: null, eliteOfferAt: null, eliteRefused: false, pendingDeath: null, elite: false, eliteOffered: false, eliteStrikes: 0, eliteFallen: false, hits: [], postStreaming: null, lastSummerHitYear: null, mentalAspects: { anxiety: 22, burnout: 18, loneliness: 25, purpose: 78 }, therapy: null, addictions: [],
+    npcKids: [], warrant: null, mourning: false, mourningTold: false, boughtGrammys: [], lawShield: false, openCountries: [], mediaCycle: null, kaineEnded: null, eliteMet: [], mkStage: {}, mkActive: null, mkFails: [], mkDone: {}, sacrificesDone: [], festivalDisaster: null, sabotaged: [], erased: [], seatsPlaced: [], lawsPassed: [], exitStrikes: [], resistanceTried: false, resistDeclinedAt: null, musicTier: null, musicOn: true, falltosSacrificed: false, lastFalltosOffer: null, eliteService: 0, eliteMission: null, eliteMissionsDone: [], circleOp: null, circleOpsDone: [], circleOpsFailed: [], lastCircleOpAt: null, eliteEndDone: false, lastEliteOffer: null, eliteOfferAt: null, eliteRefused: false, pendingDeath: null, elite: false, eliteOffered: false, eliteStrikes: 0, eliteFallen: false, hits: [], postStreaming: null, lastSummerHitYear: null, mentalAspects: { anxiety: 22, burnout: 18, loneliness: 25, purpose: 78 }, therapy: null, addictions: [],
     reissues: [], endedRuns: null, atoneLog: [], pendingLeak: null, betrayals: [], industryEra: null, eraIndex: 0, eraAdapted: [], secrets: [], secretThreat: null,
     objectives: [], objectivesDone: [], timeline: [], grief: null, callbacks: [],
     healthAspects: { voice: 88, body: 85, sleep: 80, mind: 82 },
@@ -13088,7 +13695,7 @@ function gameReducerInner(state, action) {
             return { ...state,
                 // Le cercle étouffe les atteintes à ta réputation ; le clan la plafonne à 50
                 rep: Math.min(state.inResistance ? 50 : 100, Math.max(0, state.rep + (state.elite
-                    ? ((e.rep || 0) < 0 ? (e.rep || 0) * eliteRank(state).repShield : (e.rep || 0) * 1.25)
+                    ? ((e.rep || 0) < 0 ? (e.rep || 0) * Math.max(0.45, eliteRank(state).repShield) : (e.rep || 0) * 1.12)
                     : (e.rep || 0)))),
                 // Le découvert est autorisé quand on nous prend de l'argent (dettes, amendes, frais)
                 money: state.money + (e.money || 0),
@@ -13097,7 +13704,7 @@ function gameReducerInner(state, action) {
                 stress: newStress,
                 // Le cercle amplifie tes gains de notoriété et amortit tes pertes
                 fame: Math.min(100, Math.max(0, state.fame + (state.elite
-                    ? ((e.fame || 0) > 0 ? (e.fame || 0) * eliteRank(state).fameMult : (e.fame || 0) * 0.4)
+                    ? ((e.fame || 0) > 0 ? (e.fame || 0) * Math.min(1.6, eliteRank(state).fameMult) : (e.fame || 0) * 0.75)
                     : (e.fame || 0)))),
                 relations: newRels, romance: newRomance, social: newSocial, businesses: newBusinesses,
                 pendingEvents: newPending, totalActions: state.totalActions + 1,
@@ -13674,6 +14281,12 @@ function gameReducerInner(state, action) {
         }
         case "ROLLOUT_CLEAR":
             return { ...state, pendingRollout: null };
+        case "DRIFT":
+            // Érosion naturelle : elle ne passe pas par les amortisseurs du cercle,
+            // sinon le sommet deviendrait un acquis définitif.
+            return { ...state,
+                fame: Math.max(0, Math.round((state.fame + (action.fame || 0)) * 10) / 10),
+                rep: Math.max(0, Math.round((state.rep + (action.rep || 0)) * 10) / 10) };
         case "DECAY_RELATIONS": {
             const now = state.currentDate;
             const rel = {};
@@ -13806,7 +14419,7 @@ function gameReducerInner(state, action) {
         case "MEET_ELITE":
             return { ...state, eliteMet: [...new Set([...(state.eliteMet || []), action.id])] };
         case "JOIN_ELITE":
-            return { ...state, elite: true, eliteSince: state.currentDate, rep: Math.min(100, state.rep + 8), money: state.money + 350000000, fame: Math.min(100, state.fame + 15), stress: Math.min(100, state.stress + 20) };
+            return { ...state, elite: true, eliteSince: state.currentDate, rep: Math.min(100, state.rep + 8), money: state.money + 350000000, fame: Math.min(100, state.fame + 10), stress: Math.min(100, state.stress + 20) };
         case "REFUSE_ELITE":
             return { ...state, elite: false, rep: Math.min(100, state.rep + 4),
                 eliteRefused: true, lastEliteOffer: state.currentDate, eliteOfferAt: state.currentDate };
@@ -14198,6 +14811,38 @@ function gameReducerInner(state, action) {
         case "CHEAT_ASCEND":
             return { ...state, fame: 100, partyLegend: Math.max(state.partyLegend || 0, 48),
                 rep: Math.min(100, state.rep + 20), money: state.money + 50000000 };
+        case "ADD_CAST":
+            // Quelqu'un entre dans le casting en cours de partie
+            if ((state.newCast || {})[action.cast.id])
+                return state;
+            return { ...state, newCast: { ...(state.newCast || {}), [action.cast.id]: action.cast },
+                relations: { ...state.relations, [action.cast.id]: state.relations[action.cast.id] || { score: 12, status: "neutre" } } };
+        case "CAST_BIO":
+            if (!(state.newCast || {})[action.id])
+                return state;
+            return { ...state, newCast: { ...state.newCast, [action.id]: { ...state.newCast[action.id], bio: action.bio } } };
+        case "START_CIRCLE_OP":
+            // On fige l'instant de départ : toutes les étapes se mesurent à partir de là
+            return { ...state, circleOp: { id: action.id, startedAt: state.currentDate,
+                    deadline: state.currentDate + Math.round(action.months * 30.44) * 86400000,
+                    done: [], warned: false }, lastCircleOpAt: state.currentDate };
+        case "DECLINE_CIRCLE_OP":
+            // Refuser une campagne, c'est un faux pas comme un autre
+            return { ...state, lastCircleOpAt: state.currentDate, eliteStrikes: (state.eliteStrikes || 0) + 1 };
+        case "CIRCLE_OP_STEP":
+            if (!state.circleOp || (state.circleOp.done || []).includes(action.stepId))
+                return state;
+            return { ...state, circleOp: { ...state.circleOp, done: [...(state.circleOp.done || []), action.stepId],
+                    choices: { ...(state.circleOp.choices || {}), ...(action.choice ? { [action.stepId]: action.choice } : {}) } } };
+        case "CIRCLE_OP_WARN":
+            return { ...state, circleOp: state.circleOp ? { ...state.circleOp, warned: true } : null };
+        case "CIRCLE_OP_END":
+            return { ...state, circleOp: null, lastCircleOpAt: state.currentDate,
+                circleOpsDone: action.win ? [...(state.circleOpsDone || []), action.id] : (state.circleOpsDone || []),
+                circleOpsFailed: action.win ? (state.circleOpsFailed || []) : [...(state.circleOpsFailed || []), action.id],
+                eliteService: (state.eliteService || 0) + (action.win ? (action.service || 0) : 0),
+                eliteInfluence: (state.eliteInfluence || 0) + (action.win ? (action.service || 0) : 0),
+                eliteStrikes: action.win ? (state.eliteStrikes || 0) : (state.eliteStrikes || 0) + 1 };
         case "SET_MISSION":
             return { ...state, eliteMission: { ...action.mission, givenAt: state.currentDate, warned: false } };
         case "STAMP_MISSION":
@@ -16319,6 +16964,30 @@ function FiscoGame() {
                                 : "À cet âge, monter sur scène relève de l'exploit. Ta seule présence force le respect de toute l'industrie." });
             }
         }
+        // ── Rien ne se maintient tout seul au sommet ──
+        // Chaque mois, la célébrité retombe si tu n'as rien sorti ni rien joué, et
+        // la réputation glisse vers le niveau que ton actualité justifie vraiment.
+        // Le cercle freine cette érosion, il ne l'annule pas.
+        if (phase === "game" && !ending && d.getDate() === 3) {
+            const jour = gs.currentDate;
+            const recent = (gs.discography || []).some(x => jour - (x.releaseDate || 0) < 150 * 86400000)
+                || (gs.clipography || []).some(x => jour - (x.date || 0) < 120 * 86400000)
+                || !!gs.activeTour || !!gs.detailedTour
+                || (gs.tourHistory || []).some(t => jour - (t.date || 0) < 180 * 86400000);
+            const frein = gs.elite ? 0.55 : 1; // le cercle entretient ta présence
+            // La célébrité s'érode d'autant plus vite qu'elle est haute : tenir 100
+            // demande une actualité permanente.
+            const hautFame = Math.max(0, gs.fame - 70) / 30;
+            const perteFame = recent ? 0.35 + hautFame * 0.8 : 1.5 + hautFame * 2.2;
+            // La réputation redescend vers un socle : ce que valent vraiment ton
+            // œuvre et ton image, hors coup d'éclat.
+            const socle = Math.min(92, 48 + (gs.fame * 0.22) + ((gs.achievements || []).length * 0.35));
+            const ecart = gs.rep - socle;
+            const perteRep = ecart > 0 ? Math.min(2.4, 0.25 + ecart * 0.11) : 0;
+            const dF = Math.round(perteFame * frein * 10) / 10, dR = Math.round(perteRep * frein * 10) / 10;
+            if (dF > 0 || dR > 0)
+                dispatch({ type: "DRIFT", fame: -dF, rep: -dR });
+        }
         // ── Les relations se dégradent dans le silence ──
         if (phase === "game" && !ending && d.getDate() === 15) {
             dispatch({ type: "DECAY_RELATIONS" });
@@ -17123,6 +17792,89 @@ function FiscoGame() {
             addLog(`[${cs.label.toUpperCase()}] ${m.title} — ${win ? "aboutie" : "bloquée"}`);
             setCalAlert({ emoji: m.emoji, title: `${m.title} — ${win ? "aboutie" : "bloquée"}`,
                 desc: `${cs.emoji} **${cs.label}**\n\n${win ? m.win : m.lose}\n\n${win ? `+${m.ev} preuves · +${m.expo} exposition` : `Tu ne repars pas les mains vides : +${Math.round(m.ev * 0.25)} preuves. L'étape reste à refaire.`}` });
+        }
+        // ── La fiche du protégé suit sa progression réelle ──
+        if (phase === "game" && !ending && gs.circleOp && gs.circleOp.id === "co_heritier" && (gs.newCast || {})[PROTEGE.id]) {
+            const attendu = protegeBio(gs);
+            if (gs.newCast[PROTEGE.id].bio !== attendu)
+                dispatch({ type: "CAST_BIO", id: PROTEGE.id, bio: attendu });
+        }
+        // ── Les campagnes du cercle : proposition, rappel, échéance ──
+        // On ne peut en mener qu'une à la fois. Refuser en coûte une, échouer aussi.
+        if (phase === "game" && !ending && !anyOverlayOpen() && !gs.inPrison && gs.elite && !gs.eliteFallen
+            && !gs.circleOp && d.getDate() === 11
+            && (!gs.lastCircleOpAt || gs.currentDate - gs.lastCircleOpAt >= 365 * 86400000)) {
+            const rank = eliteRank(gs).lvl;
+            const faits = new Set([...(gs.circleOpsDone || []), ...(gs.circleOpsFailed || [])]);
+            const pool = CIRCLE_OPS.filter(o => !faits.has(o.id) && rank >= o.minRank && (!o.avail || o.avail(gs)));
+            // Un an écoulé : la proposition finit toujours par tomber, sans être
+            // rivée au même jour chaque année.
+            if (pool.length && Math.random() < 0.6) {
+                // On privilégie ce qui correspond à ton rang : plus tu montes, plus ce
+                // qu'on te confie est sale. Les campagnes d'entrée de gamme finissent
+                // par ne plus t'être proposées du tout.
+                const plafond = Math.max(...pool.map(o => o.minRank));
+                const sombres = pool.filter(o => o.minRank >= plafond - 1);
+                const choix = (sombres.length && Math.random() < 0.75) ? sombres : pool;
+                setCircleOpOffer(choix[Math.floor(Math.random() * choix.length)]);
+            }
+        }
+        // Campagne en cours : rappel à mi-parcours, puis échéance
+        if (phase === "game" && !ending && !anyOverlayOpen() && gs.circleOp) {
+            const op = gs.circleOp, def = circleOp(op.id);
+            if (def) {
+                const prog = opProgress(gs, op);
+                const reste = Math.ceil((op.deadline - gs.currentDate) / 86400000);
+                // Si le cercle t'a confié une campagne devenue matériellement impossible
+                // (société vendue, joueur parti à la retraite), elle est classée sans suite.
+                if (!prog.all && def.avail && !def.avail(gs) && !opStepDone(gs, op, def.steps[0])) {
+                    dispatch({ type: "CIRCLE_OP_END", id: op.id, win: true, service: 0 });
+                    addLog(`[CERCLE] Campagne classée sans suite — ${def.title}`);
+                    setCalAlert({ emoji: "📁", title: `${def.title} — classée sans suite`,
+                        desc: `Les conditions qui rendaient cette campagne possible n'existent plus. On te le fait savoir en une ligne, sans reproche.\n\nAucun faux pas ne t'est compté : ce n'est pas toi qui as fermé la porte.` });
+                }
+                else if (gs.currentDate >= op.deadline) {
+                    // Une étape manquante suffit à faire échouer la campagne
+                    const penal = prog.all && def.penalty ? def.penalty(gs, op) : null;
+                    const win = prog.all && !penal;
+                    dispatch({ type: "CIRCLE_OP_END", id: op.id, win, service: def.service });
+                    if (win) {
+                        dispatch({ type: "APPLY", effects: { ...(def.reward || {}), stress: +12 } });
+                        // Certaines campagnes laissent des traces qu'aucun chèque ne répare
+                        if (def.after) {
+                            if (def.after.mental)
+                                dispatch({ type: "MENTAL", deltas: def.after.mental });
+                            if (def.after.addiction && !(gs.addictions || []).length && Math.random() < 0.55) {
+                                const a = ADDICTIONS[Math.floor(Math.random() * ADDICTIONS.length)];
+                                dispatch({ type: "ADD_ADDICTION", add: a });
+                            }
+                        }
+                        if (def.protege) {
+                            dispatch({ type: "CAST_BIO", id: PROTEGE.id, bio: PROTEGE_BIOS[3] });
+                            dispatch({ type: "APPLY", effects: { rel: { [PROTEGE.id]: +45 } } });
+                        }
+                        dispatch({ type: "ADD_TIMELINE", entry: { type: "elite", emoji: def.emoji, title: `Campagne bouclée — ${def.title}` } });
+                        addLog(`[CERCLE] Campagne aboutie — ${def.title}`);
+                        sfx("elite");
+                        setCalAlert({ emoji: def.emoji, title: `${def.title} — campagne bouclée`,
+                            desc: `${def.win}\n\n**+${def.service} services rendus.**` });
+                    }
+                    else {
+                        dispatch({ type: "APPLY", effects: { rep: -14, stress: +34 } });
+                        dispatch({ type: "MENTAL", deltas: { anxiety: +20, purpose: -12 } });
+                        addLog(`[CERCLE] Campagne échouée — ${def.title}`);
+                        sfx("danger");
+                        setCalAlert({ emoji: "⚠️", title: `${def.title} — campagne échouée`,
+                            desc: `${penal || def.lose}\n\nOn ne te reprochera rien à voix haute. On ne te confiera simplement plus ce genre de dossier avant longtemps.\n\n**Faux pas : ${(gs.eliteStrikes || 0) + 1}/3.**` });
+                    }
+                }
+                else if (reste <= 21 && !op.warned && !prog.all) {
+                    dispatch({ type: "CIRCLE_OP_WARN" });
+                    dispatch({ type: "APPLY", effects: { stress: +14 } });
+                    setCalAlert({ emoji: "⏳", title: "Il reste trois semaines",
+                        desc: `${def.emoji} **${def.title}**\n\n${prog.done}/${prog.total} étapes accomplies. Personne ne te relancera une seconde fois.\n\nLa campagne se suit depuis l'onglet Vie, section du cercle.` });
+                }
+            }
         }
         // ── À partir de Membre, le cercle ne laisse plus respirer ──
         // Chaque mission a une échéance. La laisser passer compte comme un refus.
@@ -18860,6 +19612,9 @@ function FiscoGame() {
     const [mentalModal, setMentalModal] = (0, react_1.useState)(false);
     const [postStreamModal, setPostStreamModal] = (0, react_1.useState)(false);
     const [eliteOffer, setEliteOffer] = (0, react_1.useState)(false);
+    const [circleOpOffer, setCircleOpOffer] = (0, react_1.useState)(null); // campagne proposée
+    const [circleOpModal, setCircleOpModal] = (0, react_1.useState)(false); // suivi de la campagne
+    const [opStepModal, setOpStepModal] = (0, react_1.useState)(null); // étape à jouer
     // La proposition du cercle impose le silence : on le signale au moteur audio
     (0, react_1.useEffect)(() => { setSolemnOpen(!!eliteOffer); }, [eliteOffer]);
     const [storyModal, setStoryModal] = (0, react_1.useState)(null);
@@ -23430,6 +24185,125 @@ function FiscoGame() {
                     Math.round(resistOdds(gs) * 100),
                     "% DE CHANCES"),
                 react_1.default.createElement("button", { onClick: () => { setResistanceOffer(false); dispatch({ type: "DECLINE_RESISTANCE" }); toast("Tu refuses pour l'instant. Ils reviendront.", "#888"); }, style: { padding: "12px", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.15)", color: "rgba(255,255,255,.6)", borderRadius: 9, fontFamily: "'Bebas Neue',cursive", fontSize: 14, letterSpacing: 2, cursor: "pointer" } }, "REFUSER \u2014 VIVRE EN PAIX"))))) : null;
+    const CircleOpOfferOv = circleOpOffer ? (react_1.default.createElement("div", { className: "overlay-anim", style: { position: "fixed", inset: 0, zIndex: 283, background: "rgba(0,0,0,.96)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", overflowY: "auto" } },
+        react_1.default.createElement("div", { className: "modal-anim", style: { maxWidth: 400, width: "100%", maxHeight: "92vh", overflowY: "auto", margin: "auto", background: "linear-gradient(150deg,#08080c,#161206 60%,#08080c)", border: "1px solid rgba(212,175,55,.5)", borderRadius: 14, padding: "22px 17px" } },
+            react_1.default.createElement("div", { style: { textAlign: "center", marginBottom: 12 } },
+                react_1.default.createElement("div", { style: { fontSize: 46, filter: "drop-shadow(0 0 22px rgba(212,175,55,.45))" } }, circleOpOffer.emoji),
+                react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(212,175,55,.8)", letterSpacing: 4, fontFamily: "'Space Mono',monospace", marginTop: 6 } }, "CAMPAGNE DU CERCLE"),
+                react_1.default.createElement("div", { style: { fontFamily: "'Bebas Neue',cursive", fontSize: 21, color: "#d4af37", letterSpacing: 1.5, marginTop: 4, lineHeight: 1.15 } }, circleOpOffer.title),
+                circleOpOffer.fr && (react_1.default.createElement("div", { style: { display: "inline-block", marginTop: 6, padding: "2px 9px", borderRadius: 12, background: "rgba(70,110,220,.14)", border: "1px solid rgba(110,150,255,.35)", color: "#9ab6ff", fontSize: 9, letterSpacing: 2, fontFamily: "'Space Mono',monospace" } }, "\uD83C\uDDEB\uD83C\uDDF7 OP\u00C9RATION FRAN\u00C7AISE")),
+                react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(255,255,255,.4)", marginTop: 4, fontStyle: "italic" } }, circleOpOffer.tag)),
+            react_1.default.createElement("div", { style: { fontSize: 12.5, color: "rgba(255,255,255,.76)", lineHeight: 1.68, marginBottom: 13, whiteSpace: "pre-line" } }, circleOpOffer.brief),
+            react_1.default.createElement("div", { style: { background: "rgba(212,175,55,.06)", border: "1px solid rgba(212,175,55,.3)", borderRadius: 10, padding: 11, marginBottom: 11 } },
+                react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(212,175,55,.75)", letterSpacing: 2, fontFamily: "'Space Mono',monospace", marginBottom: 6 } }, "CE QU'IL FAUDRA FAIRE"),
+                circleOpOffer.steps.map(st => (react_1.default.createElement("div", { key: st.id, style: { display: "flex", gap: 7, fontSize: 11, color: "rgba(255,255,255,.7)", marginBottom: 4, lineHeight: 1.45 } },
+                    react_1.default.createElement("span", null, st.emoji),
+                    react_1.default.createElement("span", null, st.label))))),
+            react_1.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 10.5, color: "rgba(255,255,255,.55)", marginBottom: 13, fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums" } },
+                react_1.default.createElement("span", null,
+                    "D\u00E9lai \u00B7 ",
+                    circleOpOffer.months,
+                    " mois"),
+                react_1.default.createElement("span", { style: { color: "#d4af37" } },
+                    "+",
+                    circleOpOffer.service,
+                    " services")),
+            react_1.default.createElement("div", { style: { fontSize: 10.5, color: "rgba(255,140,140,.75)", lineHeight: 1.55, marginBottom: 13 } },
+                "\u26A0\uFE0F Une campagne inachev\u00E9e \u00E0 l'\u00E9ch\u00E9ance compte comme un ",
+                react_1.default.createElement("b", null, "faux pas"),
+                ". La refuser aussi."),
+            react_1.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } },
+                react_1.default.createElement("button", { onClick: () => {
+                        sfx("elite");
+                        dispatch({ type: "START_CIRCLE_OP", id: circleOpOffer.id, months: circleOpOffer.months });
+                        if (circleOpOffer.protege)
+                            dispatch({ type: "ADD_CAST", cast: { ...PROTEGE, bio: PROTEGE_BIOS[0] } });
+                        addLog(`[CERCLE] Campagne acceptée — ${circleOpOffer.title}`);
+                        toast("👁️ Campagne engagée — suis-la dans l'onglet Vie", "#d4af37");
+                        setCircleOpOffer(null);
+                    }, style: { padding: "13px", background: "linear-gradient(135deg,rgba(212,175,55,.3),rgba(140,110,30,.24))", border: "1px solid rgba(212,175,55,.55)", color: "#d4af37", borderRadius: 9, fontFamily: "'Bebas Neue',cursive", fontSize: 16, letterSpacing: 2, cursor: "pointer" } }, "\uD83D\uDC41\uFE0F ACCEPTER LA CAMPAGNE"),
+                react_1.default.createElement("button", { onClick: () => {
+                        sfx("danger");
+                        dispatch({ type: "DECLINE_CIRCLE_OP" });
+                        dispatch({ type: "APPLY", effects: { stress: +28, rep: +4 } });
+                        addLog("[CERCLE] Campagne refusée");
+                        setCircleOpOffer(null);
+                        setCalAlert({ emoji: "⚠️", title: "Tu as dit non",
+                            desc: `On n'a pas insisté. On a raccroché avant même que tu finisses ta phrase.\n\n**Faux pas : ${(gs.eliteStrikes || 0) + 1}/3.**` });
+                    }, style: { padding: "11px", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.16)", color: "rgba(255,255,255,.55)", borderRadius: 9, fontFamily: "'Bebas Neue',cursive", fontSize: 14, letterSpacing: 2, cursor: "pointer" } }, "REFUSER \u2014 ET L'ASSUMER"))))) : null;
+    // ── Overlay : jouer une étape de campagne ──
+    const OpStepOv = opStepModal ? (() => {
+        const st = opStepModal, a = st.act || {};
+        return (react_1.default.createElement("div", { className: "overlay-anim", style: { position: "fixed", inset: 0, zIndex: 284, background: "rgba(0,0,0,.96)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", overflowY: "auto" } },
+            react_1.default.createElement("div", { className: "modal-anim", style: { maxWidth: 390, width: "100%", maxHeight: "92vh", overflowY: "auto", margin: "auto", background: "linear-gradient(150deg,#08080c,#141020)", border: "1px solid rgba(212,175,55,.45)", borderRadius: 14, padding: "20px 16px" } },
+                react_1.default.createElement("div", { style: { textAlign: "center", marginBottom: 11 } },
+                    react_1.default.createElement("div", { style: { fontSize: 40 } }, st.emoji),
+                    react_1.default.createElement("div", { style: { fontFamily: "'Bebas Neue',cursive", fontSize: 18, color: "#d4af37", letterSpacing: 1.5, marginTop: 4, lineHeight: 1.2 } }, st.label)),
+                react_1.default.createElement("div", { style: { fontSize: 11.5, color: "rgba(255,255,255,.65)", lineHeight: 1.6, marginBottom: 12 } }, st.how),
+                a.question && (react_1.default.createElement("div", { style: { background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 10, padding: 11, marginBottom: 9 } },
+                    react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(255,255,255,.35)", letterSpacing: 2, fontFamily: "'Space Mono',monospace", marginBottom: 5 } }, "LA QUESTION"),
+                    react_1.default.createElement("div", { style: { fontSize: 12, color: "rgba(255,255,255,.8)", lineHeight: 1.55, fontStyle: "italic" } }, a.question))),
+                a.script && (react_1.default.createElement("div", { style: { background: "rgba(212,175,55,.07)", border: "1px solid rgba(212,175,55,.33)", borderRadius: 10, padding: 11, marginBottom: 12 } },
+                    react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(212,175,55,.8)", letterSpacing: 2, fontFamily: "'Space Mono',monospace", marginBottom: 5 } }, "LA R\u00C9PONSE QU'ON A \u00C9CRITE POUR TOI"),
+                    react_1.default.createElement("div", { style: { fontSize: 12.5, color: "#e7d9a8", lineHeight: 1.6 } },
+                        "\u00AB ",
+                        a.script,
+                        " \u00BB"))),
+                react_1.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } },
+                    (a.options || [{ id: "go", label: a.btn || "Faire", ok: true, effects: a.effects, out: a.out }]).map((o, i) => (react_1.default.createElement("button", { key: o.id, onClick: () => {
+                            sfx(o.ok === false ? "warn" : "confirm");
+                            if (o.effects)
+                                dispatch({ type: "APPLY", effects: o.effects });
+                            // Une option ratée ne valide pas l'étape : elle reste ouverte
+                            if (o.ok !== false)
+                                dispatch({ type: "CIRCLE_OP_STEP", stepId: st.id, choice: o.id });
+                            setOpStepModal(null);
+                            setCalAlert({ emoji: st.emoji, title: st.label,
+                                desc: `${o.out || ""}${o.ok === false ? "\n\n**L'étape n'est pas validée.** Tant que la campagne n'est pas à l'échéance, tu peux encore la reprendre." : ""}` });
+                        }, style: { padding: "11px 13px", textAlign: "left", background: i === 0 ? "rgba(212,175,55,.14)" : "rgba(255,255,255,.04)", border: i === 0 ? "1px solid rgba(212,175,55,.4)" : "1px solid rgba(255,255,255,.14)", color: i === 0 ? "#d4af37" : "rgba(255,255,255,.65)", borderRadius: 8, fontSize: 12, cursor: "pointer", lineHeight: 1.4 } }, o.label))),
+                    react_1.default.createElement("button", { onClick: () => setOpStepModal(null), style: { padding: "9px", background: "transparent", border: "1px solid rgba(255,255,255,.1)", color: "rgba(255,255,255,.35)", borderRadius: 8, fontSize: 11, cursor: "pointer" } }, "Plus tard")))));
+    })() : null;
+    // ── Overlay : suivi de la campagne en cours ──
+    const CircleOpOv = (circleOpModal && gs.circleOp && circleOp(gs.circleOp.id)) ? (() => {
+        const op = gs.circleOp, def = circleOp(op.id);
+        const reste = Math.max(0, Math.ceil((op.deadline - gs.currentDate) / 86400000));
+        const prog = opProgress(gs, op);
+        return (react_1.default.createElement("div", { className: "overlay-anim", style: { position: "fixed", inset: 0, zIndex: 283, background: "rgba(0,0,0,.95)", backdropFilter: "blur(12px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "14px", overflowY: "auto" } },
+            react_1.default.createElement("div", { className: "modal-anim", style: { maxWidth: 400, width: "100%", maxHeight: "92vh", overflowY: "auto", margin: "auto", background: "linear-gradient(150deg,#08080c,#141206)", border: "1px solid rgba(212,175,55,.4)", borderRadius: 14, padding: "18px 15px" } },
+                react_1.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 } },
+                    react_1.default.createElement("div", null,
+                        react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(212,175,55,.7)", letterSpacing: 3, fontFamily: "'Space Mono',monospace" } }, "CAMPAGNE EN COURS"),
+                        react_1.default.createElement("div", { style: { fontFamily: "'Bebas Neue',cursive", fontSize: 19, color: "#d4af37", letterSpacing: 1.5, lineHeight: 1.15 } },
+                            def.emoji,
+                            " ",
+                            def.title)),
+                    react_1.default.createElement("button", { onClick: () => setCircleOpModal(false), style: { background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.15)", color: "rgba(255,255,255,.65)", width: 26, height: 26, borderRadius: "50%", cursor: "pointer", fontSize: 13, flexShrink: 0 } }, "\u2715")),
+                react_1.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 10.5, fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums", marginBottom: 6 } },
+                    react_1.default.createElement("span", { style: { color: "rgba(255,255,255,.5)" } },
+                        prog.done,
+                        "/",
+                        prog.total,
+                        " \u00E9tapes"),
+                    react_1.default.createElement("span", { style: { color: reste <= 21 ? "#ff6b6b" : "rgba(255,255,255,.5)" } },
+                        "J-",
+                        reste)),
+                react_1.default.createElement("div", { style: { marginBottom: 12 } },
+                    react_1.default.createElement(StatBar, { val: (prog.done / Math.max(1, prog.total)) * 100, color: prog.all ? "#69ff8a" : "#d4af37", height: 3 })),
+                def.steps.map(st => {
+                    const fait = opStepDone(gs, op, st);
+                    return (react_1.default.createElement("div", { key: st.id, style: { background: fait ? "rgba(105,255,138,.05)" : "rgba(255,255,255,.03)", border: fait ? "1px solid rgba(105,255,138,.25)" : "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: 10, marginBottom: 6 } },
+                        react_1.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 } },
+                            react_1.default.createElement("span", { style: { fontSize: 12, fontWeight: 700, color: fait ? "#69ff8a" : "rgba(255,255,255,.85)", lineHeight: 1.3 } },
+                                st.emoji,
+                                " ",
+                                st.label),
+                            react_1.default.createElement("span", { style: { fontSize: 14, flexShrink: 0 } }, fait ? "✓" : "○")),
+                        !fait && react_1.default.createElement("div", { style: { fontSize: 10.5, color: "rgba(255,255,255,.45)", marginTop: 5, lineHeight: 1.5 } }, st.how),
+                        !fait && st.act && (react_1.default.createElement("button", { onClick: () => { setCircleOpModal(false); setOpStepModal(st); }, style: { width: "100%", marginTop: 8, padding: "8px", background: "rgba(212,175,55,.13)", border: "1px solid rgba(212,175,55,.35)", color: "#d4af37", borderRadius: 7, fontSize: 11, cursor: "pointer", fontFamily: "'Space Mono',monospace" } }, st.act.btn)),
+                        !fait && !st.act && react_1.default.createElement("div", { style: { fontSize: 9.5, color: "rgba(255,206,99,.55)", marginTop: 6, fontStyle: "italic" } }, "Cette \u00E9tape se valide toute seule d\u00E8s que tu l'auras faite dans le jeu.")));
+                }),
+                prog.all && (react_1.default.createElement("div", { style: { background: "rgba(105,255,138,.07)", border: "1px solid rgba(105,255,138,.3)", borderRadius: 10, padding: 11, marginTop: 8, fontSize: 11, color: "rgba(255,255,255,.7)", lineHeight: 1.55 } }, "Tout est en place. Le cercle fera son bilan \u00E0 l'\u00E9ch\u00E9ance \u2014 rien \u00E0 faire de plus.")))));
+    })() : null;
     const MissionOv = gs.eliteMission ? (react_1.default.createElement("div", { className: "overlay-anim", style: { position: "fixed", inset: 0, zIndex: 280, background: "rgba(0,0,0,.96)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", overflowY: "auto" } },
         react_1.default.createElement("div", { className: "modal-anim", style: { maxWidth: 380, width: "100%", maxHeight: "92vh", overflowY: "auto", margin: "auto", background: "linear-gradient(150deg,#08080c,#14100a 60%,#08080c)", border: "1px solid rgba(212,175,55,.45)", borderRadius: 14, padding: "22px 18px" } },
             react_1.default.createElement("div", { style: { textAlign: "center", marginBottom: 12 } },
@@ -26689,6 +27563,31 @@ function FiscoGame() {
                                         react_1.default.createElement("span", null, "Influence disponible"),
                                         react_1.default.createElement("span", { style: { color: "#d4af37", fontFamily: "'Space Mono',monospace", fontWeight: 700 } }, gs.eliteInfluence || 0)),
                                     react_1.default.createElement("button", { onClick: () => setFavorModal(true), style: { width: "100%", marginTop: 6, padding: "8px", background: "rgba(212,175,55,.14)", border: "1px solid rgba(212,175,55,.35)", color: "#d4af37", borderRadius: 7, fontSize: 10.5, cursor: "pointer", fontFamily: "'Space Mono',monospace" } }, "\uD83E\uDE84 Utiliser ton influence"),
+                                    gs.circleOp && circleOp(gs.circleOp.id) && (() => {
+                                        const op = gs.circleOp, def = circleOp(op.id), pr = opProgress(gs, op);
+                                        const reste = Math.max(0, Math.ceil((op.deadline - gs.currentDate) / 86400000));
+                                        return (react_1.default.createElement("button", { onClick: () => setCircleOpModal(true), style: { width: "100%", marginTop: 6, padding: "9px", background: "rgba(212,175,55,.1)", border: `1px solid ${reste <= 21 ? "rgba(255,107,107,.45)" : "rgba(212,175,55,.35)"}`, color: "#d4af37", borderRadius: 7, fontSize: 10.5, cursor: "pointer", fontFamily: "'Space Mono',monospace", textAlign: "left" } },
+                                            react_1.default.createElement("div", { style: { display: "flex", justifyContent: "space-between" } },
+                                                react_1.default.createElement("span", null,
+                                                    def.emoji,
+                                                    " Campagne \u2014 ",
+                                                    def.title),
+                                                react_1.default.createElement("span", { style: { color: reste <= 21 ? "#ff6b6b" : "rgba(255,255,255,.45)" } },
+                                                    "J-",
+                                                    reste)),
+                                            react_1.default.createElement("div", { style: { fontSize: 9.5, color: "rgba(255,255,255,.45)", marginTop: 3 } },
+                                                pr.done,
+                                                "/",
+                                                pr.total,
+                                                " \u00E9tapes \u00B7 ",
+                                                pr.all ? "prête pour le bilan" : "en cours")));
+                                    })(),
+                                    (gs.circleOpsDone || []).length > 0 && (react_1.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", fontSize: 10, color: "rgba(255,255,255,.4)", marginTop: 6 } },
+                                        react_1.default.createElement("span", null, "Campagnes men\u00E9es \u00E0 bien"),
+                                        react_1.default.createElement("span", { style: { color: "#69ff8a", fontFamily: "'Space Mono',monospace" } },
+                                            (gs.circleOpsDone || []).length,
+                                            "/",
+                                            CIRCLE_OPS.length))),
                                     (gs.circleNews || []).length > 0 && (react_1.default.createElement("button", { onClick: () => setNewsModal(true), style: { width: "100%", marginTop: 5, padding: "8px", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.14)", color: "rgba(255,255,255,.6)", borderRadius: 7, fontSize: 10.5, cursor: "pointer", fontFamily: "'Space Mono',monospace" } },
                                         "\uD83D\uDC41\uFE0F Ce que font les autres (",
                                         (gs.circleNews || []).length,
@@ -26948,6 +27847,9 @@ function FiscoGame() {
             InfoPanel),
         CreatorOv,
         EventOv,
+        CircleOpOfferOv,
+        CircleOpOv,
+        OpStepOv,
         CalOv,
         PendOv,
         GrammyOv,
