@@ -2584,7 +2584,7 @@ const ALL_EVENTS = [
             { text: "Prendre un jour off à Malibu", effects: { energy: +20, stress: -10 }, consequence: "Un vrai bol d'air californien." }
         ] },
     { id: "trav_007", cat: "travel", sub: "ibiza", rarity: "epic", emoji: "🌊", title: "Résidence secrète à Ibiza", chars: [], requires: { minRep: 45 },
-        context: "Tu poses tes valises à Ibiza pour composer loin de toute pression, dans ta villa.",
+        context: "Tu poses tes valises à Ibiza pour composer loin de toute pression, dans une villa louée à l'écart de tout.",
         choices: [
             { text: "Résidence créative de deux semaines", effects: { rep: +20, energy: -20, stress: -15 }, future: [{ days: 14, desc: "Un projet entier naît de cette parenthèse ibicenca." }], consequence: "Une des périodes les plus fertiles de ta carrière." },
             { text: "Mélanger travail et fête", effects: { rep: +10, energy: -25, health: -5 }, consequence: "Créatif, mais épuisant." },
@@ -2786,7 +2786,7 @@ const ALL_EVENTS = [
             { text: "Compter sur une nounou de confiance", effects: { money: -60000, rep: +10 }, arc: { id: "family_arc", stage: 4 }, consequence: "Un compromis qui fonctionne, difficilement." }
         ] },
     // ─── LIAISON RISQUÉE (déclenchée manuellement) ───────────────────────────
-    { id: "affair_discovered", cat: "scandal", sub: "decouverte", rarity: "legendary", emoji: "📸", title: "La liaison est découverte", chars: [], dynamicPartner: true,
+    { id: "affair_discovered", cat: "scandal", sub: "decouverte", rarity: "legendary", emoji: "📸", title: "La liaison est découverte", chars: [], dynamicPartner: true, requires: { needsPartner: true },
         context: "Des photos compromettantes fuitent. Ton couple est au bord de l'explosion.",
         choices: [
             { text: "Tout avouer et demander pardon", effects: { rel: { jenna_ortega: -40 }, romance: { suspicion: 20 } }, consequence: "Une conversation d'une rare dureté, mais honnête." },
@@ -4843,7 +4843,7 @@ const ALL_EVENTS = [
             { text: "En lire un extrait sur scène", effects: { rep: +10, fame: +3 }, consequence: "La salle est silencieuse jusqu'au dernier mot." },
             { text: "La garder pour toi", effects: { stress: -6 }, consequence: "Elle reste dans un tiroir, relue plus souvent que tu ne l'admettras." }
         ] },
-    { id: "xr_021", cat: "relations", sub: "fans", rarity: "common", emoji: "🚨", title: "Un fan s'installe devant ta villa", chars: [],
+    { id: "xr_021", cat: "relations", sub: "fans", rarity: "common", emoji: "🚨", title: "Un fan s'installe devant ta villa", chars: [], requires: { needsAnyProperty: true },
         context: "Il campe sur le trottoir depuis plusieurs nuits. Il n'est pas agressif, il est perdu.",
         choices: [
             { text: "Aller lui parler et appeler de l'aide pour lui", effects: { rep: +16, energy: -10, money: -20000 }, consequence: "Il est pris en charge. Il repart accompagné." },
@@ -5033,7 +5033,7 @@ const ALL_EVENTS = [
             { text: "Payer pour gagner du temps", effects: { money: -1500000, stress: +22, rep: -6 }, consequence: "Le silence est temporaire par nature." },
             { text: "Faire intervenir des gens peu recommandables", effects: { money: -400000, rep: -12, stress: +16 }, future: [{ days: 60, desc: "La méthode employée revient te chercher." }], consequence: "Le problème disparaît. Un autre se prépare." }
         ] },
-    { id: "xs_023", cat: "scandal", sub: "reseaux", rarity: "common", emoji: "🕵️", title: "On publie l'adresse de ta villa", chars: [],
+    { id: "xs_023", cat: "scandal", sub: "reseaux", rarity: "common", emoji: "🕵️", title: "On publie l'adresse de ta villa", chars: [], requires: { needsAnyProperty: true },
         context: "Coordonnées, photos satellite, horaires de passage. Tout est en ligne.",
         choices: [
             { text: "Faire retirer et renforcer la sécurité", effects: { money: -500000, rep: +6, stress: +10 }, consequence: "Les contenus tombent. Le calme revient, avec plus de caméras." },
@@ -7571,7 +7571,7 @@ const ALL_EVENTS = [
             { text: "Faire une intervention unique", effects: { rep: +10, energy: -6 }, consequence: "Une bonne séance, sans suite." },
             { text: "Refuser", effects: { rep: +2 }, consequence: "Le module se fait sans toi." }
         ] },
-    { id: "yf_029", cat: "business", sub: "immo", rarity: "common", emoji: "🔨", title: "Un chantier voisin rend ta villa inhabitable", chars: [],
+    { id: "yf_029", cat: "business", sub: "immo", rarity: "common", emoji: "🔨", title: "Un chantier voisin rend ta villa inhabitable", chars: [], requires: { needsAnyProperty: true },
         context: "Marteaux-piqueurs dès l'aube, plusieurs mois annoncés.",
         choices: [
             { text: "Négocier des horaires avec le chantier", effects: { money: -80000, rep: +10, stress: -10 }, consequence: "Un accord tient, et le voisinage te remercie." },
@@ -10697,7 +10697,7 @@ const WAR_MISSIONS = [
         winT: "Vous tenez la trésorerie", winD: "Une banque coopérative étrangère accepte de vous accueillir, avec des comptes séparés et des garanties écrites.",
         loseT: "Tout est gelé", loseD: "Six semaines sans accès aux fonds. Deux enquêteurs partent faute de salaire.",
         winFx: { rep: +6 }, loseFx: { money: -18000000, stress: +30 }, evLoss: 20 },
-    { id: "wm_child", emoji: "🚸", title: "On s'en prend à ta famille", days: 30, chance: 0.47, cost: 20000000,
+    { id: "wm_child", emoji: "🚸", title: "On s'en prend à ta famille", needChild: true, days: 30, chance: 0.47, cost: 20000000,
         brief: "Des inconnus rôdent devant l'école de ton enfant. Des photos circulent dans des messageries privées.\n\nRien d'illégal, rien de saisissable. Juste un message très clair.",
         goal: "Mettre ta famille hors d'atteinte",
         winT: "Ils sont en sécurité", winD: "Nouvelle école, nouveau quartier, protection discrète. Ton enfant ne saura jamais pourquoi vous avez déménagé.",
@@ -10819,7 +10819,7 @@ const WAR_MISSIONS = [
         winT: "L'association tient", winD: "Recours gagné. Ils se réunissent toujours, un peu plus discrètement.",
         loseT: "Dissoute", loseD: "Le local est fermé. Ils se retrouvent chez les uns et les autres, à tour de rôle.",
         winFx: { rep: +7, rel: { falltos: +15 } }, loseFx: { stress: +22, rel: { falltos: -5 } } },
-    { id: "wm_child2", emoji: "🎓", title: "Ton enfant est exclu", days: 25, chance: 0.55, cost: 8000000,
+    { id: "wm_child2", emoji: "🎓", title: "Ton enfant est exclu", needChild: true, days: 25, chance: 0.55, cost: 8000000,
         brief: "Son établissement invoque « un contexte devenu ingérable ». Trois autres refusent l'inscription.",
         goal: "Lui trouver une scolarité normale",
         winT: "Il est scolarisé", winD: "Une école à l'étranger l'accueille sans poser de question.",
@@ -11172,7 +11172,7 @@ const RESIST_EVENTS = [
     { emoji: "📉", t: "L'opinion se lasse", d: "Après dix-huit mois, le sujet fatigue. Les vues chutent, les relais se font rares. C'est peut-être leur meilleure arme : le temps.", e: { rep: -8, stress: +22 }, m: { purpose: -12 } },
     { emoji: "🎙️", t: "Un podcast à cent millions d'écoutes vous invite", d: "Quatre heures sans montage, sans contradicteur payé, sans coupure publicitaire. La plus grande audience que vous ayez jamais eue.", e: { rep: +21, fame: +11 } },
     { emoji: "🧨", t: "Un document capital fuite", d: "Pas de votre fait. Quelqu'un à l'intérieur a décidé de tout envoyer, sans explication et sans jamais se manifester.", e: { rep: +18, stress: +20 } },
-    { emoji: "🚸", t: "Ton enfant est harcelé à l'école", d: "On s'en prend à lui pour t'atteindre. C'est le moment où tu te demandes sérieusement si tu dois arrêter.", e: { stress: +40 }, m: { anxiety: +20, purpose: -10 } },
+    { emoji: "🚸", needChild: true, t: "Ton enfant est harcelé à l'école", d: "On s'en prend à lui pour t'atteindre. C'est le moment où tu te demandes sérieusement si tu dois arrêter.", e: { stress: +40 }, m: { anxiety: +20, purpose: -10 } },
     { emoji: "🔥", t: "Un incendie dans vos locaux", d: "Origine électrique, selon le rapport. Les archives papier ont brûlé, les copies numériques étaient ailleurs.", e: { money: -2500000, stress: +30, rep: +6 } },
     { emoji: "🤝", t: "Un ancien président prend position", d: "Il ne vous soutient pas ouvertement, mais il déclare qu'« il y a des questions légitimes ». Venant de lui, c'est énorme.", e: { rep: +16, fame: +6 } },
     { emoji: "🎭", t: "Vous êtes ridiculisés à la télévision", d: "Une émission de grande écoute consacre vingt minutes à vous tourner en dérision. Le montage est habile et efficace.", e: { rep: -10, stress: +24 } },
@@ -11249,7 +11249,7 @@ const PRISON_EVENTS = [
     { emoji: "💪", t: "La musculation de la cour", d: "Une barre rouillée et des poids improvisés. Tu t'y mets par ennui, tu continues parce que ça te tient.", e: { health: +8, stress: -12 }, h: { body: +10 } },
     { emoji: "🎂", t: "Ton anniversaire derrière les barreaux", d: "Personne ne le sait, sauf toi. Tu manges ton repas habituel et tu comptes les jours restants.", e: { stress: +20 }, m: { loneliness: +14 } },
     { emoji: "🤐", t: "Tu vois quelque chose que tu ne devrais pas", d: "Un règlement de comptes dans les douches. Tu ne dis rien à personne, jamais. C'est comme ça qu'on survit ici.", e: { stress: +26 }, m: { anxiety: +16 } },
-    { emoji: "👨‍👧", t: "Ton enfant vient te voir", d: "Il ne comprend pas pourquoi tu ne peux pas rentrer avec lui. Tu n'as pas trouvé les mots pour lui expliquer.", e: { stress: +32 }, m: { loneliness: +10, purpose: -8 } },
+    { emoji: "👨‍👧", needChild: true, t: "Ton enfant vient te voir", d: "Il ne comprend pas pourquoi tu ne peux pas rentrer avec lui. Tu n'as pas trouvé les mots pour lui expliquer.", e: { stress: +32 }, m: { loneliness: +10, purpose: -8 } },
     { emoji: "🎹", t: "Un piano désaccordé", d: "Dans la salle commune, personne n'y touche depuis des années. Tu t'assieds. Toute l'aile devient silencieuse.", e: { stress: -20, rep: +7 }, m: { purpose: +12 } },
     { emoji: "🔑", t: "Un gardien te traite normalement", d: "Il ne te demande rien, ne te méprise pas, ne te flatte pas. En six semaines, c'est la seule personne à te parler comme à un homme.", e: { stress: -14 } },
 ];
@@ -20150,6 +20150,9 @@ function requiresMet(gs, ev) {
         return false;
     if (r.needsProperty && !(gs.properties || []).some(x => x.id === r.needsProperty && x.owned))
         return false;
+    // « ta villa » : peu importe laquelle, mais il en faut une
+    if (r.needsAnyProperty && !(gs.properties || []).some(x => x.owned))
+        return false;
     const bizTouched = new Set();
     (ev.choices || []).forEach(c => Object.keys((c.effects || {}).bizAdjust || {}).forEach(k => bizTouched.add(k)));
     for (const id of bizTouched) {
@@ -22369,19 +22372,26 @@ function FiscoGame() {
             && d.getDate() % 5 === 0 && Math.random() < 0.42) {
             const goneR = new Set([...(gs.deceased || []), ...(gs.erased || [])]);
             const poolR = RESIST_EVENTS.filter(e => !(e.needFalltos && goneR.has("falltos"))
+                // On ne raconte pas la scolarité d'un enfant qui n'existe pas
+                && !(e.needChild && !(gs.children || []).length)
+                && !(e.needPartner && !gs.romance.partner)
                 && !(e.rel && Object.keys(e.rel).some(id => goneR.has(id)))
                 && !(e.e && e.e.rel && Object.keys(e.e.rel).some(id => goneR.has(id))));
-            const ev = poolR[Math.floor(Math.random() * poolR.length)] || RESIST_EVENTS[0];
-            if (ev.e)
-                dispatch({ type: "APPLY", effects: ev.e });
-            if (ev.m)
-                dispatch({ type: "MENTAL", deltas: ev.m });
-            addLog(`[RÉSISTANCE] ${ev.t}`);
-            setCalAlert({ emoji: ev.emoji, title: ev.t, desc: ev.d });
+            if (poolR.length) {
+                const ev = poolR[Math.floor(Math.random() * poolR.length)];
+                if (ev.e)
+                    dispatch({ type: "APPLY", effects: ev.e });
+                if (ev.m)
+                    dispatch({ type: "MENTAL", deltas: ev.m });
+                addLog(`[RÉSISTANCE] ${ev.t}`);
+                setCalAlert({ emoji: ev.emoji, title: ev.t, desc: ev.d });
+            }
         }
         // ── La vie derrière les barreaux ──
         if (phase === "game" && !ending && !anyOverlayOpen() && gs.inPrison && d.getDate() % 4 === 0 && Math.random() < 0.55) {
-            const ev = PRISON_EVENTS[Math.floor(Math.random() * PRISON_EVENTS.length)];
+            const poolP = PRISON_EVENTS.filter(e => !(e.needChild && !(gs.children || []).length)
+                && !(e.needPartner && !gs.romance.partner));
+            const ev = poolP[Math.floor(Math.random() * poolP.length)] || PRISON_EVENTS[0];
             if (ev.e)
                 dispatch({ type: "APPLY", effects: ev.e });
             if (ev.m)
@@ -25482,7 +25492,9 @@ function FiscoGame() {
         const pick = arr => arr[Math.floor(Math.random() * arr.length)];
         let tale, detail = null;
         if (bad) {
-            tale = pick(HANGOUT_BAD).replace(/\{who\}/g, who);
+            // Une pique sur « ta compagne » n'a de sens que s'il y a quelqu'un
+            const badPool = gs.romance.partner ? HANGOUT_BAD : HANGOUT_BAD.filter(x => !/ta compagne/.test(x));
+            tale = pick(badPool).replace(/\{who\}/g, who);
         }
         else if (activity.sub === "match" && choice) {
             const club = choice;
