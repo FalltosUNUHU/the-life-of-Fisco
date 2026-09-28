@@ -18100,7 +18100,7 @@ const INIT = {
             monthlyRevenue: 3000000, totalEarned: 145000000, permanent: true,
         }],
     unuhuRoster: [], sanJoseSquad: STARTING_SQUAD.map(p => ({ ...p, signedDate: GAME_START_DATE - (20 - p.retireInYears) * 365 * 86400000 })), sanJoseSponsors: [], clubBudget: 25000000, retiredPlayers: [], kitDeal: null,
-    soldBusinesses: {}, catalogSold: 0, yearSnapshot: null, lastRecapYear: null,
+    soldBusinesses: {}, catalogSold: 0, majEquilibre: 2, /* doit valoir VERSION_EQUILIBRE, déclaré plus bas */ yearSnapshot: null, lastRecapYear: null,
     foh0Contracts: [], bahascoContracts: [],
     festivalHistory: [], lastFestivalYear: null, pendingLyricBonus: 0, lastTrophyHint: null, trophyHinted: [],
 };
@@ -18153,8 +18153,71 @@ function capFame(next) {
         return next;
     return { ...next, fame: plafond };
 }
+// ─── LE PLAFOND DE STREAMS ──────────────────────────────────────────────────
+// Les streams d'un projet continuaient de grandir chaque semaine, sans borne :
+// la longue traîne ne s'éteint jamais complètement, si bien qu'après trente ans
+// un morceau finissait à huit ou dix milliards. On plafonne à 5,5 milliards, et
+// on approche ce plafond de façon asymptotique : au-delà de 2,5 milliards, ce
+// qu'un titre gagne encore compte de moins en moins. 5,5 milliards n'est donc
+// jamais atteint tout à fait — il faut une carrière hors norme pour seulement
+// s'en approcher.
+const PLAFOND_MORCEAU = 5500000000;
+const SEUIL_TASSEMENT = 2500000000;
+const ECHELLE_TASSEMENT = 2200000000;
+function tasserStreams(x) {
+    if (!(x > SEUIL_TASSEMENT))
+        return x;
+    const sup = PLAFOND_MORCEAU - SEUIL_TASSEMENT;
+    return Math.round(SEUIL_TASSEMENT + sup * (1 - Math.exp(-(x - SEUIL_TASSEMENT) / ECHELLE_TASSEMENT)));
+}
+// Appliqué à la SORTIE du réducteur : aucune action ne peut y échapper, et une
+// partie déjà entamée est corrigée dès le premier geste du joueur.
+// On garde le total BRUT à côté du total affiché : sans ça, tasser un compteur
+// déjà tassé le rongeait un peu plus à chaque action, et les chiffres fondaient.
+function capStreams(next) {
+    if (!next || !Array.isArray(next.discography))
+        return next;
+    let touche = false;
+    const disco = next.discography.map(d => {
+        if (!d || typeof d.streams !== "number")
+            return d;
+        // Ce que le jeu vient d'ajouter depuis le dernier passage ici
+        const dernierAffiche = typeof d.streamsAffiches === "number" ? d.streamsAffiches : d.streams;
+        const ajout = Math.max(0, d.streams - dernierAffiche);
+        const brut = (typeof d.streamsBruts === "number" ? d.streamsBruts : d.streams) + ajout;
+        const affiche = tasserStreams(brut);
+        if (affiche === d.streams && d.streamsBruts === brut && d.streamsAffiches === affiche)
+            return d;
+        touche = true;
+        // Les titres suivent, pour que leur somme corresponde toujours au total.
+        const ratio = d.streams > 0 ? affiche / d.streams : 1;
+        const tb = (d.trackBreakdown || []).map(t => ({ ...t, streams: Math.round((t.streams || 0) * ratio) }));
+        return { ...d, streams: affiche, streamsBruts: brut, streamsAffiches: affiche,
+            trackBreakdown: d.trackBreakdown ? tb : d.trackBreakdown };
+    });
+    return touche ? { ...next, discography: disco } : next;
+}
+// ─── LA REPRISE DES PARTIES DÉJÀ COMMENCÉES ────────────────────────────────
+// Le plafond de streams, le plafond de célébrité, le palier du cercle et la
+// réparation des couples s'appliquent d'eux-mêmes à chaque geste du joueur.
+// Reste une correction rétroactive, qui n'a de sens qu'une seule fois.
+const VERSION_EQUILIBRE = 2;
+function reprendrePartie(next) {
+    if (!next || typeof next !== "object")
+        return next;
+    if ((next.majEquilibre || 0) >= VERSION_EQUILIBRE)
+        return next;
+    const repris = { ...next, majEquilibre: VERSION_EQUILIBRE };
+    // Le découvert de sortie a désormais un plancher : celui qui est déjà tombé
+    // plus bas en profite, sinon la correction ne servirait qu'aux parties neuves.
+    if (repris.exElite && !repris.eliteFallen && typeof repris.money === "number"
+        && repris.money < -130000000) {
+        repris.money = -130000000;
+    }
+    return repris;
+}
 function gameReducer(state, action) {
-    return capFame(sanitizeState(gameReducerInner(state, action), state));
+    return reprendrePartie(capStreams(capFame(sanitizeState(gameReducerInner(state, action), state))));
 }
 function gameReducerInner(state, action) {
     var _a, _b, _c, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s;
@@ -21711,8 +21774,13 @@ function FiscoGame() {
             // faux pas la fait redescendre bien plus vite qu'ils ne la font monter.
             if (gs.elite && !gs.eliteFallen) {
                 const rang = eliteRank(gs);
-                const parLeRang = (rang.lvl || 0) * 0.34; // 0 à 1,7
-                const parLesService = Math.min(1.5, (gs.eliteService || 0) * 0.045);
+                // Le rang porte la célébrité jusqu'à un palier, pas au-delà : sans lui,
+                // un membre haut placé restait bloqué à 100 pour toujours, l'érosion
+                // étant annulée chaque mois. Au-dessus de son palier, il redescend comme
+                // tout le monde ; les 100 ne se tiennent plus qu'à force d'actualité.
+                const palier = 78 + (rang.lvl || 0) * 3.4; // 78 à 95
+                const parLeRang = gs.fame > palier ? 0 : (rang.lvl || 0) * 0.34; // 0 à 1,7
+                const parLesService = gs.fame > palier ? 0 : Math.min(1.5, (gs.eliteService || 0) * 0.045);
                 const parLesFautes = (gs.eliteStrikes || 0) * 1.8; // un faux pas coûte cher
                 dF = Math.round((dF - parLeRang - parLesService + parLesFautes) * 10) / 10;
             }
