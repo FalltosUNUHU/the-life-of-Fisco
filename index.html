@@ -10163,9 +10163,13 @@ function resistAllies(gs) {
     return ids.filter(id => !dead.has(id) && !["absent", "mort", "parti"].includes(st[id] || "actif"));
 }
 function resistCount(gs) { return resistAllies(gs).length; }
-// Écrit « six » ou « cinq » selon ce qui est vrai à cet instant
-const FR_NUM = ["zéro", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix"];
-function resistWord(gs) { return FR_NUM[Math.min(10, resistCount(gs))]; }
+// « Vous êtes » compte Fisco avec les siens : six alliés autour de lui, cela fait
+// sept personnes dans la pièce. Le compte suit les départs et les arrivées, donc
+// il baisse dès qu'un allié meurt ou s'en va, et remonte quand un autre entre.
+function resistTotal(gs) { return resistCount(gs) + 1; }
+// Écrit « sept » ou « six » selon ce qui est vrai à cet instant
+const FR_NUM = ["zéro", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix", "onze", "douze"];
+function resistWord(gs) { return FR_NUM[Math.min(FR_NUM.length - 1, resistTotal(gs))]; }
 // Ce que vaut vraiment la tentative : cinq pour cent si on se lance le jour même,
 // jusqu'à quatre-vingt-dix si on a fait tomber des membres, réuni des preuves,
 // retourné l'opinion et bouclé les dossiers MK.
@@ -18121,6 +18125,17 @@ function sanitizeState(next, prev) {
             catch (e) { }
         }
     }
+    // Un statut de couple sans personne en face n'a aucun sens : on ne peut être
+    // fiancé à personne, ni épouser quelqu'un dont le nom s'affiche « undefined ».
+    // Quelle que soit l'action qui a effacé la partenaire, on redescend au veuvage
+    // — y compris sur une partie sauvegardée déjà dans cet état.
+    const r = (patched || next).romance;
+    if (r && ["couple", "fiancee", "marie"].includes(r.status) && !r.partner) {
+        if (!patched)
+            patched = { ...next };
+        patched.romance = { ...r, status: "deuil", locked: false, fidelity: 0, suspicion: 0,
+            exPartner: r.exPartner || null };
+    }
     return patched || next;
 }
 // ─── PLAFOND DE CÉLÉBRITÉ ───────────────────────────────────────────────────
@@ -18308,7 +18323,15 @@ function gameReducerInner(state, action) {
                     deepOverdraft = true;
                 }
                 if (newMoney < 0) {
-                    newMoney -= Math.floor(Math.abs(newMoney) * 0.0012); // ~44%/an d'intérêts de découvert
+                    // Celui qui sort du cercle a été dépouillé, il n'a pas dépensé :
+                    // sa dette ne grossit plus toute seule. Elle reste entière, et se
+                    // rembourse à la sueur. Sans ce gel, 44%/an composés la rendaient
+                    // mathématiquement irrattrapable — une tournée mondiale rapporte
+                    // 11 M$ quand les seuls intérêts en coûtaient 85 M$ par an.
+                    // La chute (ELITE_FALL) n'est pas concernée : c'est une fin, pas une vie à remonter.
+                    const dettePortee = state.exElite && !state.eliteFallen;
+                    if (!dettePortee)
+                        newMoney -= Math.floor(Math.abs(newMoney) * 0.0012); // ~44%/an d'intérêts
                     if (daily > 0)
                         newMoney -= Math.floor(daily * 0.5); // la banque prélève la moitié de tes revenus
                 }
@@ -18994,9 +19017,14 @@ function gameReducerInner(state, action) {
             return { ...state, elite: false, exElite: true, eliteMission: null,
                 rep: Math.max(2, Math.round(state.rep * 0.25)),
                 fame: Math.max(4, Math.round(state.fame / 4)),
-                // 110 % de ce que tu possèdes — pas un plancher forfaitaire,
-                // et une fortune déjà négative n'est pas aggravée.
-                money: Math.round(state.money - Math.max(0, state.money) * 1.10),
+                // 110 % de ce que tu possèdes, mais le trou s'arrête à 130 M$ : au-delà,
+                // aucune carrière ne pouvait le combler. Une fortune déjà négative n'est
+                // ni aggravée ni effacée — sortir du cercle ne sauve personne.
+                money: (() => {
+                    const brut = Math.round(state.money - Math.max(0, state.money) * 1.10);
+                    const plancher = Math.min(state.money, -130000000);
+                    return Math.max(brut, plancher);
+                })(),
                 social: Object.fromEntries(Object.entries(state.social).map(([k, s]) => [k, { ...s, followers: 0 }])),
                 soldBusinesses: seized,
                 businesses: Object.fromEntries(Object.entries(state.businesses).map(([k, b]) => [k, { ...b, revenue: 0 }])),
@@ -19328,7 +19356,18 @@ function gameReducerInner(state, action) {
                 aState[id] = "mort"; });
             return { ...state, inResistance: true, resistStart: state.currentDate, awardsBanned: true, conspiracist: true,
                 allyState: aState,
-                romance: { ...state.romance, partner: null, love: 0, months: 0 },
+                // Elle part — et la rupture est enregistrée comme n'importe quelle autre.
+                // On effaçait seulement le nom : le statut restait « fiancé », si bien
+                // qu'on restait fiancé à personne et qu'on pouvait épouser « undefined ».
+                romance: (() => {
+                    const ex = state.romance && state.romance.partner;
+                    if (!ex)
+                        return { ...state.romance, love: 0, months: 0 };
+                    return { ...state.romance, partner: null, love: 0, months: 0,
+                        status: "deuil", exPartner: ex, locked: false, fidelity: 0, suspicion: 0,
+                        breakupDate: state.currentDate,
+                        pastPartners: [...(state.romance.pastPartners || []), ex] };
+                })(),
                 rep: Math.min(50, state.rep),
                 relations: rels };
         }
@@ -28726,7 +28765,7 @@ function FiscoGame() {
             (gs.exposure || 0) >= 62 && (react_1.default.createElement("div", { style: { fontSize: 9.5, color: "#ff6b6b", marginBottom: 9, fontStyle: "italic" } }, "\u26A0\uFE0F Exposition critique : tes alli\u00E9s peuvent \u00EAtre neutralis\u00E9s et les repr\u00E9sailles s'intensifient. M\u00E8ne une op\u00E9ration de d\u00E9fense.")),
             react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(255,159,28,.6)", letterSpacing: 2, marginBottom: 5, fontFamily: "'Space Mono',monospace" } },
                 "TES ALLI\u00C9S \u2014 VOUS \u00CATES ",
-                resistCount(gs)),
+                resistTotal(gs)),
             react_1.default.createElement("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 5, marginBottom: 11 } }, Object.entries(ALLIES_SPEC).filter(([id]) => (gs.allyState || {})[id] !== "absent").map(([id, a]) => {
                 const isDead = (gs.deceased || []).includes(id) || (gs.allyState || {})[id] === "mort";
                 const st = isDead ? "mort" : ((gs.allyState || {})[id] || "actif");
