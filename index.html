@@ -1682,11 +1682,24 @@ const FEAT_TIER_FRANCO = new Set([
     "georgio", "chilla", "clara_luciani", "camelia_jordana", "amel_bent", "fally_ipupa", "caballero", "jeanjass",
     "falltos", "vladimir_cauchemar", "michel_sardou", "tiakola",
 ]);
+// ─── LES TROIS QUI PASSENT LES FRONTIÈRES ───────────────────────────────────
+// La chanson francophone n'entre pas au Billboard, à trois exceptions près.
+// Eux seuls ouvrent la porte américaine à un morceau en français : un titre qui
+// les embarque n'est plus traité comme un projet purement francophone.
+const FEAT_TIER_FRANCO_EXPORT = new Set(["angele", "jul", "stromae"]);
+// Francophone au sens large : pour les titres de morceaux, le vivier du cercle
+// et tout ce qui distingue la scène française du reste du monde.
+function estFrancophone(id) {
+    const t = featTierOf(id);
+    return t === "franco" || t === "franco_export";
+}
 function featTierOf(id) {
     if (FEAT_TIER_GLOBAL_ELITE.has(id))
         return "elite";
     if (FEAT_TIER_GLOBAL_BIG.has(id))
         return "big";
+    if (FEAT_TIER_FRANCO_EXPORT.has(id))
+        return "franco_export";
     if (FEAT_TIER_FRANCO.has(id))
         return "franco";
     const c = CHARS_BY_ID[id];
@@ -1694,7 +1707,7 @@ function featTierOf(id) {
         return "franco";
     return "mid";
 }
-const FEAT_TIER_POWER = { elite: 1.0, big: 0.62, mid: 0.34, franco: 0.16 };
+const FEAT_TIER_POWER = { elite: 1.0, big: 0.62, franco_export: 0.45, mid: 0.34, franco: 0.16 };
 // ── Coût réel d'un featuring ──
 // Gratuits : tous les francophones, plus Drake, The Weeknd et Travis Scott (amis proches)
 const FREE_FEATS = new Set(["drake", "the_weeknd", "travis_scott"]);
@@ -1702,7 +1715,7 @@ function featCost(id, gs) {
     var _a, _b;
     if (FREE_FEATS.has(id))
         return 0;
-    if (featTierOf(id) === "franco")
+    if (estFrancophone(id))
         return 0;
     const tier = featTierOf(id);
     const base = tier === "elite" ? 2200000 : tier === "big" ? 950000 : 350000;
@@ -1736,7 +1749,7 @@ const DA_STYLES = [
     { id: "melancholic", name: "Mélancolique", emoji: "💧", color: "#4a6fa5", desc: "Pluie, introspection, blessures anciennes." },
     { id: "chaotic_punk", name: "Chaos & Rage", emoji: "🔥", color: "#ff3b3b", desc: "Énergie brute, distorsion, colère assumée." },
 ];
-const GENRES = ["Trap", "R&B", "Drill", "Afrobeat", "Pop Urbain", "Cloud Rap", "Boom Bap", "Alternative", "Ballade", "Club/Dance", "Rap Mélo", "Expérimental"];
+const GENRES = ["Rap", "Trap", "R&B", "Drill", "Afrobeat", "Pop Urbain", "Cloud Rap", "Boom Bap", "Alternative", "Ballade", "Club/Dance", "Rap Mélo", "Expérimental"];
 const TRACK_LIMITS = { EP: { min: 4, max: 6 }, Album: { min: 8, max: 16 } };
 // Courbe réaliste : énorme pic de sortie, puis chute rapide et longue traîne
 const GROWTH_CURVE = [0.34, 0.21, 0.13, 0.085, 0.06, 0.045, 0.033, 0.025, 0.018, 0.014];
@@ -1845,6 +1858,27 @@ function hasLegendaryFeat(t) {
 function certifiedFor(s) {
     return s > 800000000 ? "Diamant" : s > 400000000 ? "Quadruple Platine" : s > 200000000 ? "Triple Platine" : s > 100000000 ? "Double Platine" : s > 50000000 ? "Platine" : s > 20000000 ? "Or" : "Certifié";
 }
+// ─── QUELS TITRES PEUVENT REVENIR ───────────────────────────────────────────
+// Un titre ne ressort que s'il a déjà dépassé les cent millions d'écoutes.
+// Ces onze-là en font partie, et sont pourtant exclus : ils ont eu leur moment.
+const SEUIL_RETOUR = 100000000;
+const JAMAIS_DE_RETOUR = new Set([
+    "fisca", "ta kapt", "ton tonton", "fdl", "toute la night", "unuhu",
+    "enlace moi", "temps", "roule", "freestyle 90s", "podium",
+]);
+function normTitre(t) {
+    return String(t || "").toLowerCase()
+        .normalize("NFD").replace(/[̀-ͯ]/g, "") // accents
+        .replace(/['’`]/g, "") // apostrophes
+        .replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+}
+// Au-delà de ce seuil, les décennies de carrière pèsent sur les scores
+const SEUIL_TARDIF = 600000000;
+// En dessous de ce palier, la longévité ne change rien aux chiffres
+const GENOU_TARDIF = 350000000;
+// Dispersion de l'accueil du public : plus c'est haut, plus une sortie est un pari
+const ETALEMENT_ACCUEIL = 2.5;
+const CENTRE_ACCUEIL = 0.87;
 function calcProjectStats(project, gs) {
     const trackScores = project.tracks.map(t => calcTrackQuality(t, gs));
     const avgQ = trackScores.reduce((a, b) => a + b, 0) / trackScores.length;
@@ -1861,7 +1895,15 @@ function calcProjectStats(project, gs) {
     const typeFactor = (project.type === "single" ? 0.62 : project.type === "EP" ? 0.85 : 1.1) * eraType;
     // La célébrité pèse nettement plus qu'avant sur le volume de streams
     const fameFactor = 0.62 + Math.pow(gs.fame / 100, 1.15) * 0.92;
-    const variance = 0.8 + Math.random() * 0.35; // 0.8 – 1.15
+    // ── L'accueil du public n'est jamais acquis ────────────────────────────
+    // L'ancienne fourchette (0,8 – 1,15) rendait le résultat presque certain :
+    // deux albums équivalents finissaient toujours au même endroit. Dans la
+    // réalité, le même artiste peut faire trois fois moins ou deux fois plus avec
+    // un disque comparable. On tire donc sur une loi log-normale : la plupart des
+    // sorties atterrissent près de l'attendu, quelques-unes s'effondrent, et
+    // quelques-unes explosent.
+    const tirage = (Math.random() + Math.random() + Math.random()) / 3; // ≈ loi normale
+    const variance = Math.exp((tirage - 0.5) * ETALEMENT_ACCUEIL) * CENTRE_ACCUEIL;
     // Poids commercial des featurings : une superstar mondiale porte le morceau, un feat francophone beaucoup moins
     const fa = analyzeFeats(project.tracks);
     const featFactor = fa.count ? (0.75 + fa.power * 0.85) : 1.0; // franco ≈ 0.89, elite ≈ 1.6
@@ -1881,6 +1923,24 @@ function calcProjectStats(project, gs) {
     const catalogPull = 1;
     let ultimate = Math.round(H * qualityFactor * typeFactor * fameFactor * variance * featFactor
         * seasonFactor * rolloutFactor * studioFactor * eliteFactor * catalogPull);
+    // ── Le poids des décennies ──────────────────────────────────────────────
+    // Passé trente ans de carrière, dépasser 600 M de streams devient de plus en
+    // plus rare : le public se renouvelle, les habitudes d'écoute changent, et un
+    // artiste installé ne refait pas les chiffres de ses débuts. À cinquante ans
+    // de carrière, il ne reste presque rien de l'excédent — sauf coup d'éclat,
+    // qui reste possible mais exceptionnel.
+    if ((gs.careerYears || 0) > 30 && ultimate > GENOU_TARDIF) {
+        const t = Math.min(1, ((gs.careerYears || 0) - 30) / 20); // 0 à 30 ans, 1 à 50 ans
+        const coupDEclat = Math.random() < 0.10 * (1 - t * 0.75); // 10% à 30 ans, 2,5% à 50 ans
+        if (!coupDEclat) {
+            // Premier palier : au-delà de 350 M, l'élan se tasse. C'est ce qui fait
+            // qu'une carrière longue ne franchit plus les 600 M comme avant.
+            ultimate = Math.round(GENOU_TARDIF + (ultimate - GENOU_TARDIF) * (1 - 0.62 * t));
+            // Second palier : ce qui dépasse quand même 600 M est fortement rogné.
+            if (ultimate > SEUIL_TARDIF)
+                ultimate = Math.round(SEUIL_TARDIF + (ultimate - SEUIL_TARDIF) * (1 - 0.85 * t));
+        }
+    }
     // Un projet porté uniquement par des feats francophones ne perce pas à l'international
     if (fa.count && fa.onlyFranco) {
         ultimate = Math.round(ultimate * 0.45);
@@ -9680,7 +9740,7 @@ function guestPrestige(c, gs) {
     var _a, _b, _c;
     let s = 0;
     const tier = featTierOf(c.id);
-    s += tier === "elite" ? 100 : tier === "big" ? 70 : tier === "franco" ? 30 : 40;
+    s += tier === "elite" ? 100 : tier === "big" ? 70 : tier === "franco_export" ? 55 : tier === "franco" ? 30 : 40;
     // Les membres du cercle pèsent bien plus lourd, d'autant plus haut qu'est leur rang
     if (gs && gs.elite && isElite(c))
         s += 120 + ((_b = (_a = memberRank(c)) === null || _a === void 0 ? void 0 : _a.lvl) !== null && _b !== void 0 ? _b : 0) * 45;
@@ -9944,15 +10004,15 @@ function eliteRecruitPool(gs) {
         const tier = featTierOf(c.id);
         // Les Français font partie des entrées, mais ils sont moins nombreux que
         // les Américains dans le vivier comme dans la réalité du cercle.
-        return tier === "elite" || tier === "big" || tier === "franco";
+        return tier === "elite" || tier === "big" || tier === "franco" || tier === "franco_export";
     });
 }
 // Le cercle recrute surtout à l'international : environ une entrée française
 // sur quatre. On tire donc dans deux paniers séparés.
 function pickRecruits(gs, combien) {
     const pool = eliteRecruitPool(gs);
-    const fr = pool.filter(c => featTierOf(c.id) === "franco");
-    const intl = pool.filter(c => featTierOf(c.id) !== "franco");
+    const fr = pool.filter(c => estFrancophone(c.id));
+    const intl = pool.filter(c => !estFrancophone(c.id));
     const out = [];
     for (let k = 0; k < combien; k++) {
         const veutFr = Math.random() < 0.25 && fr.length;
@@ -17702,7 +17762,7 @@ const FEAT_TITLES_FR = [
     "Le vrai visage", "Dernière balle", "Tout ou rien", "Les non-dits", "Écho", "Fin de partie",
 ];
 function featTitleFor(artistId) {
-    const franco = featTierOf(artistId) === "franco";
+    const franco = estFrancophone(artistId);
     const bank = franco ? FEAT_TITLES_FR : FEAT_TITLES_EN;
     return bank[Math.floor(Math.random() * bank.length)];
 }
@@ -19512,7 +19572,7 @@ function gameReducerInner(state, action) {
             return { ...state, activeClash: null };
         case "VIRAL_TRACK":
             // Un vieux titre repart : ses streams explosent et il redevient éligible aux classements
-            return { ...state, viralTrack: action.info,
+            return { ...state, lastViralAt: state.currentDate, viralTrack: action.info,
                 discography: state.discography.map(d => d.id !== action.projectId ? d : {
                     ...d,
                     streams: d.streams + action.boost,
@@ -21602,8 +21662,19 @@ function FiscoGame() {
             const socle = Math.min(92, 48 + (gs.fame * 0.22) + ((gs.achievements || []).length * 0.35));
             const ecart = gs.rep - socle;
             const perteRep = ecart > 0 ? Math.min(2.4, 0.25 + ecart * 0.11) : 0;
-            const dF = Math.round(perteFame * frein * 10) / 10, dR = Math.round(perteRep * frein * 10) / 10;
-            if (dF > 0 || dR > 0)
+            let dF = Math.round(perteFame * frein * 10) / 10;
+            const dR = Math.round(perteRep * frein * 10) / 10;
+            // ── Dans le cercle, la célébrité se gagne et se perd ──────────────────
+            // Le rang et les services rendus la font monter mois après mois ; chaque
+            // faux pas la fait redescendre bien plus vite qu'ils ne la font monter.
+            if (gs.elite && !gs.eliteFallen) {
+                const rang = eliteRank(gs);
+                const parLeRang = (rang.lvl || 0) * 0.34; // 0 à 1,7
+                const parLesService = Math.min(1.5, (gs.eliteService || 0) * 0.045);
+                const parLesFautes = (gs.eliteStrikes || 0) * 1.8; // un faux pas coûte cher
+                dF = Math.round((dF - parLeRang - parLesService + parLesFautes) * 10) / 10;
+            }
+            if (dF !== 0 || dR > 0)
                 dispatch({ type: "DRIFT", fame: -dF, rep: -dR });
         }
         // ── Les relations se dégradent dans le silence ──
@@ -22697,16 +22768,30 @@ function FiscoGame() {
             toast(`${t.emoji} Nouvelle tendance : ${t.label}`, "#c77dff");
         }
         // ── Un vieux titre repart grâce à une vidéo virale ──
-        if (phase === "game" && !ending && !anyOverlayOpen() && !gs.viralTrack && d.getDate() % 13 === 0 && Math.random() < 0.11) {
-            const old = (gs.discography || []).filter(dd => (gs.currentDate - dd.releaseDate) > 2 * 365 * 86400000 && (dd.trackBreakdown || []).length);
-            if (old.length) {
-                const proj = old[Math.floor(Math.random() * old.length)];
-                const idx = Math.floor(Math.random() * proj.trackBreakdown.length);
-                const tr = proj.trackBreakdown[idx];
-                const boost = Math.round(Math.max(18000000, tr.streams * (0.6 + Math.random() * 1.8)));
+        // Beaucoup trop de titres ressortaient, et avec des gains démesurés. Trois
+        // verrous : un seul retour tous les dix-huit mois au plus, uniquement des
+        // titres déjà passés au-dessus de cent millions, et jamais ceux de la liste
+        // ci-dessus. Le gain reste une relance, pas une seconde carrière.
+        const depuisViral = gs.lastViralAt ? (gs.currentDate - gs.lastViralAt) / 86400000 : 9999;
+        if (phase === "game" && !ending && !anyOverlayOpen() && !gs.viralTrack && depuisViral >= 540 && d.getDate() === 13 && Math.random() < 0.05) {
+            const vieux = (gs.discography || []).filter(dd => (gs.currentDate - dd.releaseDate) > 2 * 365 * 86400000 && (dd.trackBreakdown || []).length);
+            const candidats = [];
+            vieux.forEach(proj => (proj.trackBreakdown || []).forEach((tr, i) => {
+                if ((tr.streams || 0) <= SEUIL_RETOUR)
+                    return; // il faut déjà avoir marqué
+                if (JAMAIS_DE_RETOUR.has(normTitre(tr.title)))
+                    return;
+                candidats.push({ proj, idx: i, tr });
+            }));
+            if (candidats.length) {
+                const choix = candidats[Math.floor(Math.random() * candidats.length)];
+                const proj = choix.proj, idx = choix.idx, tr = choix.tr;
+                // Une relance ajoute entre 8% et 25% du compteur du titre, jamais plus
+                // de 90 millions : une tendance relance, elle ne refait pas une carrière.
+                const boost = Math.round(Math.min(90000000, Math.max(6000000, tr.streams * (0.08 + Math.random() * 0.17))));
                 dispatch({ type: "VIRAL_TRACK", info: { title: tr.title, project: proj.title, projectId: proj.id, trackIdx: idx, boost },
                     projectId: proj.id, trackIdx: idx, boost });
-                dispatch({ type: "APPLY", effects: { fame: +4, rep: +5 } });
+                dispatch({ type: "APPLY", effects: { fame: +2, rep: +2 } });
                 addLog(`[VIRAL] « ${tr.title} » repart grâce à TikTok (+${fmtFoll(boost)})`);
                 setCalAlert({ emoji: "⏪", title: `« ${tr.title} » explose à nouveau`,
                     desc: `Un extrait de « ${tr.title} », sorti sur ${proj.title} il y a des années, est devenu le son d'une tendance TikTok massive. Des millions de vidéos l'utilisent.\n\nLe titre gagne ${fmtFoll(boost)} de streams et **réintègre les classements Billboard et SNEP** pour les quatre prochains mois, comme s'il venait de sortir.\n\nTu peux alimenter la tendance depuis l'onglet Réseaux pour amplifier encore le phénomène.` });
