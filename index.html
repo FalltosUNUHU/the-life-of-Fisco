@@ -5546,8 +5546,8 @@ const ALL_EVENTS = [
             { text: "Rentrer dormir", effects: { energy: +16, health: +6 }, consequence: "Une bonne nuit, simplement." },
             { text: "Chercher où ça se passe encore", effects: { stress: +8, energy: -16, money: -40000 }, consequence: "Tu finis dans un endroit que tu ne retrouverais pas." }
         ] },
-    { id: "xn_008", cat: "relations", sub: "nuit", rarity: "rare", emoji: "🕶️", title: "Quelqu'un t'aborde en te parlant du cercle", chars: [],
-        context: "Il glisse trois mots, un lieu et une heure, et disparaît sans attendre de réponse.",
+    { id: "xn_008", cat: "relations", sub: "nuit", rarity: "rare", emoji: "🕶️", title: "Quelqu'un t'aborde avec un drôle de discours", chars: [],
+        context: "Il parle de gens qui décident, de portes qui s'ouvrent, sans jamais rien nommer. Il glisse un lieu et une heure, puis disparaît sans attendre de réponse.",
         choices: [
             { text: "Y aller", effects: { stress: +16, rep: +6, energy: -8 }, consequence: "Le rendez-vous n'était pas ce que tu croyais. Tu en ressors avec des questions." },
             { text: "Envoyer quelqu'un vérifier", effects: { money: -40000, stress: +8 }, consequence: "L'adresse existe. Personne n'était là." },
@@ -9734,7 +9734,7 @@ const POST_STREAMING_MODELS = [
 // ─── LES ÉLITES ─────────────────────────────────────────────────────────────
 // Un cercle que rien n'annonce et dont l'existence même se devine plutôt qu'elle ne se prouve.
 const ELITE_SYMBOL = "👁️";
-const ELITE_NAMED = new Set(["angele", "act_fr_pierre_niney", "aya_nakamura", "s_tyla", "sommer_ray", "ariana_grande", "billie_eilish", "doja_cat", "dua_lipa", "jennie", "sabrina_carpenter", "tate_mcrae", "zendaya", "act_us_tom_holland", "lily_rose_depp", "emrata", "gigi_hadid", "hailey_bieber", "charli_damelio", "i_dixie_d_amelio", "i_nabilla", "jenna_ortega", "rick_owens", "el_kris", "el_jack_lang", "kendrick_lamar", "lil_wayne", "usher", "el_dr_dre", "snoop_dogg", "eminem", "shakira",
+const ELITE_NAMED = new Set(["damso", "angele", "act_fr_pierre_niney", "aya_nakamura", "s_tyla", "sommer_ray", "ariana_grande", "billie_eilish", "doja_cat", "dua_lipa", "jennie", "sabrina_carpenter", "tate_mcrae", "zendaya", "act_us_tom_holland", "lily_rose_depp", "emrata", "gigi_hadid", "hailey_bieber", "charli_damelio", "i_dixie_d_amelio", "i_nabilla", "jenna_ortega", "rick_owens", "el_kris", "el_jack_lang", "kendrick_lamar", "lil_wayne", "usher", "el_dr_dre", "snoop_dogg", "eminem", "shakira",
     "ar_david_ren_de_rothschild", "ar_nathaniel_philip_victor_james_rothschild", "ar_ariane_de_rothschild", "ar_alexandre_de_rothschild", "ar_david_mayer_de_rothschild", "ar_eric_de_rothschild", "ar_douard_tienne_de_rothschild", "ar_benjamin_de_rothschild", "ar_saskia_de_rothschild", "ar_emma_rothschild", "ar_no_mie_de_rothschild", "ar_pietro_no_gennaro_de_rothschild", "ar_chlo_de_rothschild", "ar_leopold_james_de_rothschild", "ar_jessica_de_rothschild", "ar_kate_emma_rothschild", "ar_lavinia_de_rothschild", "ar_alice_ad_la_de_de_rothschild", "ar_bethsab_e_de_rothschild", "ar_david_raoul_guy_de_rothschild", "ar_john_davison_rockefeller_iv", "ar_david_rockefeller_jr", "ar_steven_clark_rockefeller", "ar_peter_c_rockefeller", "ar_ariana_rockefeller", "ar_valerie_rockefeller_wayne", "ar_alida_rockefeller_messinger", "ar_nelson_aldrich_rockefeller_jr", "ar_mark_fitler_rockefeller", "ar_laurance_rockefeller_jr", "ar_lucy_rockefeller_waletzky", "ar_marion_french_rockefeller", "ar_eileen_rockefeller", "ar_justin_aldrich_rockefeller", "ar_john_davison_rockefeller_v", "ar_steven_clark_rockefeller_jr", "ar_winthrop_paul_rockefeller_jr", "ar_andrea_davidson_rockefeller", "ar_katherine_cluett_rockefeller", "ar_winthrop_paul_rockefeller", "ar_william_mountbatten_windsor", "ar_catherine_elizabeth_middleton", "ar_roi_charles_iii", "ar_reine_camilla", "ar_prince_harry", "ar_meghan_markle", "ar_princess_anne", "ar_prince_edward", "ar_sophie_duchess_of_edinburgh", "ar_zara_tindall", "ar_princess_beatrice", "ar_princess_eugenie", "ar_peter_phillips",
     "el_cr7", "el_messi", "el_zidane", "el_pique", "el_bale", "el_r9", "el_beckham", "f_kylian_mbapp",
     "neymar", "f_sergio_ramos", "f_harry_kane", "f_rodri", "f_jules_kound",
@@ -9939,6 +9939,20 @@ const ELITE_INNER = new Set([
     "e_khaldoon_al_mubarak", "e_jamie_dimon", "e_ray_dalio", "e_steve_schwarzman", "e_ken_griffin",
     "mark_zuckerberg", "investisseur_roth",
 ]);
+// Tant qu'une opération du cercle a besoin de quelqu'un, la mort naturelle
+// l'épargne : sans cela, la mise en scène pouvait perdre son second rôle avant
+// d'avoir eu lieu. Une fois l'opération faite — ou une fois sorti du cercle —
+// il redevient mortel comme tout le monde.
+const OP_SECOND_ROLE = { co_clash: "damso" };
+function protegesParUneOperation(gs) {
+    const set = new Set();
+    if (!gs || !gs.elite)
+        return set;
+    const faites = new Set(gs.circleOpsDone || []);
+    Object.entries(OP_SECOND_ROLE).forEach(([op, qui]) => { if (!faites.has(op))
+        set.add(qui); });
+    return set;
+}
 const ELITE_SEAT = new Set([
     "jay_z", "Diddy", "rick_owens", "el_beckham", "el_kris", "el_jack_lang", "e_bob_iger", "e_lucian_grainge", "e_rob_stringer",
     "e_nasser_al_khela_fi", "e_ari_emanuel", "e_todd_boehly", "e_david_zaslav",
@@ -9947,7 +9961,7 @@ const ELITE_SEAT = new Set([
     "el_johnny_depp", "naomi_campbell", "act_us_robert_downey_jr", "act_us_samuel_l_jackson",
 ]);
 const ELITE_MEMBER = new Set([
-    "angele", "act_fr_pierre_niney", "aya_nakamura",
+    "damso", "angele", "act_fr_pierre_niney", "aya_nakamura",
     "s_tyla", "sommer_ray", "ariana_grande", "billie_eilish", "doja_cat", "dua_lipa", "jennie",
     "sabrina_carpenter", "tate_mcrae", "zendaya", "act_us_tom_holland", "lily_rose_depp",
     "emrata", "gigi_hadid", "hailey_bieber", "charli_damelio", "i_dixie_d_amelio", "i_nabilla",
@@ -12571,8 +12585,8 @@ const CIRCLE_OPS = [
         lose: "Le symbole n'a pas pris. On te remercie froidement, et ce qu'on devait faire passer devra l'être autrement — plus cher, plus visible, plus risqué.",
         reward: { money: 140000000, fame: +5 } },
     { id: "co_clash", emoji: "🥊", title: "Le clash qu'on a écrit pour toi", months: 3, minRank: 0, service: 3, fr: true,
-        tag: "Déclencher, à la date exacte qu'on t'impose, une guerre que tu n'as pas choisie.",
-        brief: "Le rap français occupe une place qu'aucun autre sujet n'occupe : quand deux grands noms s'affrontent, la France entière regarde ailleurs pendant trois semaines.\n\nLe cercle a besoin de ces trois semaines. Pas de toi, pas de ta musique : de ces trois semaines-là, précisément, et de rien d'autre.\n\nOn t'a choisi la cible, on t'a écrit l'angle, on t'a donné la date. Tu n'auras pas à mentir : tout ce qu'on te fera dire est vrai, sorti du contexte qui le rendait supportable.",
+        tag: "Jouer, à la date exacte qu'on t'impose, une guerre que personne n'a choisie — avec un adversaire qui sait, lui aussi, que ce n'est pas une guerre.",
+        brief: "Le rap français occupe une place qu'aucun autre sujet n'occupe : quand deux grands noms s'affrontent, la France entière regarde ailleurs pendant trois semaines.\n\nLe cercle a besoin de ces trois semaines. Pas de toi, pas de ta musique : de ces trois semaines-là, précisément, et de rien d'autre.\n\nLa cible, c'est Damso. Vous avez collaboré, et il est des vôtres : il a reçu le même appel que toi, il connaît la date et il sait ce qu'on attend. Personne dehors ne croira à un montage entre deux hommes qui ont travaillé ensemble — c'est précisément pour ça qu'on vous a choisis tous les deux.\n\nOn vous a écrit l'angle. Aucun de vous n'aura à mentir sur l'autre : il suffira de jouer très bien.",
         steps: [
             { id: "cl1", emoji: "💥", label: "Ouvrir les hostilités sur X",
                 how: "Onglet Réseaux, un post sur X pendant la campagne. Le reste partira tout seul.",
@@ -12583,10 +12597,12 @@ const CIRCLE_OPS = [
             { id: "cl3", emoji: "🎙️", label: "Entretenir le feu une semaine de plus",
                 how: "Le cercle veut vingt et un jours. Tu en es à quatorze.",
                 act: { btn: "🎙️ Relancer", effects: { rep: -14, fame: +8, stress: +30, energy: -14 },
-                    out: "Tu ressors une vieille histoire que personne n'avait oubliée mais que tout le monde avait eu la décence de laisser tranquille.\n\nÇa tient sept jours de plus. Sa maison de disques annule une sortie, son sponsor se retire, et un communiqué de sa famille demande qu'on arrête.\n\nOn te dit que c'est suffisant. On ne te dit pas pour quoi." } },
+                    out: "Il relance, tu réponds, il remet. Vous vous envoyez des piques que vous avez relues ensemble la veille, et le pays y croit dur comme fer.\n\nÇa tient sept jours de plus. Les plateaux vous invitent séparément, les chaînes découpent, et des gens qui vous aiment tous les deux se déchirent en commentaire pour une brouille qui n'existe pas.\n\nOn vous dit que c'est suffisant. On ne vous dit pas ce qui est passé pendant ce temps." } },
         ],
-        win: "Vingt et un jours de guerre en une. Trois textes sont passés pendant ce temps, deux nominations aussi, et une affaire judiciaire s'est éteinte faute de lecteurs.\n\nToi tu as gagné le clash, et tout le monde te l'accorde. Tu es le seul à savoir que le clash n'était pas le sujet.",
+        win: "Vingt et un jours de guerre en une. Trois textes sont passés pendant ce temps, deux nominations aussi, et une affaire judiciaire s'est éteinte faute de lecteurs.\n\nOn t'accorde la victoire du clash. Damso et toi êtes les deux seuls à savoir qu'il n'y avait pas de clash, et que le sujet était ailleurs. Vous n'en reparlerez jamais, même entre vous.",
         lose: "Le clash n'a pas pris, ou pas assez longtemps. L'espace est resté libre, et ce qui devait passer inaperçu a été lu ligne par ligne.",
+        // Sans lui, la mise en scène n'a plus de second rôle
+        avail: gs => !(gs.deceased || []).includes("damso") && !(gs.erased || []).includes("damso"),
         reward: { money: 110000000, fame: +7 } },
     { id: "co_banlieue", emoji: "🏙️", title: "Le rapport qu'on ne lira pas", months: 4, minRank: 2, service: 5, fr: true,
         tag: "Occuper l'espace médiatique français pendant qu'un rapport sur les quartiers est enterré.",
@@ -18160,6 +18176,17 @@ function sanitizeState(next, prev) {
 // entrant dans le cercle. Sans lui, la célébrité bute à 88, quoi qu'on fasse.
 // Le plafond est appliqué à la sortie du réducteur, c'est-à-dire sur le résultat
 // de TOUTES les actions — aucune ne peut passer à côté.
+// ─── CE QUE LE JOUEUR SAIT DU CERCLE ────────────────────────────────────────
+// Tant qu'on ne lui a rien proposé, qu'il n'a croisé personne et qu'il n'a pas
+// rejoint la résistance, le cercle n'existe pas pour lui : aucun texte ne doit
+// le nommer, sous peine de lui révéler la moitié du jeu par accident.
+function connaitLeCercle(gs) {
+    if (!gs)
+        return false;
+    return !!(gs.elite || gs.exElite || gs.eliteFallen || gs.eliteOffered || gs.eliteRefused
+        || gs.inResistance || gs.resistanceTried || gs.faithStart || gs.faithDone
+        || (gs.eliteMet || []).length > 0);
+}
 const FAME_CAP_SANS_CERCLE = 88;
 function fameCeiling(gs) { return (gs && gs.elite) ? 100 : FAME_CAP_SANS_CERCLE; }
 function capFame(next) {
@@ -18180,7 +18207,7 @@ function capFame(next) {
 // s'en approcher.
 // Affichée dans les paramètres : elle dit d'un coup d'œil si la partie tourne
 // bien sur la dernière version du jeu.
-const VERSION_JEU = "68";
+const VERSION_JEU = "71";
 const PLAFOND_MORCEAU = 5000000000;
 const SEUIL_TASSEMENT = 2500000000;
 const ECHELLE_TASSEMENT = 1200000000;
@@ -23015,7 +23042,9 @@ function FiscoGame() {
             const chance = Math.min(0.55, 0.05 + yearsIn * 0.022);
             if (Math.random() < chance) {
                 const dead = new Set(gs.deceased || []);
-                const candidates = Object.values(CHARS).filter(c => !dead.has(c.id) && c.id !== gs.romance.partner);
+                const proteges = protegesParUneOperation(gs);
+                const candidates = Object.values(CHARS).filter(c => !dead.has(c.id) && c.id !== gs.romance.partner
+                    && !proteges.has(c.id));
                 if (candidates.length) {
                     // Les proches sont plus susceptibles d'être concernés émotionnellement
                     const close = candidates.filter(c => { var _a, _b; return ((_b = (_a = getRel(gs, c.id)) === null || _a === void 0 ? void 0 : _a.score) !== null && _b !== void 0 ? _b : 0) >= 55; });
@@ -25356,15 +25385,20 @@ function FiscoGame() {
                 dispatch({ type: "APPLY", effects: { rep: -Math.round(6 * f), stress: +Math.round(12 * f), deliberate: true } });
                 if (tRank.lvl >= 3)
                     dispatch({ type: "DAMAGE_BUSINESSES", pct: 0.08 * tRank.lvl });
-                addLog(`[CERCLE] Riposte de ${target.name}`);
+                const sait = connaitLeCercle(gs);
+                addLog(sait ? `[CERCLE] Riposte de ${target.name}` : `[RIPOSTE] ${target.name}`);
                 setCalAlert({ emoji: tRank.emoji, title: `${target.name} riposte`,
+                    // Deux versions du même événement : celui qui ignore tout du cercle en
+                    // subit les effets sans jamais en entendre le nom.
                     desc: tRank.lvl >= 4
                         ? `Tu viens de t'en prendre à quelqu'un qui décide de choses dont tu ignores l'existence.\n\nLa riposte ne vient pas de lui : trois partenaires te lâchent la même semaine, un financement est retiré, et une enquête est ouverte sur une de tes sociétés. Personne ne fait le lien publiquement.`
                         : tRank.lvl >= 3
-                            ? `${target.name} occupe un siège permanent. Il n'a pas répondu, il n'en a pas besoin.\n\nDeux contrats tombent, un partenaire se retire, et ton nom disparaît de listes auxquelles tu n'aurais jamais dû avoir accès.`
+                            ? `${target.name} n'a pas répondu, et il n'en a pas besoin.\n\nDeux contrats tombent, un partenaire se retire, et ton nom disparaît de listes auxquelles tu n'aurais jamais dû avoir accès.`
                             : tRank.lvl >= 2
-                                ? `${target.name} est solidement installé dans le cercle. Sa réponse est publique, cinglante, et très bien relayée.`
-                                : `${target.name} est encore une entrée récente. Sa riposte fait du bruit, sans plus.` });
+                                ? (sait
+                                    ? `${target.name} est solidement installé dans le cercle. Sa réponse est publique, cinglante, et très bien relayée.`
+                                    : `${target.name} a plus d'appuis que tu ne le pensais. Sa réponse est publique, cinglante, et très bien relayée.`)
+                                : `${target.name} pèse moins qu'il ne le croit. Sa riposte fait du bruit, sans plus.` });
             }, 1600);
         }
         const danger = dangerLevelOf(target.id, gs);
