@@ -1757,12 +1757,22 @@ const GROWTH_CURVE = [0.34, 0.21, 0.13, 0.085, 0.06, 0.045, 0.033, 0.025, 0.018,
 const SEASON_MULT = { 1: 0.92, 2: 0.95, 3: 1.02, 4: 1.00, 5: 1.03, 6: 0.90, 7: 0.78, 8: 0.74, 9: 1.12, 10: 1.18, 11: 1.15, 12: 0.98 };
 const SEASON_LABEL = { 1: "Rentrée de janvier, marché calme", 2: "Période creuse", 3: "Bonne fenêtre de printemps", 4: "Fenêtre correcte", 5: "Avant l'été, dynamique", 6: "Début d'été, attention à la baisse", 7: "Plein été — très mauvaise période", 8: "Août — la pire période de l'année", 9: "Rentrée — excellente fenêtre", 10: "Octobre — la meilleure fenêtre de l'année", 11: "Novembre — très forte fenêtre", 12: "Fêtes, marché saturé" };
 const CATALOG_TRICKLE = 0.00035; // tiny ongoing weekly trickle after growth curve ends (legacy catalog longevity)
+// Le socle d'une nouvelle sortie, c'est-à-dire ce que le public attend de toi.
+// Il montait auparavant à la moyenne exacte des trois derniers projets : chaque
+// sortie prenait donc la précédente pour référence, et la carrière partait en
+// spirale — c'est ainsi qu'un morceau finissait à huit milliards. Le socle
+// sature désormais : réussir te porte, mais il existe une hauteur que même une
+// carrière parfaite ne dépasse pas.
+const SOCLE_PREMIERE = 60000000;
+const SOCLE_MAX = 680000000; /* calibré sur une carrière entière : un quart des sorties finit au-dessus du milliard */
+const ECHELLE_SOCLE = 450000000;
 function catalogBaseline(gs) {
     const recent = (gs.discography || []).slice(0, 3);
     if (!recent.length)
-        return 60000000;
+        return SOCLE_PREMIERE;
     const avg = recent.reduce((a, d) => a + (d.ultimate || d.streams), 0) / recent.length;
-    return Math.max(12000000, avg);
+    const sature = SOCLE_MAX * (1 - Math.exp(-avg / ECHELLE_SOCLE));
+    return Math.max(12000000, sature);
 }
 function calcTrackQuality(track, gs) {
     let score = 45 + Math.random() * 15;
@@ -1923,6 +1933,8 @@ function calcProjectStats(project, gs) {
     const catalogPull = 1;
     let ultimate = Math.round(H * qualityFactor * typeFactor * fameFactor * variance * featFactor
         * seasonFactor * rolloutFactor * studioFactor * eliteFactor * catalogPull);
+    // Le plafond s'applique dès la naissance du projet, pas seulement à l'arrivée
+    ultimate = tasserStreams(ultimate);
     // ── Le poids des décennies ──────────────────────────────────────────────
     // Passé trente ans de carrière, dépasser 600 M de streams devient de plus en
     // plus rare : le public se renouvelle, les habitudes d'écoute changent, et un
@@ -1951,10 +1963,15 @@ function calcProjectStats(project, gs) {
         ultimate = Math.min(hardCap, ultimate);
     }
     const scoreSum = trackScores.reduce((a, b) => a + b, 0) || 1;
+    // Les compteurs par titre partent du jour de sortie et grandissent avec le
+    // projet. Ils partaient auparavant de l'OBJECTIF final, puis suivaient encore
+    // la croissance du projet : ils finissaient vingt fois trop haut, et c'est là
+    // qu'un titre affichait huit milliards.
+    const initialStreams0 = Math.round(ultimate * GROWTH_CURVE[0]);
     const trackBreakdown = project.tracks.map((t, i) => ({
         title: t.title, featIds: getFeatIds(t), quality: Math.round(trackScores[i]),
         share: trackScores[i] / scoreSum,
-        streams: Math.round(ultimate * (trackScores[i] / scoreSum)),
+        streams: Math.round(initialStreams0 * (trackScores[i] / scoreSum)),
     })).sort((a, b) => b.streams - a.streams);
     const initialStreams = Math.round(ultimate * GROWTH_CURVE[0]); // buzz of day one, rest grows over following weeks
     const money = Math.round(initialStreams * 0.004 + finalQ * 3000);
@@ -18163,10 +18180,10 @@ function capFame(next) {
 // s'en approcher.
 // Affichée dans les paramètres : elle dit d'un coup d'œil si la partie tourne
 // bien sur la dernière version du jeu.
-const VERSION_JEU = "67";
-const PLAFOND_MORCEAU = 5500000000;
+const VERSION_JEU = "68";
+const PLAFOND_MORCEAU = 5000000000;
 const SEUIL_TASSEMENT = 2500000000;
-const ECHELLE_TASSEMENT = 2200000000;
+const ECHELLE_TASSEMENT = 1200000000;
 function tasserStreams(x) {
     if (!(x > SEUIL_TASSEMENT))
         return x;
@@ -18189,13 +18206,18 @@ function capStreams(next) {
         const ajout = Math.max(0, d.streams - dernierAffiche);
         const brut = (typeof d.streamsBruts === "number" ? d.streamsBruts : d.streams) + ajout;
         const affiche = tasserStreams(brut);
-        if (affiche === d.streams && d.streamsBruts === brut && d.streamsAffiches === affiche)
+        const cible = typeof d.ultimate === "number" ? Math.min(d.ultimate, PLAFOND_MORCEAU) : d.ultimate;
+        if (affiche === d.streams && d.streamsBruts === brut && d.streamsAffiches === affiche
+            && cible === d.ultimate)
             return d;
         touche = true;
-        // Les titres suivent, pour que leur somme corresponde toujours au total.
-        const ratio = d.streams > 0 ? affiche / d.streams : 1;
+        // Les titres sont renormalisés sur le total du projet : leur somme lui est
+        // toujours égale, et aucun titre ne peut donc le dépasser — y compris dans
+        // une partie où ils avaient déjà dérivé.
+        const somme = (d.trackBreakdown || []).reduce((a, t) => a + (t.streams || 0), 0);
+        const ratio = somme > 0 ? affiche / somme : 1;
         const tb = (d.trackBreakdown || []).map(t => ({ ...t, streams: Math.round((t.streams || 0) * ratio) }));
-        return { ...d, streams: affiche, streamsBruts: brut, streamsAffiches: affiche,
+        return { ...d, streams: affiche, streamsBruts: brut, streamsAffiches: affiche, ultimate: cible,
             trackBreakdown: d.trackBreakdown ? tb : d.trackBreakdown };
     });
     return touche ? { ...next, discography: disco } : next;
@@ -21780,15 +21802,15 @@ function FiscoGame() {
             // faux pas la fait redescendre bien plus vite qu'ils ne la font monter.
             if (gs.elite && !gs.eliteFallen) {
                 const rang = eliteRank(gs);
-                // Le rang porte la célébrité jusqu'à un palier, pas au-delà : sans lui,
-                // un membre haut placé restait bloqué à 100 pour toujours, l'érosion
-                // étant annulée chaque mois. Au-dessus de son palier, il redescend comme
-                // tout le monde ; les 100 ne se tiennent plus qu'à force d'actualité.
-                const palier = 78 + (rang.lvl || 0) * 3.4; // 78 à 95
-                const parLeRang = gs.fame > palier ? 0 : (rang.lvl || 0) * 0.34; // 0 à 1,7
-                const parLesService = gs.fame > palier ? 0 : Math.min(1.5, (gs.eliteService || 0) * 0.045);
+                // Le rang et les services AMORTISSENT l'érosion, ils ne la renversent
+                // jamais : sans cette borne, un membre haut placé regagnait chaque mois
+                // plus qu'il ne perdait et restait cloué à 100 pour toujours. Dans le
+                // cercle comme ailleurs, la célébrité ne monte que grâce à ce qu'on
+                // sort ; le cercle se contente de freiner la descente.
+                const parLeRang = (rang.lvl || 0) * 0.34; // 0 à 1,7
+                const parLesService = Math.min(1.5, (gs.eliteService || 0) * 0.045);
                 const parLesFautes = (gs.eliteStrikes || 0) * 1.8; // un faux pas coûte cher
-                dF = Math.round((dF - parLeRang - parLesService + parLesFautes) * 10) / 10;
+                dF = Math.round((Math.max(0, dF - parLeRang - parLesService) + parLesFautes) * 10) / 10;
             }
             if (dF !== 0 || dR > 0)
                 dispatch({ type: "DRIFT", fame: -dF, rep: -dR });
