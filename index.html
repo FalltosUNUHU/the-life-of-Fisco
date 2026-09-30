@@ -7743,6 +7743,122 @@ const ALL_EVENTS = [
             { text: "Répondre par une formule", effects: { rep: +4 }, consequence: "La réponse est correcte et oubliée." },
             { text: "Renvoyer la question", effects: { rep: +8 }, consequence: "L'intervieweur répond à ta place, mal." }
         ] },
+    // ─── LE POIDS D'UNE GRANDE FORTUNE ────────────────────────────────────────
+    // Passé le milliard, l'argent cesse d'être un score qui monte : il faut le
+    // défendre. Ces événements ne se déclenchent qu'au-dessus d'un certain seuil
+    // et coûtent une PART de la fortune, pas une somme écrite d'avance.
+    { id: "fo_001", cat: "business", sub: "fisc", rarity: "rare", emoji: "🏛️", title: "Redressement fiscal sur douze ans", chars: [], requires: { minMoney: 1000000000 },
+        context: "Trois administrations se sont parlé. Le montage qui t'a fait économiser des années durant est requalifié d'un bloc, avec pénalités et intérêts de retard.",
+        choices: [
+            { text: "Payer et solder", effects: { moneyPct: 0.16, stress: +26, rep: +6 }, consequence: "Le chèque part en une fois. Ton conseiller fiscal, lui, ne travaille plus pour toi." },
+            { text: "Contester jusqu'au bout", effects: { moneyPct: 0.07, stress: +40, rep: -8 }, future: [{ days: 420, desc: "La procédure fiscale suit son cours, et elle coûte cher." }], consequence: "Six ans de procédure commencent. Tu gagneras peut-être. Tu paieras quand même." },
+            { text: "Négocier une transaction discrète", effects: { moneyPct: 0.11, stress: +18, rep: -4 }, consequence: "Un accord signé un vendredi soir, sans communiqué." }
+        ] },
+    { id: "fo_002", cat: "business", sub: "marches", rarity: "rare", emoji: "📉", title: "Le fonds qui gérait ta trésorerie s'effondre", chars: [], requires: { minMoney: 1000000000 },
+        context: "On t'avait vendu du rendement sans risque. Le gérant est en garde à vue, et les positions sont gelées.",
+        choices: [
+            { text: "Sortir immédiatement, à n'importe quel prix", effects: { moneyPct: 0.14, stress: +30 }, consequence: "Tu récupères ce qui reste, décoté de moitié. C'était encore la moins mauvaise option." },
+            { text: "Attendre la liquidation judiciaire", effects: { moneyPct: 0.21, stress: +34, rep: -3 }, future: [{ days: 540, desc: "La liquidation du fonds s'éternise." }], consequence: "Trois ans plus tard, tu toucheras trente centimes par dollar." },
+            { text: "Poursuivre les administrateurs", effects: { moneyPct: 0.17, stress: +26, rep: +8 }, consequence: "Le procès est public et tu as raison. Cela ne fait pas revenir l'argent." }
+        ] },
+    { id: "fo_003", cat: "business", sub: "famille", rarity: "epic", emoji: "🕴️", title: "Ton family office te vidait depuis quatre ans", chars: [], requires: { minMoney: 1200000000 },
+        context: "L'homme qui gérait tout, à qui personne ne demandait jamais rien, sortait des montants juste assez petits pour ne pas se voir.",
+        choices: [
+            { text: "Porter plainte et tout auditer", effects: { moneyPct: 0.09, stress: +38, rep: +10 }, consequence: "L'audit révèle plus que prévu. Tu ne récupéreras presque rien, mais l'hémorragie s'arrête." },
+            { text: "Régler ça sans bruit", effects: { moneyPct: 0.13, stress: +22, rep: -2 }, consequence: "Il part avec ce qu'il a pris, contre son silence. Tu détestes cette décision." },
+            { text: "Reprendre toi-même la gestion", effects: { moneyPct: 0.06, stress: +44, energy: -20 }, consequence: "Tu passes six mois dans les comptes au lieu du studio." }
+        ] },
+    { id: "fo_004", cat: "business", sub: "immo", rarity: "rare", emoji: "🏗️", title: "Le chantier de ta tour s'arrête", chars: [], requires: { minMoney: 1500000000 },
+        context: "Permis attaqué, sol pollué, promoteur en défaut. Le projet immobilier qui devait porter ton nom devient un trou dans le sol et dans ton bilan.",
+        choices: [
+            { text: "Racheter la part du promoteur et finir", effects: { moneyPct: 0.19, stress: +30, rep: +12 }, future: [{ days: 900, desc: "La tour finit par sortir de terre, et elle vaut ce qu'elle a coûté." }], consequence: "Tu finis seul un projet conçu à trois." },
+            { text: "Tout abandonner", effects: { moneyPct: 0.12, stress: +20, rep: -10 }, consequence: "Les indemnités de rupture coûtent presque autant que le chantier." },
+            { text: "Revendre en l'état", effects: { moneyPct: 0.15, stress: +12 }, consequence: "Un fonds rachète pour une bouchée de pain ce que tu payais plein tarif." }
+        ] },
+    { id: "fo_005", cat: "business", sub: "pays", rarity: "epic", emoji: "🌍", title: "Un pays gèle tes actifs", chars: [], requires: { minMoney: 1500000000 },
+        context: "Changement de gouvernement, et les avoirs étrangers passent sous contrôle. Une partie de ta fortune existe encore, mais plus pour toi.",
+        choices: [
+            { text: "Engager un cabinet international", effects: { moneyPct: 0.13, stress: +28, rep: +4 }, future: [{ days: 730, desc: "L'arbitrage international avance lentement." }], consequence: "L'arbitrage prendra des années. Les honoraires, eux, sont mensuels." },
+            { text: "Négocier directement avec le nouveau pouvoir", effects: { moneyPct: 0.18, stress: +22, rep: -12 }, consequence: "Tu récupères une partie, en échange d'un silence public que tu regretteras." },
+            { text: "Passer par pertes et profits", effects: { moneyPct: 0.22, stress: +14 }, consequence: "Tu rayes une ligne entière de ton patrimoine et tu passes à autre chose." }
+        ] },
+    { id: "fo_006", cat: "business", sub: "marches", rarity: "rare", emoji: "🪙", title: "Ta plateforme de garde s'écroule", chars: [], requires: { minMoney: 1000000000 },
+        context: "L'entreprise qui détenait tes actifs numériques suspend les retraits un mardi matin. Le fondateur poste un fil de vingt messages et disparaît.",
+        choices: [
+            { text: "Rejoindre l'action collective", effects: { moneyPct: 0.10, stress: +26, rep: +5 }, consequence: "Tu figures parmi trois cent mille créanciers. Le rang compte plus que le montant." },
+            { text: "Payer un cabinet pour te sortir en priorité", effects: { moneyPct: 0.13, stress: +20, rep: -8 }, consequence: "Tu récupères plus vite que les autres. Cela finit par se savoir." },
+            { text: "Tout solder et ne plus jamais y toucher", effects: { moneyPct: 0.16, stress: +16 }, consequence: "Tu sors au pire moment, et tu dors mieux." }
+        ] },
+    { id: "fo_007", cat: "business", sub: "justice", rarity: "epic", emoji: "⚖️", title: "Une action collective vise tes sociétés", chars: [], requires: { minMoney: 2000000000 },
+        context: "Des milliers de plaignants, un cabinet spécialisé, et des faits qui remontent à une époque où personne ne regardait.",
+        choices: [
+            { text: "Transiger avant le procès", effects: { moneyPct: 0.17, stress: +24, rep: +6 }, consequence: "L'accord est confidentiel. Le montant, lui, finit par fuiter." },
+            { text: "Aller au procès", effects: { moneyPct: 0.09, stress: +42, rep: -6 }, future: [{ days: 600, desc: "Le procès collectif occupe tes équipes et tes comptes." }], consequence: "Deux ans d'audiences. Le verdict peut tout changer, dans un sens comme dans l'autre." },
+            { text: "Vendre la filiale visée", effects: { moneyPct: 0.14, stress: +18, rep: -4 }, consequence: "Tu te sépares d'une activité rentable pour éteindre un incendie." }
+        ] },
+    { id: "fo_008", cat: "business", sub: "marches", rarity: "epic", emoji: "💱", title: "La monnaie où dort ta trésorerie dévisse", chars: [], requires: { minMoney: 2000000000 },
+        context: "Une décision de banque centrale, une nuit, et la devise perd un tiers de sa valeur avant l'ouverture des marchés.",
+        choices: [
+            { text: "Convertir en catastrophe", effects: { moneyPct: 0.15, stress: +28 }, consequence: "Tu figes la perte plutôt que de la regarder grandir." },
+            { text: "Attendre un rebond", effects: { moneyPct: 0.23, stress: +36 }, consequence: "Le rebond n'est pas venu. Il ne vient presque jamais." },
+            { text: "Couvrir la position à prix d'or", effects: { moneyPct: 0.11, stress: +20, rep: +3 }, consequence: "La couverture coûte cher et fait son travail." }
+        ] },
+    { id: "fo_009", cat: "business", sub: "assurance", rarity: "rare", emoji: "🌀", title: "L'assureur refuse de couvrir le sinistre", chars: [], requires: { minMoney: 1200000000 },
+        context: "Un ouragan a traversé deux de tes propriétés. La clause d'exclusion tient sur trois lignes, écrites il y a douze ans.",
+        choices: [
+            { text: "Reconstruire sur tes fonds", effects: { moneyPct: 0.12, stress: +24, rep: +8 }, consequence: "Tout est refait en dix-huit mois, entièrement à ta charge." },
+            { text: "Attaquer l'assureur", effects: { moneyPct: 0.07, stress: +34, rep: +4 }, future: [{ days: 480, desc: "Le contentieux avec l'assureur s'enlise." }], consequence: "Le contentieux durera plus longtemps que les travaux." },
+            { text: "Vendre en l'état", effects: { moneyPct: 0.09, stress: +12, rep: -6 }, consequence: "Un acheteur profite de ta situation, et il le sait." }
+        ] },
+    { id: "fo_010", cat: "business", sub: "banque", rarity: "epic", emoji: "🏦", title: "Ta banque privée fait défaut", chars: [], requires: { minMoney: 2500000000 },
+        context: "Un établissement vieux de cent quarante ans est repris en un week-end. Les dépôts au-delà des plafonds de garantie deviennent des créances.",
+        choices: [
+            { text: "Accepter la reprise et ses conditions", effects: { moneyPct: 0.18, stress: +30 }, consequence: "Le repreneur applique une décote sur les gros dépôts. Tu es un gros dépôt." },
+            { text: "Te battre avec les autres créanciers", effects: { moneyPct: 0.14, stress: +38, rep: +6 }, future: [{ days: 660, desc: "Le dossier de la banque défaillante traîne devant les tribunaux." }], consequence: "Le comité de créanciers t'élit porte-parole. C'est un travail à plein temps." },
+            { text: "Céder ta créance à un fonds vautour", effects: { moneyPct: 0.24, stress: +10 }, consequence: "Tu touches tout de suite, très peu, et tu n'y penses plus." }
+        ] },
+    { id: "fo_011", cat: "business", sub: "garantie", rarity: "epic", emoji: "✍️", title: "On appelle la caution que tu avais signée", chars: [], requires: { minMoney: 2500000000 },
+        context: "Un ami t'avait demandé de garantir un prêt, il y a longtemps. Son groupe est en défaut, et la banque se tourne vers toi.",
+        choices: [
+            { text: "Honorer la caution intégralement", effects: { moneyPct: 0.20, stress: +28, rep: +14 }, consequence: "Tu payes sans discuter. Dans certains milieux, ça vaut plus que l'argent." },
+            { text: "Contester la validité de l'acte", effects: { moneyPct: 0.08, stress: +36, rep: -18 }, consequence: "Tes avocats trouvent un vice de forme. Tu perds un ami et une réputation." },
+            { text: "Négocier un échelonnement", effects: { moneyPct: 0.15, stress: +22, rep: +4 }, consequence: "Étalé sur cinq ans, avec intérêts." }
+        ] },
+    { id: "fo_012", cat: "business", sub: "art", rarity: "rare", emoji: "🖼️", title: "Ta collection perd la moitié de sa valeur", chars: [], requires: { minMoney: 2000000000 },
+        context: "Deux ventes ratées à Londres, et tout un segment du marché s'effondre. Les experts qui t'avaient conseillé ne répondent plus.",
+        choices: [
+            { text: "Tout vendre maintenant", effects: { moneyPct: 0.11, stress: +18 }, consequence: "Tu sors du marché de l'art définitivement, avec une leçon coûteuse." },
+            { text: "Garder et attendre vingt ans", effects: { moneyPct: 0.06, stress: +10, rep: +4 }, consequence: "Les murs restent couverts. La valeur, elle, reste théorique." },
+            { text: "Donner à un musée contre un avantage fiscal", effects: { moneyPct: 0.08, rep: +20, stress: -6 }, consequence: "Une salle porte ton nom. Le fisc valide, à moitié." }
+        ] },
+    { id: "fo_013", cat: "business", sub: "tech", rarity: "epic", emoji: "🚀", title: "La start-up où tu avais tout mis ferme", chars: [], requires: { minMoney: 3000000000 },
+        context: "Tu étais entré au tour le plus cher, juste avant que le marché ne se retourne. La société est liquidée sans un mot pour ses investisseurs.",
+        choices: [
+            { text: "Assumer et solder", effects: { moneyPct: 0.19, stress: +26 }, consequence: "La ligne disparaît du bilan. C'est tout ce qu'il en reste." },
+            { text: "Poursuivre les fondateurs", effects: { moneyPct: 0.13, stress: +34, rep: -6 }, consequence: "Ils n'ont plus rien. Tu paies des avocats pour l'apprendre." },
+            { text: "Racheter les actifs pour relancer", effects: { moneyPct: 0.24, stress: +30, rep: +8 }, future: [{ days: 720, desc: "Le sauvetage de la start-up avale du capital." }], consequence: "Tu deviens patron d'une société dont tu ne comprends pas le métier." }
+        ] },
+    { id: "fo_014", cat: "business", sub: "fisc", rarity: "epic", emoji: "🌐", title: "Un accord mondial rattrape tes montages", chars: [], requires: { minMoney: 3000000000 },
+        context: "Un impôt plancher international entre en vigueur. Vingt ans d'optimisation deviennent, en une signature, une dette rétroactive.",
+        choices: [
+            { text: "Régulariser volontairement", effects: { moneyPct: 0.21, stress: +24, rep: +16 }, consequence: "La régularisation est chère et publique. Elle te protège de tout le reste." },
+            { text: "Restructurer d'urgence", effects: { moneyPct: 0.15, stress: +38, rep: -10 }, future: [{ days: 540, desc: "La restructuration attire l'attention de plusieurs administrations." }], consequence: "Trois pays s'y intéressent désormais au lieu d'un." },
+            { text: "Déménager ta résidence fiscale", effects: { moneyPct: 0.17, stress: +30, rep: -14 }, consequence: "Tu changes de pays, et la presse de ton pays d'origine ne te le pardonne pas." }
+        ] },
+    { id: "fo_015", cat: "business", sub: "pays", rarity: "legendary", emoji: "🏴", title: "Une commission parlementaire veut ton patrimoine", chars: [], requires: { minMoney: 4000000000 },
+        context: "Une fortune de ta taille finit par devenir un sujet politique. La commission est télévisée, et elle ne cherche pas la vérité comptable.",
+        choices: [
+            { text: "Te présenter et tout ouvrir", effects: { moneyPct: 0.18, stress: +40, rep: +22 }, consequence: "Six heures d'audition. Tu en sors respecté et nettement plus pauvre." },
+            { text: "Envoyer tes avocats", effects: { moneyPct: 0.26, stress: +26, rep: -20 }, consequence: "Ton absence devient l'image du dossier, et la note s'alourdit." },
+            { text: "Céder une partie avant qu'on te la prenne", effects: { moneyPct: 0.23, stress: +22, rep: +6 }, consequence: "Tu donnes d'abord pour choisir à qui." }
+        ] },
+    { id: "fo_016", cat: "business", sub: "famille", rarity: "legendary", emoji: "🧾", title: "Ta fortune devient un sujet de succession", chars: [], requires: { minMoney: 4000000000 },
+        context: "Les conseils s'accordent : sans réorganisation, l'essentiel partira en droits. La réorganisation, elle aussi, coûte.",
+        choices: [
+            { text: "Créer une fondation et y loger l'essentiel", effects: { moneyPct: 0.25, stress: +20, rep: +24 }, consequence: "Le capital est protégé et il ne t'appartient plus vraiment. C'était le but." },
+            { text: "Tout garder en nom propre", effects: { moneyPct: 0.08, stress: +30 }, future: [{ days: 1000, desc: "Le patrimoine non structuré coûte de plus en plus cher à détenir." }], consequence: "Tu gardes le contrôle total, et la facture grossit chaque année." },
+            { text: "Donner de ton vivant", effects: { moneyPct: 0.22, stress: -10, rep: +18 }, consequence: "Tu vois ce que ton argent fait pendant que tu es encore là." }
+        ] },
 ];
 // ─── ÉVÉNEMENTS MAJEURS — 1 à 2 par an, conséquences extrêmes et imprévisibles ──
 const MAJOR_EVENTS = [
@@ -9855,8 +9971,12 @@ function sacrificeProgress(gs, lvl) {
     if (!tier || !tier.options)
         return { done: 0, need: 0, missing: [] };
     const done = new Set(gs.sacrificesDone || []);
-    const missing = tier.options.filter(o => !done.has(o.id));
-    return { done: tier.options.length - missing.length, need: tier.options.length, missing };
+    const faits = tier.options.filter(o => done.has(o.id));
+    // On ne compte que ce qu'on peut réellement signer : exiger un dossier qui ne
+    // s'applique à rien l'affichait « à faire » sans qu'il soit jamais proposé,
+    // et bloquait le rang pour toujours.
+    const restants = tier.options.filter(o => !done.has(o.id) && dossierApplicable(gs, o));
+    return { done: faits.length, need: faits.length + restants.length, missing: restants };
 }
 function rankRequirements(gs, r) {
     const years = gs.eliteSince ? (gs.currentDate - gs.eliteSince) / (365 * 86400000) : 0;
@@ -9893,6 +10013,24 @@ function nextRank(gs) {
 // Ce qu'on demande alors n'est jamais formulé. C'est précisément le principe.
 // Le cercle ne laisse pas un siège permanent vivre seul : il choisit pour toi.
 const CIRCLE_WIVES = ["kendall_jenner", "kylie_jenner", "s_tyla", "sommer_ray", "billie_eilish", "doja_cat", "lily_rose_depp"];
+// Un dossier qu'on ne peut pas signer n'est pas posé sur la table : sacrifier
+// les artistes de son label n'a aucun sens quand on n'en a signé aucun, et on
+// ne peut pas livrer un enfant qu'on n'a pas.
+function dossierApplicable(gs, o) {
+    if (!o)
+        return false;
+    if ((gs.sacrificesDone || []).includes(o.id))
+        return false;
+    if (o.needChild && !(gs.children || []).length)
+        return false;
+    if (o.needRoster && !((gs.unuhuRoster || []).length))
+        return false;
+    if (o.killPartner && !gs.romance.partner)
+        return false;
+    if (o.kill && (gs.deceased || []).includes(o.kill))
+        return false;
+    return true;
+}
 const SACRIFICES = [
     { lvl: 3, emoji: "🕯️", title: "Le sacrifice du siège",
         intro: "Le siège permanent ne s'achète pas et ne se mérite pas par le travail. Il se paie — et il se paie deux fois.\n\nDeux dossiers sont posés sur la table. Tu ne choisis pas entre les deux : tu les signeras tous les deux, l'un après l'autre, avant qu'on te laisse t'asseoir.\n\nOn ne te dira pas à l'avance ce qu'on attend de toi. On te donnera une date, un lieu, et le nom d'une personne.\n\nCeux qui ont franchi cette étape n'en parlent jamais entre eux.",
@@ -9920,10 +10058,12 @@ const SACRIFICES = [
                 warn: "La personne avec qui tu rentres le soir. Ils connaissent déjà son emploi du temps.",
                 killPartner: true,
                 after: "On ne t'a pas demandé de faire quoi que ce soit. On t'a demandé de partir trois jours, de ne pas décrocher, et de ne pas revenir plus tôt.\n\nTu es parti. Tu n'as pas décroché. Tu n'es pas revenu plus tôt.\n\nLes conclusions officielles sont arrivées vite, comme toujours quand ce sont eux. Tu as tenu debout à la cérémonie parce qu'on te regardait.\n\nDepuis, tu dors dans une maison où il reste ses affaires, et tu sièges parmi douze personnes qui savent exactement pourquoi." },
-            { id: "sac_unuhu", emoji: "🏷️", label: "Ce qu'ils demandent pour UNUHU",
-                warn: "Les jeunes artistes que tu as signés. Ceux qui t'ont fait confiance en premier.",
-                wipeRoster: true,
-                after: "Un audit, une requalification de contrats, et des clauses que tu avais toi-même fait rédiger il y a des années sans jamais les relire.\n\nEn une matinée, tous tes artistes se retrouvent liés à une structure qui n'est plus la tienne, pour des durées qu'aucun d'eux ne pourra tenir. Deux arrêteront la musique. Un te cherchera pendant des mois pour comprendre.\n\nTu avais promis à chacun d'eux qu'avec toi ça ne se passerait pas comme ailleurs. C'est la phrase que tu réentends le plus souvent, maintenant." },
+            { id: "sac_premier_ne", emoji: "🕯️", label: "Ce qu'ils demandent pour ton premier enfant",
+                warn: "Ton aîné. Celui qui est né seize semaines après ton entrée, et dont tu n'as jamais compris le calendrier.",
+                needChild: true, takeFirstborn: true,
+                after: (gs) => ((gs.children || [])[0] || {}).sex === "fille"
+                    ? "On ne t'a pas menti, et c'est ce qui rend la chose supportable le premier mois. Les Jenner la prennent. Quatre générations de femmes, une icône par décennie, un nom qui ouvre toutes les portes.\n\nL'acte est signé dans un salon, entre gens qui se comprennent. Elle garde son prénom. Son nom de famille, lui, devient Jenner. Tu as signé en te répétant que tu lui offrais un avenir que tu n'aurais jamais pu lui donner.\n\nQuinze pour cent de ce que tu gagnes part chaque mois vers la maison. Le virement porte la mention « éducation ». Elle part le lendemain, en te disant au revoir normalement, parce qu'elle a compris avant toi que c'était définitif."
+                    : "Ils te l'ont dit sans détour, et c'est ce qui rend la chose irréparable : tu savais. Une structure de recherche, sur une île privée qui n'apparaît sur aucune carte administrative. Ton fils y sera un sujet. On ne t'a pas expliqué de quoi, on t'a seulement précisé que tu ne le saurais jamais et que tu n'aurais pas le droit de demander.\n\nUne voiture est venue un mardi matin. Tu as fait son sac toi-même. Il t'a demandé si c'était long, tu as répondu non, et c'est le dernier mensonge que tu lui auras dit.\n\nDepuis, quinze pour cent de ce que tu gagnes part chaque mois vers un compte dont tu ignores le titulaire. Le virement porte la mention « scolarité ». Aucune nouvelle, aucune photo, aucune adresse. Pour tout le monde autour de toi, il n'a jamais existé." },
         ],
         after: [
             "Tu n'as pas dormi depuis onze jours.\n\nCe qui s'est passé n'a pas de nom dans les conversations normales, et il n'existe aucun mot pour le raconter à quelqu'un qui n'y était pas.\n\nTu es entré dans cette pièce comme un homme riche et célèbre. Tu en es ressorti comme autre chose. Le cercle intérieur t'a ouvert ses portes le soir même.",
@@ -13606,8 +13746,49 @@ function kidCareerFor(parent) {
     // Partout ailleurs, l'enfant d'un footballeur n'a aucune raison d'être footballeur
     return KID_CAREERS[Math.floor(Math.random() * KID_CAREERS.length)];
 }
+// Les Jenner et les Kardashian forment une lignée de femmes : on n'y naît que
+// fille, on y devient une figure de la mode, et on appartient au cercle de
+// naissance — comme dans toutes les familles installées depuis assez longtemps
+// pour que personne ne se souvienne du premier.
+// La famille qui recueille les filles du cercle. Quatre générations de femmes,
+// aucun garçon, une icône par décennie, et un nom qui ouvre toutes les portes.
+// On parle de la maison, jamais d'une personne : aucun prénom n'est cité.
+const MAISON_LIGNEE = { nom: "Jenner" };
+// Les noms sous lesquels un garçon réapparaît : le centre de formation lui en a
+// donné un, et plus personne ne connaît l'autre.
+const NOMS_REAPPARUS = ["Ruiz", "Ferrer", "Solano", "Bardem", "Vidal", "Carreras", "Puig", "Navarro", "Estève", "Molina"];
+// Ce que devient l'enfant qu'on a livré, et sous quel nom on le retrouve.
+// La fille reste visible : elle grandit chez eux, sous son prénom et leur nom.
+// Le garçon disparaît complètement jusqu'à ses seize ans.
+function enfantLivreVisible(gs) {
+    const e = gs && gs.enfantLivre;
+    if (!e)
+        return null;
+    const ans = (gs.currentDate - (e.born || 0)) / (365.25 * 86400000);
+    const fille = e.sex === "fille";
+    if (!fille && ans < 16)
+        return null;
+    const nom = fille ? `${e.name} ${MAISON_LIGNEE.nom}` : (e.nomPublic || e.name);
+    // Ce qu'elle fait de sa vie, et ce qu'elle pense de toi
+    let statut, score;
+    if (fille) {
+        statut = ans < 16 ? "élevée par la famille " + MAISON_LIGNEE.nom
+            : ans < 20 ? "mannequin" : "icône de la mode";
+        // Le cercle t'a marié à l'une d'elles. Personne ne t'expliquera pourquoi
+        // elle ne te parle plus depuis ce jour-là.
+        const marieALaFamille = ["kendall_jenner", "kylie_jenner"].includes(gs.romance.partner);
+        score = marieALaFamille ? -40 : 25;
+    }
+    else {
+        statut = ans < 20 ? "milieu de terrain, FC Barcelone" : "FC Barcelone";
+        score = 0; // il ne sait pas qui tu es
+    }
+    return { nom, statut, score, fille, ans: Math.floor(ans),
+        prenom: e.name, emoji: fille ? "👗" : "⚽" };
+}
+const LIGNEES_FEMININES = new Set(["kendall_jenner", "kylie_jenner", "kim_k"]);
 function makeNpcKid(parent, birthTs, usedNames) {
-    const sex = Math.random() < 0.5 ? "f" : "m";
+    const sex = LIGNEES_FEMININES.has(parent.id) ? "f" : (Math.random() < 0.5 ? "f" : "m");
     const pool = sex === "f" ? KID_FIRST_F : KID_FIRST_M;
     let first = pool[Math.floor(Math.random() * pool.length)];
     let guard = 0;
@@ -13616,15 +13797,23 @@ function makeNpcKid(parent, birthTs, usedNames) {
     usedNames.add(first);
     // Certains personnages ont un nom de scène : l'enfant porte le nom de famille réel.
     const last = parent.surname || ((parent.fullName || parent.name || "").split(" ").slice(-1)[0]) || "Sco";
-    const career = kidCareerFor(parent);
+    // Une fille de cette lignée ne choisit pas : ce sera la mode, comme sa mère,
+    // comme sa grand-mère.
+    const career = LIGNEES_FEMININES.has(parent.id)
+        ? (KID_CAREERS.find(k => k.cat === "mode") || KID_CAREERS.find(k => k.id === "mode") || kidCareerFor(parent))
+        : kidCareerFor(parent);
     const kidObj = {
         id: `kid_${parent.id}_${birthTs}`,
         name: `${first} ${last}`,
         emoji: career.emojis[Math.floor(Math.random() * career.emojis.length)],
-        cat: career.cat, careerId: career.id, careerLabel: career.label,
+        sex, cat: career.cat, careerId: career.id, careerLabel: career.label,
+        // On naît dans le cercle quand un parent y siège : c'est ainsi que les
+        // familles installées y restent sans jamais avoir à y entrer.
+        cercle: isElite(parent),
         loc: parent.loc || "Los Angeles",
         parentId: parent.id, parentName: parent.name, birth: birthTs,
-        bio: `Enfant de ${parent.name}. Se destine à : ${career.label.toLowerCase()}.`,
+        bio: `Enfant de ${parent.name}. Se destine à : ${career.label.toLowerCase()}.`
+            + (isElite(parent) ? " Né du bon côté, et personne ne lui demandera jamais de le mériter." : ""),
         debuted: false,
     };
     markFemaleIfGirl(kidObj);
@@ -18097,7 +18286,7 @@ const INIT = {
     clashHistory: [], socialFeed: [], lastPostDate: null, activeTrend: null, activeClash: null, viralTrack: null,
     sponsoredCount: 0, lastTrendYear: null, socialCrisis: null, brandOffer: null,
     feedLog: [], eliteDeathDate: null,
-    eliteSince: null, sacrifices: [], warMission: null, warMissionsDone: [], docLeaked: false, eliteInfluence: 0, favorsUsed: [], circleNews: [], evidence: 0, exposure: 0, activeOps: [], pendingCM: null, cmDone: [], activeOp: null, opsDone: [], targetExposure: {}, exposedTargets: [],
+    eliteSince: null, membreDepuis: null, grossesseCercle: null, enfantLivre: null, enfantRevu: false, sacrifices: [], warMission: null, warMissionsDone: [], docLeaked: false, eliteInfluence: 0, favorsUsed: [], circleNews: [], evidence: 0, exposure: 0, activeOps: [], pendingCM: null, cmDone: [], activeOp: null, opsDone: [], targetExposure: {}, exposedTargets: [],
     allyState: { falltos: "actif", kanye_west: "actif", candace_owens: "actif", alain_soral: "actif", dieudonne: "actif", ryan_garcia: "actif", justin_bieber: "absent", the_weeknd: "absent" },
     inResistance: false, awardsBanned: false, conspiracist: false, tutorialDone: false, baptismDate: null, faithStart: null, faithStage: 0, faithDone: false, exElite: false,
     npcKids: [], warrant: null, mourning: false, mourningTold: false, boughtGrammys: [], lawShield: false, openCountries: [], mediaCycle: null, kaineEnded: null, eliteMet: [], newElites: {}, lastRecruitYear: null, curiaNames: null, curiaUntil: null, mkStage: {}, mkActive: null, mkFails: [], mkDone: {}, sacrificesDone: [], festivalDisaster: null, sabotaged: [], erased: [], seatsPlaced: [], lawsPassed: [], exitStrikes: [], resistanceTried: false, resistDeclinedAt: null, musicTier: null, musicOn: true, falltosSacrificed: false, lastFalltosOffer: null, eliteService: 0, rankSeen: null, eliteMission: null, eliteMissionsDone: [], circleOp: null, circleOpsDone: [], circleOpsFailed: [], lastCircleOpAt: null, eliteEndDone: false, lastEliteOffer: null, eliteOfferAt: null, eliteRefused: false, pendingDeath: null, elite: false, eliteOffered: false, eliteStrikes: 0, eliteFallen: false, hits: [], postStreaming: null, lastSummerHitYear: null, mentalAspects: { anxiety: 22, burnout: 18, loneliness: 25, purpose: 78 }, therapy: null, addictions: [], stis: [], unsafeActs: 0, lastStiCheck: null, stiTested: null,
@@ -18207,7 +18396,10 @@ function capFame(next) {
 // s'en approcher.
 // Affichée dans les paramètres : elle dit d'un coup d'œil si la partie tourne
 // bien sur la dernière version du jeu.
-const VERSION_JEU = "71";
+const VERSION_JEU = "77";
+// Le seuil à partir duquel une fortune commence à se défendre au lieu de croître
+const SEUIL_GRANDE_FORTUNE = 3000000000;
+const TAUX_FROTTEMENT = 0.34; // par an sur la part au-dessus du seuil, et ça s'accélère
 const PLAFOND_MORCEAU = 5000000000;
 const SEUIL_TASSEMENT = 2500000000;
 const ECHELLE_TASSEMENT = 1200000000;
@@ -18341,7 +18533,11 @@ function gameReducerInner(state, action) {
                     ? ((e.rep || 0) < 0 ? (e.rep || 0) * Math.max(0.45, eliteRank(state).repShield) : (e.rep || 0) * 1.12)
                     : (e.rep || 0)))),
                 // Le découvert est autorisé quand on nous prend de l'argent (dettes, amendes, frais)
-                money: state.money + (e.money || 0),
+                // « moneyPct » retire une part de la fortune plutôt qu'une somme fixe :
+                // au-delà du milliard, un redressement ou un fonds qui s'effondre coûte
+                // proportionnellement à ce qu'on possède, pas un montant écrit d'avance.
+                money: state.money + (e.money || 0)
+                    + (e.moneyPct ? -Math.round(Math.max(0, state.money) * Math.abs(e.moneyPct)) : 0),
                 energy: Math.min(100, Math.max(0, state.energy + (e.energy || 0))),
                 health: Math.min(100, Math.max(0, state.health + (e.health || 0))),
                 stress: newStress,
@@ -18428,10 +18624,26 @@ function gameReducerInner(state, action) {
                 const cfo = (state.staff || []).find(s => s.role === "compta");
                 if (cfo)
                     costs *= 1 - (cfo.quality || 0) * 0.18;
+                // La pension versée pour l'enfant qu'on a emmené : quinze pour cent de
+                // ce que tu gagnes, chaque mois, vers un compte dont tu ignores le
+                // titulaire. Elle ne s'arrête jamais.
+                if (state.enfantLivre)
+                    costs += Math.max(0, gross) * 0.15;
                 // Charges sociales et frais de structure des sociétés détenues
                 const ownedBiz = Object.values(state.businesses).filter(b => !(state.soldBusinesses || {})[b.id]).length;
                 costs += ownedBiz * 1400 / 30 * infl;
-                const daily = gross - costs;
+                // ── LE POIDS D'UNE GRANDE FORTUNE ──────────────────────────────
+                // Au-delà de trois milliards, détenir coûte : conseils, structures,
+                // contentieux permanents, actifs qui dorment mal. La friction grimpe
+                // avec la fortune, si bien que chaque milliard supplémentaire se paie
+                // plus cher que le précédent — cinq milliards ne se tiennent presque
+                // jamais. En dessous du seuil, rien de tout cela ne s'applique.
+                let frottement = 0;
+                if (state.money > SEUIL_GRANDE_FORTUNE) {
+                    const exces = state.money - SEUIL_GRANDE_FORTUNE;
+                    frottement = exces * (TAUX_FROTTEMENT / 365) * (1 + exces / SEUIL_GRANDE_FORTUNE);
+                }
+                const daily = gross - costs - frottement;
                 newMoney = state.money + Math.floor(daily);
                 // Découvert : intérêts quotidiens lourds + saisie des revenus, très difficile à remonter
                 if (newMoney < -10000000) {
@@ -19210,13 +19422,36 @@ function gameReducerInner(state, action) {
                 sacrificesDone: [...(state.sacrificesDone || []), action.optId],
                 festivalDisaster: action.festival ? state.currentDate : state.festivalDisaster,
                 unuhuRoster: action.wipeRoster ? [] : state.unuhuRoster,
+                // L'aîné quitte la famille sans mourir : il sort de la liste des enfants
+                // et devient une ligne qu'on paie tous les mois.
+                children: action.takeFirstborn ? state.children.slice(1) : state.children,
+                enfantLivre: action.takeFirstborn && state.children[0]
+                    ? { ...state.children[0], livreAt: state.currentDate } : state.enfantLivre,
                 // Elle meurt vraiment : elle disparaît du casting, membre du cercle ou non
                 deceased: action.killPartner && state.romance.partner
                     ? [...new Set([...(state.deceased || []), state.romance.partner])]
                     : (action.kill ? [...new Set([...(state.deceased || []), action.kill])] : (state.deceased || [])),
-                relations: action.killPartner && state.romance.partner
-                    ? (() => { const r = { ...state.relations }; delete r[state.romance.partner]; return r; })()
-                    : (action.kill ? (() => { const r = { ...state.relations }; delete r[action.kill]; return r; })() : state.relations),
+                relations: (() => {
+                    let r = { ...state.relations };
+                    if (action.killPartner && state.romance.partner)
+                        delete r[state.romance.partner];
+                    else if (action.kill)
+                        delete r[action.kill];
+                    // Les liens avec les enfants sont numérotés par position : retirer
+                    // l'aîné sans les décaler faisait hériter au cadet la relation qu'on
+                    // avait construite avec son frère.
+                    if (action.takeFirstborn) {
+                        const n = state.children.length;
+                        for (let i = 0; i < n - 1; i++) {
+                            if (r[`child_${i + 1}`] !== undefined)
+                                r[`child_${i}`] = r[`child_${i + 1}`];
+                            else
+                                delete r[`child_${i}`];
+                        }
+                        delete r[`child_${n - 1}`];
+                    }
+                    return r;
+                })(),
                 romance: action.killPartner ? { ...state.romance, partner: null, status: "celibataire", locked: false,
                     pastPartners: [...new Set([...(state.romance.pastPartners || []), state.romance.partner].filter(Boolean))] } : state.romance,
                 falltosSacrificed: action.kill === "falltos" ? true : state.falltosSacrificed,
@@ -19224,6 +19459,15 @@ function gameReducerInner(state, action) {
                 grief: action.kill ? { who: (CHARS_BY_ID[action.kill] || {}).name || "Quelqu'un", since: state.currentDate }
                     : action.killPartner ? { who: (CHARS_BY_ID[state.romance.partner] || {}).name || "Elle", since: state.currentDate }
                         : state.grief };
+        case "SET_MEMBRE_DEPUIS":
+            return state.membreDepuis ? state : { ...state, membreDepuis: state.currentDate };
+        case "GROSSESSE_CERCLE":
+            return { ...state, grossesseCercle: action.due ? { mere: action.mere, due: action.due, annonceAt: state.currentDate } : null };
+        case "ENFANT_REVU":
+            return { ...state, enfantRevu: true,
+                enfantLivre: state.enfantLivre && state.enfantLivre.sex !== "fille" && !state.enfantLivre.nomPublic
+                    ? { ...state.enfantLivre, nomPublic: `${state.enfantLivre.name} ${action.nom || NOMS_REAPPARUS[0]}` }
+                    : state.enfantLivre };
         case "SET_MUSIC":
             return { ...state, musicTier: action.tier };
         case "TOGGLE_MUSIC":
@@ -22132,6 +22376,47 @@ function FiscoGame() {
                 setCalAlert({ emoji: sc.emoji, title: `${c.emoji || "👁️"} ${sc.t(c)}`,
                     desc: `${r.emoji} ${r.name} · ${bioFor(c) || c.cat || ""}\n\n${sc.d(c, r)}` });
             }
+        }
+        // ── LE CALENDRIER QU'ON NE T'A PAS MONTRÉ ─────────────────────────────
+        // Seize semaines après être devenu Membre, si tu n'as pas d'enfant, on
+        // t'annonce une grossesse. Personne ne te dit pourquoi maintenant. Tu
+        // l'apprendras au rang suivant.
+        if (phase === "game" && !ending && gs.elite && !gs.membreDepuis && eliteRank(gs).lvl >= 2) {
+            dispatch({ type: "SET_MEMBRE_DEPUIS" });
+        }
+        if (phase === "game" && !ending && !anyOverlayOpen() && gs.elite && gs.membreDepuis
+            && !gs.grossesseCercle && !(gs.children || []).length && !gs.enfantLivre
+            && (gs.currentDate - gs.membreDepuis) >= 16 * 7 * 86400000) {
+            const mere = gs.romance.partner || gs.romance.exPartner || null;
+            const nom = (CHARS_BY_ID[mere] || {}).name || "Elle";
+            dispatch({ type: "GROSSESSE_CERCLE", mere, due: gs.currentDate + 38 * 7 * 86400000 });
+            addLog(`[FAMILLE] ${nom} attend un enfant`);
+            setCalAlert({ emoji: "🤍", title: "Tu vas être père",
+                desc: gs.romance.partner
+                    ? `${nom} te l'annonce un soir ordinaire, sans préparation, avec le test encore dans la main.\n\nTu n'aviez rien prévu, rien décidé, rien arrêté. Tu fais le calcul plus tard, seul : seize semaines exactement depuis le jour où on t'a dit « tu es des nôtres ».\n\nTu mets ça sur le compte du hasard. C'est plus simple.`
+                    : `${nom} t'appelle après des mois de silence. Elle est enceinte, et l'enfant est de toi.\n\nVous ne vous étiez pas revus depuis longtemps. Tu fais le calcul plus tard, seul : seize semaines exactement depuis le jour où on t'a dit « tu es des nôtres ».\n\nTu mets ça sur le compte du hasard. C'est plus simple.` });
+        }
+        // La naissance, neuf mois plus tard
+        if (phase === "game" && !ending && !anyOverlayOpen() && gs.grossesseCercle
+            && gs.currentDate >= gs.grossesseCercle.due && !(gs.children || []).length && !gs.enfantLivre) {
+            dispatch({ type: "GROSSESSE_CERCLE", mere: null, due: null });
+            setChildNameInput("");
+            setChildSex(Math.random() < 0.5 ? "garçon" : "fille");
+            setNamingModal(true);
+        }
+        // ── CELUI QU'ON A EMMENÉ ──────────────────────────────────────────────
+        // Seize ans plus tard, il réapparaît sous un autre nom. Il ne te reconnaît
+        // pas, et c'est la seule chose que le cercle n'avait pas eu besoin de payer.
+        if (phase === "game" && !ending && !anyOverlayOpen() && gs.enfantLivre && !gs.enfantRevu
+            && (gs.currentDate - (gs.enfantLivre.born || 0)) >= 16 * 365.25 * 86400000) {
+            dispatch({ type: "ENFANT_REVU", nom: NOMS_REAPPARUS[Math.floor(Math.random() * NOMS_REAPPARUS.length)] });
+            const p = gs.enfantLivre.prenomPublic || gs.enfantLivre.name;
+            const garcon = gs.enfantLivre.sex === "garçon";
+            addLog(`[???] Tu reconnais quelqu'un que tu ne devrais pas connaître`);
+            setCalAlert({ emoji: garcon ? "⚽" : "🎬", title: "Tu le reconnais tout de suite",
+                desc: garcon
+                    ? `Un match du FC Barcelone passe à la télévision. Le commentateur s'extasie sur un garçon de seize ans dont personne n'avait entendu parler il y a un an, et dont on ne trouve aucune trace avant le centre de formation.\n\nIl porte un autre nom. Il a les mains de ta mère et ta façon de baisser la tête quand on le félicite.\n\nTu fais approcher San Jose dès le lendemain. La réponse revient en quatre heures, polie et définitive : le joueur n'est pas à vendre, et ne le sera jamais. On ne te dit pas qui l'a décidé.\n\nEn zone mixte, un journaliste lui demande d'où il vient. Il répond qu'il ne se souvient pas de son enfance, et il en rit. Il n'a aucune raison de mentir.`
+                    : `Elle ouvre le défilé Jenner à seize ans, et la presse ne parle que de ça le lendemain.\n\n${p} Jenner. Le prénom que vous aviez choisi, ta compagne et toi, devant un nom qui n'est pas le tien. Elle a les mains de ta mère et ta façon de baisser la tête quand on la félicite.\n\nElle se souvient de tout. De la maison, de toi, des dimanches, et du matin où tu as signé. Elle en parle en interview sans y mettre la moindre amertume : elle dit que ça lui a offert une vie, et que tu as bien fait.\n\nElle t'envoie un message pour ton anniversaire. Trois lignes, chaleureuses, polies. C'est ça, le pire : elle ne t'en veut pas du tout.` });
         }
         // ── Le cercle vit sa vie, que tu y participes ou non ──
         if (phase === "game" && !ending && gs.elite && d.getDate() % 5 === 0 && Math.random() < 0.5) {
@@ -28012,7 +28297,7 @@ function FiscoGame() {
                 (s.options || []).length > 0 && (react_1.default.createElement(react_1.default.Fragment, null,
                     react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(200,60,60,.75)", letterSpacing: 2, fontFamily: "'Space Mono',monospace", marginBottom: 6 } }, "DEUX DOSSIERS SUR LA TABLE"),
                     react_1.default.createElement("div", { style: { marginBottom: 14 } },
-                        (s.options || []).filter(o => !(gs.sacrificesDone || []).includes(o.id)).map(o => (react_1.default.createElement("button", { key: o.id, onClick: () => setSacPick(o.id), style: { width: "100%", padding: "10px 11px", marginBottom: 6, textAlign: "left", cursor: "pointer",
+                        (s.options || []).filter(o => dossierApplicable(gs, o)).map(o => (react_1.default.createElement("button", { key: o.id, onClick: () => setSacPick(o.id), style: { width: "100%", padding: "10px 11px", marginBottom: 6, textAlign: "left", cursor: "pointer",
                                 background: sacPick === o.id ? "rgba(190,40,40,.2)" : "rgba(255,255,255,.03)",
                                 border: sacPick === o.id ? "1px solid rgba(190,40,40,.6)" : "1px solid rgba(255,255,255,.1)", borderRadius: 8 } },
                             react_1.default.createElement("div", { style: { fontSize: 11.5, fontWeight: 700, color: sacPick === o.id ? "#ff8b8b" : "rgba(255,255,255,.82)" } },
@@ -28027,13 +28312,13 @@ function FiscoGame() {
                                 toast("💸 Tu n'as pas les moyens", "#ff6b6b");
                                 return;
                             }
-                            const opts = (s.options || []).filter(o => !(gs.sacrificesDone || []).includes(o.id));
+                            const opts = (s.options || []).filter(o => dossierApplicable(gs, o));
                             const o = opts.find(x => x.id === sacPick);
                             if (opts.length && !o) {
                                 toast("Choisis lequel des deux dossiers tu signes.", "#ff9f1c");
                                 return;
                             }
-                            dispatch({ type: "SACRIFICE", lvl: s.lvl, cost, optId: o ? o.id : null, kill: o && o.kill, festival: o && o.festival, killPartner: o && o.killPartner, wipeRoster: o && o.wipeRoster });
+                            dispatch({ type: "SACRIFICE", lvl: s.lvl, cost, optId: o ? o.id : null, kill: o && o.kill, festival: o && o.festival, killPartner: o && o.killPartner, wipeRoster: o && o.wipeRoster, takeFirstborn: o && o.takeFirstborn });
                             let forced = null;
                             if (o && o.killPartner && gs.romance.partner) {
                                 // On ne reste pas seul : le cercle désigne, et ça ne se discute pas
@@ -28052,7 +28337,8 @@ function FiscoGame() {
                             const left = (s.options || []).filter(x => x.id !== (o && o.id) && !(gs.sacrificesDone || []).includes(x.id));
                             const wife = forced ? (CHARS_BY_ID[forced] || { name: "elle", emoji: "💍" }) : null;
                             setCalAlert({ emoji: o ? o.emoji : s.emoji, title: `${target.emoji} ${target.name}`,
-                                desc: (o ? o.after : s.after[Math.floor(Math.random() * s.after.length)])
+                                // Certains dossiers s'écrivent différemment selon qui ils emportent
+                                desc: (o ? (typeof o.after === "function" ? o.after(gs) : o.after) : s.after[Math.floor(Math.random() * s.after.length)])
                                     + (wife ? `\n\n───\n\n**On ne t'a pas demandé ton avis.**\n\nTrois semaines après l'enterrement, on t'a donné une date, un lieu et un nom : ${wife.emoji} **${wife.name}**. Elle était déjà au courant, et elle n'avait pas plus le choix que toi.\n\nLa cérémonie a eu lieu devant quarante personnes dont tu ne connaissais que la moitié. Les photos sont parues dans la presse people le lendemain, présentées comme une histoire d'amour.\n\n**Ce que ça implique :**\n• Elle est ta femme, et elle le restera. **Le divorce n'existe pas** pour un membre du cercle.\n• La tromper compte comme un **faux pas**. Ils le sauront avant toi.\n• Tant que vous êtes mariés, aucune autre relation ne t'est accessible.\n\nVous vous entendez plutôt bien, d'ailleurs. C'est ce qui rend la chose supportable.` : "")
                                     + (left.length ? `\n\n⚠️ **Le palier n'est pas encore ouvert.** Les deux dossiers doivent être signés. Il reste : ${left.map(x => `${x.emoji} ${x.label}`).join(" · ")}.`
                                         : `\n\n${target.emoji} **${target.name}** t'est désormais accessible.`) });
@@ -31980,6 +32266,28 @@ function FiscoGame() {
                                 react_1.default.createElement(StatBar, { val: (score + 100) / 2, color: score > 60 ? "#69ff8a" : score > 30 ? "#ffce63" : "#ff6b6b", height: 2 }))));
                     }),
                     react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(255,180,80,.5)", letterSpacing: 2, margin: "10px 0 4px", fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums" } }, "ENTOURAGE"))),
+                (() => {
+                    const el = enfantLivreVisible(gs);
+                    if (!el)
+                        return null;
+                    const col = el.score > 60 ? "#69ff8a" : el.score > 10 ? "#ffce63" : "#ff6b6b";
+                    return (react_1.default.createElement(react_1.default.Fragment, null,
+                        react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(199,125,255,.45)", letterSpacing: 2, margin: "4px 0", fontFamily: "'Space Mono',monospace" } }, "CE QUE TU AS SIGN\u00C9"),
+                        react_1.default.createElement("div", { style: { display: "flex", gap: 9, alignItems: "center", padding: "7px 0", borderBottom: "1px solid rgba(199,125,255,.12)" } },
+                            react_1.default.createElement("div", { style: { width: 28, height: 28, minWidth: 28, borderRadius: "50%", background: "rgba(199,125,255,.08)", border: "1px solid rgba(199,125,255,.22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 } }, el.emoji),
+                            react_1.default.createElement("div", { style: { flex: 1 } },
+                                react_1.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+                                    react_1.default.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.9)" } }, el.nom),
+                                    react_1.default.createElement("span", { style: { fontSize: 10, color: col, fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums" } },
+                                        el.score >= 0 ? "+" : "",
+                                        el.score)),
+                                react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(199,125,255,.7)", fontFamily: "'Space Mono',monospace", textTransform: "uppercase", letterSpacing: 1 } },
+                                    el.ans,
+                                    " ans \u00B7 ",
+                                    el.statut),
+                                react_1.default.createElement(StatBar, { val: (el.score + 100) / 2, color: col, height: 2 }))),
+                        react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(255,180,80,.5)", letterSpacing: 2, margin: "10px 0 4px", fontFamily: "'Space Mono',monospace" } }, "ENTOURAGE")));
+                })(),
                 (() => {
                     const INNER = ["jenna_ortega", "the_weeknd", "falltos", "drake", "jack_grealish", "jul", "travis_scott"];
                     // Toute personne avec qui on a déjà collaboré
