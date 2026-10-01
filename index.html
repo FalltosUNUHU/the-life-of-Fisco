@@ -18396,7 +18396,7 @@ function capFame(next) {
 // s'en approcher.
 // Affichée dans les paramètres : elle dit d'un coup d'œil si la partie tourne
 // bien sur la dernière version du jeu.
-const VERSION_JEU = "78";
+const VERSION_JEU = "79";
 // Le seuil à partir duquel une fortune commence à se défendre au lieu de croître
 const SEUIL_GRANDE_FORTUNE = 3000000000;
 const TAUX_FROTTEMENT = 0.34; // par an sur la part au-dessus du seuil, et ça s'accélère
@@ -19466,8 +19466,10 @@ function gameReducerInner(state, action) {
         // on raccroche les crampons, et les enfants du casting entrent en scène.
         case "SAUT_SEIZE_ANS": {
             const AN16 = 16 * 365.25 * 86400000;
+            // On s'arrête une semaine pile AVANT le seizième anniversaire : la révélation
+            // de ce que l'enfant est devenu arrive ensuite d'elle-même, au tour suivant.
             const cible = state.enfantLivre
-                ? state.enfantLivre.born + AN16 + 7 * 86400000
+                ? state.enfantLivre.born + AN16 - 7 * 86400000
                 : state.currentDate + AN16;
             let st = state;
             let garde = 0;
@@ -21301,6 +21303,10 @@ function FiscoGame() {
     const [notif, setNotif] = (0, react_1.useState)(null);
     const [activeEvent, setActiveEvent] = (0, react_1.useState)(null);
     const [calAlert, setCalAlert] = (0, react_1.useState)(null);
+    // Une annonce majeure a son propre emplacement : elle passe devant toutes les
+    // autres, aucune alerte du même tour ne peut l'écraser, et « passer l'année »
+    // n'a pas le droit de la faire disparaître.
+    const [annonceMajeure, setAnnonceMajeure] = (0, react_1.useState)(null);
     const [pendingAlert, setPendingAlert] = (0, react_1.useState)(null);
     const [creator, setCreator] = (0, react_1.useState)(null);
     const [savedData, setSavedData] = (0, react_1.useState)(null);
@@ -22462,14 +22468,14 @@ function FiscoGame() {
         if (phase === "game" && !ending && gs.elite && !gs.membreDepuis && eliteRank(gs).lvl >= 2) {
             dispatch({ type: "SET_MEMBRE_DEPUIS" });
         }
-        if (phase === "game" && !ending && !anyOverlayOpen() && gs.elite && gs.membreDepuis
+        if (phase === "game" && !ending && gs.elite && gs.membreDepuis
             && !gs.grossesseCercle && !(gs.children || []).length && !gs.enfantLivre
             && (gs.currentDate - gs.membreDepuis) >= 16 * 7 * 86400000) {
             const mere = gs.romance.partner || gs.romance.exPartner || null;
             const nom = (CHARS_BY_ID[mere] || {}).name || "Elle";
             dispatch({ type: "GROSSESSE_CERCLE", mere, due: gs.currentDate + 38 * 7 * 86400000 });
             addLog(`[FAMILLE] ${nom} attend un enfant`);
-            setCalAlert({ emoji: "🤍", title: "Tu vas être père",
+            setAnnonceMajeure({ emoji: "🤍", title: "Tu vas être père", majeur: true,
                 desc: gs.romance.partner
                     ? `${nom} te l'annonce un soir ordinaire, sans préparation, avec le test encore dans la main.\n\nTu n'aviez rien prévu, rien décidé, rien arrêté. Tu fais le calcul plus tard, seul : seize semaines exactement depuis le jour où on t'a dit « tu es des nôtres ».\n\nTu mets ça sur le compte du hasard. C'est plus simple.`
                     : `${nom} t'appelle après des mois de silence. Elle est enceinte, et l'enfant est de toi.\n\nVous ne vous étiez pas revus depuis longtemps. Tu fais le calcul plus tard, seul : seize semaines exactement depuis le jour où on t'a dit « tu es des nôtres ».\n\nTu mets ça sur le compte du hasard. C'est plus simple.` });
@@ -22485,13 +22491,13 @@ function FiscoGame() {
         // ── CELUI QU'ON A EMMENÉ ──────────────────────────────────────────────
         // Seize ans plus tard, il réapparaît sous un autre nom. Il ne te reconnaît
         // pas, et c'est la seule chose que le cercle n'avait pas eu besoin de payer.
-        if (phase === "game" && !ending && !anyOverlayOpen() && gs.enfantLivre && !gs.enfantRevu
+        if (phase === "game" && !ending && gs.enfantLivre && !gs.enfantRevu
             && (gs.currentDate - (gs.enfantLivre.born || 0)) >= 16 * 365.25 * 86400000) {
             dispatch({ type: "ENFANT_REVU", nom: NOMS_REAPPARUS[Math.floor(Math.random() * NOMS_REAPPARUS.length)] });
             const p = gs.enfantLivre.prenomPublic || gs.enfantLivre.name;
             const garcon = gs.enfantLivre.sex === "garçon";
             addLog(`[???] Tu reconnais quelqu'un que tu ne devrais pas connaître`);
-            setCalAlert({ emoji: garcon ? "⚽" : "🎬", title: "Tu le reconnais tout de suite",
+            setAnnonceMajeure({ emoji: garcon ? "⚽" : "🎬", title: garcon ? "Tu le reconnais tout de suite" : "Tu la reconnais tout de suite", majeur: true,
                 desc: garcon
                     ? `Un match du FC Barcelone passe à la télévision. Le commentateur s'extasie sur un garçon de seize ans dont personne n'avait entendu parler il y a un an, et dont on ne trouve aucune trace avant le centre de formation.\n\nIl porte un autre nom. Il a les mains de ta mère et ta façon de baisser la tête quand on le félicite.\n\nTu fais approcher San Jose dès le lendemain. La réponse revient en quatre heures, polie et définitive : le joueur n'est pas à vendre, et ne le sera jamais. On ne te dit pas qui l'a décidé.\n\nEn zone mixte, un journaliste lui demande d'où il vient. Il répond qu'il ne se souvient pas de son enfance, et il en rit. Il n'a aucune raison de mentir.`
                     : `Elle ouvre le défilé Jenner à seize ans, et la presse ne parle que de ça le lendemain.\n\n${p} Jenner. Le prénom que vous aviez choisi, ta compagne et toi, devant un nom qui n'est pas le tien. Elle a les mains de ta mère et ta façon de baisser la tête quand on la félicite.\n\nElle se souvient de tout. De la maison, de toi, des dimanches, et du matin où tu as signé. Elle en parle en interview sans y mettre la moindre amertume : elle dit que ça lui a offert une vie, et que tu as bien fait.\n\nElle t'envoie un message pour ton anniversaire. Trois lignes, chaleureuses, polies. C'est ça, le pire : elle ne t'en veut pas du tout.` });
@@ -23591,6 +23597,19 @@ function FiscoGame() {
                 setYearRecap(null);
                 skipped = true;
             }
+            // Une annonce majeure (ce que devient l'enfant, la grossesse du cercle) ne
+            // se laisse pas emporter par « passer l'année » : elle arrête la course et
+            // attend d'être lue.
+            if (annonceMajeure) {
+                setFastYear(false);
+                setSkipDays(0);
+                return;
+            }
+            if (calAlert && calAlert.majeur) {
+                setFastYear(false);
+                setSkipDays(0);
+                return;
+            }
             if (calAlert) {
                 setCalAlert(null);
                 skipped = true;
@@ -23618,7 +23637,7 @@ function FiscoGame() {
                 return; // on laisse le rendu se faire avant de reprendre
         }
         else {
-            const blocked = activeEvent || calAlert || pendingAlert || grammyResult || vdlmResult || yearRecap || taxNotice || tourReport || majorOutcome || ending || mourningNotice || b.naming || b.seriesReport;
+            const blocked = activeEvent || calAlert || annonceMajeure || pendingAlert || grammyResult || vdlmResult || yearRecap || taxNotice || tourReport || majorOutcome || ending || mourningNotice || b.naming || b.seriesReport;
             if (blocked) {
                 setSkipDays(0);
                 return;
@@ -24002,9 +24021,9 @@ function FiscoGame() {
     const anyOverlayOpen = (0, react_1.useCallback)(() => {
         const b = blockersRef.current;
         // les modales tardives sont lues via la ref
-        return !!(activeEvent || calAlert || pendingAlert || grammyResult || vdlmResult || yearRecap || taxNotice || tourReport
+        return !!(activeEvent || calAlert || annonceMajeure || pendingAlert || grammyResult || vdlmResult || yearRecap || taxNotice || tourReport
             || majorOutcome || ending || mourningNotice || b.naming || b.seriesReport || b.interview);
-    }, [activeEvent, calAlert, pendingAlert, grammyResult, vdlmResult, yearRecap, taxNotice, tourReport, majorOutcome, ending, mourningNotice]);
+    }, [activeEvent, calAlert, annonceMajeure, pendingAlert, grammyResult, vdlmResult, yearRecap, taxNotice, tourReport, majorOutcome, ending, mourningNotice]);
     const maybeEvent = (0, react_1.useCallback)(() => {
         if (anyOverlayOpen())
             return false; // jamais deux écrans en même temps
@@ -26166,6 +26185,21 @@ function FiscoGame() {
         }
     }, [gs, addLog, toast]);
     // ── Moments à texte libre ────────────────────────────────────────────────
+    // ── Les codes secrets passent avant toutes les règles du jeu ──────────────
+    // Un code doit pouvoir être saisi même si le quota d'interviews de l'année est
+    // épuisé et même si le texte est plus court que le minimum demandé : sinon le
+    // bouton reste gris et le code n'atteint jamais le jeu.
+    const CODES_SECRETS = [
+        ["J'suis sur le trône j'ai viré Elie", "Laissez moi dans mon délire"],
+        ["T'sais qu'on sera toujours là En haut du podium", "On mate les étoiles", "Si tu veux plus jamais nous revoir Change de vie"],
+        ["Déchiré j'vois s'arrêter le temp", "J'suis pas chez moi j'ai plus trop le temp", "Entre Toronto et Paris", "T'a Kapté la vie c'est magique"],
+    ];
+    const estUnCodeSecret = (0, react_1.useCallback)(txt => {
+        const n = String(txt || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (n.length < 12)
+            return false;
+        return CODES_SECRETS.some(lignes => lignes.every(l => n.includes(l.toLowerCase().replace(/[^a-z0-9]/g, ""))));
+    }, []);
     const submitFreeText = (0, react_1.useCallback)((kind, text) => {
         // ── Code secret ──
         const norm = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -26196,7 +26230,10 @@ function FiscoGame() {
         // ── Troisième code secret : seize ans d'un coup ──
         // Il n'a de sens que si un enfant a été livré au cercle : c'est le jour où
         // l'on apprend ce qu'il est devenu.
-        if (kind === "interview" && (interviewOutlet === null || interviewOutlet === void 0 ? void 0 : interviewOutlet.id) === "tf1jt"
+        // Le code est fait pour TF1, mais il est reconnu dans n'importe quelle
+        // interview : si TF1 a épuisé ses questions, le plateau devient inaccessible
+        // et le code ne pourrait plus jamais être saisi.
+        if (kind === "interview"
             && norm(text).includes(norm("Déchiré j'vois s'arrêter le temp"))
             && norm(text).includes(norm("J'suis pas chez moi j'ai plus trop le temp"))
             && norm(text).includes(norm("Entre Toronto et Paris"))
@@ -26209,8 +26246,8 @@ function FiscoGame() {
             }
             dispatch({ type: "SAUT_SEIZE_ANS" });
             addLog("[???] Seize ans passent d'un coup");
-            setCalAlert({ emoji: "⏳", title: "Le temps s'arrête, puis repart sans toi",
-                desc: `Tu as récité ces lignes au journal de 20h, face à onze millions de personnes qui n'ont rien remarqué.\n\nQuand tu reposes le micro, seize ans ont passé. Des gens que tu connaissais sont morts, d'autres sont nés, des joueurs que tu avais signés ont raccroché, et les enfants de tes amis donnent aujourd'hui des interviews.\n\nTu as vieilli comme les autres. Ta célébrité aussi.\n\nEt quelque part, un enfant de seize ans que tu as signé un mardi matin vient d'entrer dans la lumière.` });
+            setAnnonceMajeure({ emoji: "⏳", title: "Le temps s'arrête, puis repart sans toi", majeur: true,
+                desc: `Tu as récité ces lignes ${(interviewOutlet === null || interviewOutlet === void 0 ? void 0 : interviewOutlet.id) === "tf1jt" ? "au journal de 20h, face à des millions de personnes qui n'ont rien remarqué" : `chez ${(interviewOutlet === null || interviewOutlet === void 0 ? void 0 : interviewOutlet.name) || "eux"}, et personne n'a rien remarqué`}.\n\nQuand tu reposes le micro, seize ans ont passé. Des gens que tu connaissais sont morts, d'autres sont nés, des joueurs que tu avais signés ont raccroché, et les enfants de tes amis donnent aujourd'hui des interviews.\n\nTu as vieilli comme les autres. Ta célébrité aussi.\n\nIl reste sept jours avant les seize ans de l'enfant que tu as signé un matin ordinaire. Tu ne sais pas encore ce qu'on en a fait. Tu le sauras dans une semaine.` });
             return;
         }
         const len = text.trim().length;
@@ -26736,12 +26773,16 @@ function FiscoGame() {
                     react_1.default.createElement("div", null,
                         react_1.default.createElement("div", null, ch.text),
                         react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(255,255,255,.3)", marginTop: 3, fontStyle: "italic" } }, activeEvent.isMajor ? react_1.default.createElement("span", { style: { color: "rgba(255,100,100,.6)" } }, "cons\u00E9quences inconnues\u2026") : Object.entries(ch.effects || {}).filter(([k]) => ["rep", "money", "energy", "health"].includes(k)).map(([k, v]) => `${k === "rep" ? "⭐" : k === "money" ? "💰" : k === "health" ? "❤️" : "⚡"} ${v > 0 ? "+" : ""}${k === "money" ? fmtMoney(v) : v}`).join("  "))))))))))) : null;
-    const CalOv = calAlert && !activeEvent ? (react_1.default.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 250, background: "rgba(0,0,0,.7)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", overflowY: "auto" } },
-        react_1.default.createElement("div", { style: { position: "relative", margin: "auto", background: "linear-gradient(135deg,#0d1f35,#1a2f4a)", border: "1px solid rgba(255,220,50,.4)", borderRadius: 14, padding: "28px 24px", maxWidth: 380, width: "92%", animation: "eventPop .3s ease", textAlign: "center" } },
-            react_1.default.createElement("div", { style: { fontSize: 48, marginBottom: 12 } }, calAlert.emoji),
-            react_1.default.createElement("div", { style: { fontFamily: "'Bebas Neue',cursive", fontSize: 24, color: "#ffce63", letterSpacing: 2, marginBottom: 8 } }, calAlert.title),
-            react_1.default.createElement("div", { style: { fontSize: 13, color: "rgba(255,255,255,.75)", lineHeight: "1.7", marginBottom: 20, whiteSpace: "pre-line" } }, calAlert.desc),
-            (calAlert.actions && calAlert.actions.length) ? (react_1.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, calAlert.actions.map((a, i) => (react_1.default.createElement("button", { key: i, onClick: () => { setCalAlert(null); setTimeout(() => a.run(), 20); }, style: { background: i === 0 ? "rgba(255,220,50,.15)" : "rgba(255,255,255,.05)", border: i === 0 ? "1px solid rgba(255,220,50,.4)" : "1px solid rgba(255,255,255,.18)", color: i === 0 ? "#ffce63" : "rgba(255,255,255,.7)", padding: "11px 16px", borderRadius: 8, fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums", fontSize: 12, cursor: "pointer" } }, a.label))))) : (react_1.default.createElement("button", { onClick: () => setCalAlert(null), style: { background: "rgba(255,220,50,.15)", border: "1px solid rgba(255,220,50,.4)", color: "#ffce63", padding: "11px 28px", borderRadius: 8, fontFamily: "'Bebas Neue',cursive", fontSize: 16, letterSpacing: 3, cursor: "pointer" } }, "OK"))))) : null;
+    // Une annonce majeure passe devant l'événement en cours comme devant l'alerte
+    // ordinaire : c'est le seul écran qui ne cède sa place à personne.
+    const calAff = annonceMajeure || (activeEvent ? null : calAlert);
+    const CalOv = calAff ? (react_1.default.createElement("div", { style: { position: "fixed", inset: 0, zIndex: calAff.majeur ? 380 : 250, background: calAff.majeur ? "rgba(0,0,0,.92)" : "rgba(0,0,0,.7)", backdropFilter: calAff.majeur ? "blur(14px)" : "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", overflowY: "auto" } },
+        react_1.default.createElement("div", { style: { position: "relative", margin: "auto", background: calAff.majeur ? "linear-gradient(135deg,#140d08,#2a1a0c)" : "linear-gradient(135deg,#0d1f35,#1a2f4a)", border: calAff.majeur ? "1px solid rgba(255,206,99,.75)" : "1px solid rgba(255,220,50,.4)", boxShadow: calAff.majeur ? "0 0 60px rgba(255,180,60,.22)" : "none", borderRadius: 14, padding: "28px 24px", maxWidth: calAff.majeur ? 440 : 380, width: "92%", animation: "eventPop .3s ease", textAlign: "center" } },
+            calAff.majeur && (react_1.default.createElement("div", { style: { fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums", fontSize: 9, letterSpacing: 6, color: "rgba(255,206,99,.6)", marginBottom: 14 } }, "CE QUI NE S'OUBLIE PAS")),
+            react_1.default.createElement("div", { style: { fontSize: 48, marginBottom: 12 } }, calAff.emoji),
+            react_1.default.createElement("div", { style: { fontFamily: "'Bebas Neue',cursive", fontSize: calAff.majeur ? 27 : 24, color: "#ffce63", letterSpacing: 2, marginBottom: 8 } }, calAff.title),
+            react_1.default.createElement("div", { style: { fontSize: 13, color: "rgba(255,255,255,.75)", lineHeight: "1.7", marginBottom: 20, whiteSpace: "pre-line" } }, calAff.desc),
+            (calAff.actions && calAff.actions.length) ? (react_1.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 8 } }, calAff.actions.map((a, i) => (react_1.default.createElement("button", { key: i, onClick: () => { setAnnonceMajeure(null); setCalAlert(null); setTimeout(() => a.run(), 20); }, style: { background: i === 0 ? "rgba(255,220,50,.15)" : "rgba(255,255,255,.05)", border: i === 0 ? "1px solid rgba(255,220,50,.4)" : "1px solid rgba(255,255,255,.18)", color: i === 0 ? "#ffce63" : "rgba(255,255,255,.7)", padding: "11px 16px", borderRadius: 8, fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums", fontSize: 12, cursor: "pointer" } }, a.label))))) : (react_1.default.createElement("button", { onClick: () => { setAnnonceMajeure(null); setCalAlert(null); }, style: { background: "rgba(255,220,50,.15)", border: "1px solid rgba(255,220,50,.4)", color: "#ffce63", padding: "11px 28px", borderRadius: 8, fontFamily: "'Bebas Neue',cursive", fontSize: 16, letterSpacing: 3, cursor: "pointer" } }, calAff.majeur ? "J'AI LU" : "OK"))))) : null;
     const EndingOv = ending ? (react_1.default.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 400, background: "#000", overflowY: "auto", padding: "40px 20px", display: "flex", alignItems: "center", justifyContent: "center" } },
         react_1.default.createElement("div", { style: { position: "fixed", inset: 0, background: "linear-gradient(180deg,#000 0%,#060a14 45%,#0a1424 100%)", animation: "overlayIn 1.6s ease both", pointerEvents: "none" } }),
         [...Array(30)].map((_, i) => (react_1.default.createElement("div", { key: i, style: { position: "fixed", left: `${(i * 37) % 100}%`, top: `${(i * 23) % 80}%`, width: 1.6, height: 1.6, borderRadius: "50%",
@@ -31491,8 +31532,9 @@ function FiscoGame() {
                 const quotaOut = isMedia && used >= MEDIA_YEARLY_LIMIT;
                 const needsText = !isMedia || interviewOutlet.talk;
                 const tooShort = needsText && freeTextValue.trim().length < FREE_TEXT_MOMENTS[freeTextModal].minLen;
-                const blocked = quotaOut || tooShort;
-                return (react_1.default.createElement("button", { disabled: blocked, onClick: () => submitFreeText(freeTextModal, freeTextValue), style: { width: "100%", marginTop: 10, padding: "11px", background: blocked ? "rgba(255,255,255,.05)" : "linear-gradient(135deg,rgba(255,150,0,.35),rgba(255,70,0,.3))", border: "1px solid rgba(255,150,50,.5)", color: blocked ? "rgba(255,255,255,.25)" : "#ffce63", borderRadius: 8, fontFamily: "'Bebas Neue',cursive", fontSize: 14, letterSpacing: 2, cursor: blocked ? "not-allowed" : "pointer" } }, quotaOut ? `QUOTA ANNUEL ATTEINT (${MEDIA_YEARLY_LIMIT}/${MEDIA_YEARLY_LIMIT})` : isMedia && !interviewOutlet.talk ? "S'Y RENDRE" : "ENVOYER"));
+                const code = isMedia && estUnCodeSecret(freeTextValue);
+                const blocked = code ? false : (quotaOut || tooShort);
+                return (react_1.default.createElement("button", { disabled: blocked, onClick: () => submitFreeText(freeTextModal, freeTextValue), style: { width: "100%", marginTop: 10, padding: "11px", background: blocked ? "rgba(255,255,255,.05)" : "linear-gradient(135deg,rgba(255,150,0,.35),rgba(255,70,0,.3))", border: "1px solid rgba(255,150,50,.5)", color: blocked ? "rgba(255,255,255,.25)" : "#ffce63", borderRadius: 8, fontFamily: "'Bebas Neue',cursive", fontSize: 14, letterSpacing: 2, cursor: blocked ? "not-allowed" : "pointer" } }, code ? "ENVOYER" : quotaOut ? `QUOTA ANNUEL ATTEINT (${MEDIA_YEARLY_LIMIT}/${MEDIA_YEARLY_LIMIT})` : isMedia && !interviewOutlet.talk ? "S'Y RENDRE" : "ENVOYER"));
             })(),
             react_1.default.createElement("button", { onClick: () => setFreeTextModal(null), style: { width: "100%", marginTop: 8, padding: "8px", background: "none", border: "none", color: "rgba(255,255,255,.4)", fontSize: 11, fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums", cursor: "pointer" } }, "Annuler")))) : null;
     const RomanceOv = romanceModal ? (react_1.default.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 270, background: "rgba(0,0,0,.85)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "20px" } },
