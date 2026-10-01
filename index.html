@@ -13756,31 +13756,36 @@ function kidCareerFor(parent) {
 const MAISON_LIGNEE = { nom: "Jenner" };
 // Les noms sous lesquels un garçon réapparaît : le centre de formation lui en a
 // donné un, et plus personne ne connaît l'autre.
-const NOMS_REAPPARUS = ["Ruiz", "Ferrer", "Solano", "Bardem", "Vidal", "Carreras", "Puig", "Navarro", "Estève", "Molina"];
+// Le nom sous lequel le fils réapparaît. Ils ne lui ont pas seulement pris son
+// nom de famille : ils lui ont pris son prénom. Numéro 6 du FC Barcelone.
+const NOM_FILS_REAPPARU = "Isaac Myrando";
+const NUMERO_FILS = 6;
+const NOMS_REAPPARUS = [NOM_FILS_REAPPARU];
 // Ce que devient l'enfant qu'on a livré, et sous quel nom on le retrouve.
-// La fille reste visible : elle grandit chez eux, sous son prénom et leur nom.
-// Le garçon disparaît complètement jusqu'à ses seize ans.
+// Avant ses seize ans, il n'existe nulle part : ni dans les contacts, ni ailleurs.
+// Le jour où tu apprends ce qu'il est devenu, il entre dans ta vie comme un
+// personnage du jeu — et il n'en sortira plus.
 function enfantLivreVisible(gs) {
     const e = gs && gs.enfantLivre;
     if (!e)
         return null;
     const ans = (gs.currentDate - (e.born || 0)) / (365.25 * 86400000);
     const fille = e.sex === "fille";
-    if (!fille && ans < 16)
+    if (ans < 16 && !gs.enfantRevu)
         return null;
     const nom = fille ? `${e.name} ${MAISON_LIGNEE.nom}` : (e.nomPublic || e.name);
     // Ce qu'elle fait de sa vie, et ce qu'elle pense de toi
     let statut, score;
     if (fille) {
-        statut = ans < 16 ? "élevée par la famille " + MAISON_LIGNEE.nom
-            : ans < 20 ? "mannequin" : "icône de la mode";
+        statut = ans < 20 ? "mannequin, famille " + MAISON_LIGNEE.nom
+            : ans < 26 ? "icône de la mode" : "la plus grande star de la mode";
         // Le cercle t'a marié à l'une d'elles. Personne ne t'expliquera pourquoi
         // elle ne te parle plus depuis ce jour-là.
         const marieALaFamille = ["kendall_jenner", "kylie_jenner"].includes(gs.romance.partner);
         score = marieALaFamille ? -40 : 25;
     }
     else {
-        statut = ans < 20 ? "milieu de terrain, FC Barcelone" : "FC Barcelone";
+        statut = ans < 20 ? `n°${NUMERO_FILS} du FC Barcelone · pépite` : `n°${NUMERO_FILS} du FC Barcelone`;
         score = 0; // il ne sait pas qui tu es
     }
     return { nom, statut, score, fille, ans: Math.floor(ans),
@@ -18396,7 +18401,7 @@ function capFame(next) {
 // s'en approcher.
 // Affichée dans les paramètres : elle dit d'un coup d'œil si la partie tourne
 // bien sur la dernière version du jeu.
-const VERSION_JEU = "79";
+const VERSION_JEU = "82";
 // Le seuil à partir duquel une fortune commence à se défendre au lieu de croître
 const SEUIL_GRANDE_FORTUNE = 3000000000;
 const TAUX_FROTTEMENT = 0.34; // par an sur la part au-dessus du seuil, et ça s'accélère
@@ -19546,7 +19551,7 @@ function gameReducerInner(state, action) {
         case "ENFANT_REVU":
             return { ...state, enfantRevu: true,
                 enfantLivre: state.enfantLivre && state.enfantLivre.sex !== "fille" && !state.enfantLivre.nomPublic
-                    ? { ...state.enfantLivre, nomPublic: `${state.enfantLivre.name} ${action.nom || NOMS_REAPPARUS[0]}` }
+                    ? { ...state.enfantLivre, nomPublic: NOM_FILS_REAPPARU }
                     : state.enfantLivre };
         case "SET_MUSIC":
             return { ...state, musicTier: action.tier };
@@ -22493,14 +22498,13 @@ function FiscoGame() {
         // pas, et c'est la seule chose que le cercle n'avait pas eu besoin de payer.
         if (phase === "game" && !ending && gs.enfantLivre && !gs.enfantRevu
             && (gs.currentDate - (gs.enfantLivre.born || 0)) >= 16 * 365.25 * 86400000) {
-            dispatch({ type: "ENFANT_REVU", nom: NOMS_REAPPARUS[Math.floor(Math.random() * NOMS_REAPPARUS.length)] });
-            const p = gs.enfantLivre.prenomPublic || gs.enfantLivre.name;
-            const garcon = gs.enfantLivre.sex === "garçon";
+            dispatch({ type: "ENFANT_REVU", nom: NOM_FILS_REAPPARU });
+            const garcon = gs.enfantLivre.sex !== "fille";
             addLog(`[???] Tu reconnais quelqu'un que tu ne devrais pas connaître`);
             setAnnonceMajeure({ emoji: garcon ? "⚽" : "🎬", title: garcon ? "Tu le reconnais tout de suite" : "Tu la reconnais tout de suite", majeur: true,
                 desc: garcon
-                    ? `Un match du FC Barcelone passe à la télévision. Le commentateur s'extasie sur un garçon de seize ans dont personne n'avait entendu parler il y a un an, et dont on ne trouve aucune trace avant le centre de formation.\n\nIl porte un autre nom. Il a les mains de ta mère et ta façon de baisser la tête quand on le félicite.\n\nTu fais approcher San Jose dès le lendemain. La réponse revient en quatre heures, polie et définitive : le joueur n'est pas à vendre, et ne le sera jamais. On ne te dit pas qui l'a décidé.\n\nEn zone mixte, un journaliste lui demande d'où il vient. Il répond qu'il ne se souvient pas de son enfance, et il en rit. Il n'a aucune raison de mentir.`
-                    : `Elle ouvre le défilé Jenner à seize ans, et la presse ne parle que de ça le lendemain.\n\n${p} Jenner. Le prénom que vous aviez choisi, ta compagne et toi, devant un nom qui n'est pas le tien. Elle a les mains de ta mère et ta façon de baisser la tête quand on la félicite.\n\nElle se souvient de tout. De la maison, de toi, des dimanches, et du matin où tu as signé. Elle en parle en interview sans y mettre la moindre amertume : elle dit que ça lui a offert une vie, et que tu as bien fait.\n\nElle t'envoie un message pour ton anniversaire. Trois lignes, chaleureuses, polies. C'est ça, le pire : elle ne t'en veut pas du tout.` });
+                    ? `Un match du FC Barcelone passe à la télévision. Tu ne le cherchais pas. Tu le reconnais avant même que le commentateur ne dise son nom.\n\nC'est ton fils. C'est toi en plus jeune, trait pour trait : sa façon de courir, ses épaules, sa manière de baisser la tête quand on le félicite. Deux gouttes d'eau.\n\nSur son dos, le numéro ${NUMERO_FILS}, et un nom qui n'est pas le tien : **${NOM_FILS_REAPPARU}**. Seize ans. Ils ne lui ont pas seulement pris ton nom, ils lui ont pris son prénom.\n\nIl joue comme personne de son âge n'a jamais joué. Le commentateur cherche ses mots, puis lâche celui que tout le monde attendait : une pépite. On parle déjà de lui comme du meilleur milieu que le club ait formé.\n\nTu fais approcher San Jose dès le lendemain. La réponse revient en quatre heures, polie et définitive : le joueur n'est pas à vendre, et ne le sera jamais. On ne te dit pas qui l'a décidé. Tu le sais.\n\nEt tu comprends enfin ce qu'ils ont fait de ton enfant, là-bas, sur cette île, dans cette structure de recherche dont personne ne prononce le nom. Ils ne l'ont pas élevé. Ils l'ont fabriqué.\n\nEn zone mixte, un journaliste lui demande d'où il vient. Il répond qu'il ne se souvient pas de son enfance, et il en rit. Il n'a aucune raison de mentir.`
+                    : `Elle ouvre le défilé à seize ans. Prénom que vous aviez choisi, nom qui n'est pas le tien. Elle sait parfaitement qu'elle n'est pas née dans cette famille mais elle en fait désormais partie et le métier le dit déjà : dans quelques années, la plus grande star de la mode que le monde ait connue.` });
         }
         // ── Le cercle vit sa vie, que tu y participes ou non ──
         if (phase === "game" && !ending && gs.elite && d.getDate() % 5 === 0 && Math.random() < 0.5) {
@@ -26240,8 +26244,14 @@ function FiscoGame() {
             && norm(text).includes(norm("T'a Kapté la vie c'est magique"))) {
             setFreeTextModal(null);
             setFreeTextValue("");
-            if (!gs.enfantLivre) {
-                toast("Rien ne se passe. Pas encore.", "#ff9f1c");
+            // Le code marche toujours : s'il ne peut rien faire, il dit pourquoi, en
+            // toutes lettres, au lieu de laisser croire qu'il n'a pas été reconnu.
+            if (!gs.enfantLivre || gs.enfantRevu) {
+                const dejaVu = !!gs.enfantRevu;
+                setAnnonceMajeure({ emoji: "⏳", title: "Les lignes sont reconnues", majeur: true,
+                    desc: dejaVu
+                        ? `Tu as récité les quatre lignes, et quelque chose a répondu — mais il n'y a plus rien à attendre.\n\nTu sais déjà ce qu'ils ont fait de ton enfant. On ne te le montrera pas deux fois.`
+                        : `Tu as récité les quatre lignes, et quelque chose a répondu. Le temps s'est tendu, puis s'est remis en place.\n\nIl ne se passe rien, parce qu'il n'y a rien à voir : **tu n'as encore livré aucun enfant au cercle**. Ce code ne sert qu'à ça — rejoindre le jour où l'on apprend ce qu'il est devenu.\n\nIl faudra d'abord entrer dans le cercle, en gravir les rangs jusqu'au **Cercle intérieur**, et payer ce qu'on te demandera alors. Reviens réciter ces lignes ce jour-là.` });
                 return;
             }
             dispatch({ type: "SAUT_SEIZE_ANS" });
