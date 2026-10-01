@@ -18396,7 +18396,7 @@ function capFame(next) {
 // s'en approcher.
 // Affichée dans les paramètres : elle dit d'un coup d'œil si la partie tourne
 // bien sur la dernière version du jeu.
-const VERSION_JEU = "77";
+const VERSION_JEU = "78";
 // Le seuil à partir duquel une fortune commence à se défendre au lieu de croître
 const SEUIL_GRANDE_FORTUNE = 3000000000;
 const TAUX_FROTTEMENT = 0.34; // par an sur la part au-dessus du seuil, et ça s'accélère
@@ -19459,6 +19459,84 @@ function gameReducerInner(state, action) {
                 grief: action.kill ? { who: (CHARS_BY_ID[action.kill] || {}).name || "Quelqu'un", since: state.currentDate }
                     : action.killPartner ? { who: (CHARS_BY_ID[state.romance.partner] || {}).name || "Elle", since: state.currentDate }
                         : state.grief };
+        // ─── LE SAUT DE SEIZE ANS ───────────────────────────────────────────────
+        // Avancer jusqu'au jour où l'on apprend ce qu'est devenu l'enfant livré.
+        // Le temps ne saute pas : il est joué semaine après semaine par le moteur
+        // habituel, et une fois par an le monde bouge aussi — on enterre, on naît,
+        // on raccroche les crampons, et les enfants du casting entrent en scène.
+        case "SAUT_SEIZE_ANS": {
+            const AN16 = 16 * 365.25 * 86400000;
+            const cible = state.enfantLivre
+                ? state.enfantLivre.born + AN16 + 7 * 86400000
+                : state.currentDate + AN16;
+            let st = state;
+            let garde = 0;
+            let anneeFaite = new Date(st.currentDate).getFullYear();
+            const morts = [], nes = [], retraites = [];
+            while (st.currentDate < cible && garde++ < 1200) {
+                st = gameReducerInner(st, { type: "ADVANCE_TIME", hours: 24 * 7 });
+                const an = new Date(st.currentDate).getFullYear();
+                if (an === anneeFaite)
+                    continue;
+                anneeFaite = an;
+                // ── Le temps emporte du monde ──────────────────────────────────────
+                const partis = new Set([...(st.deceased || []), ...(st.erased || [])]);
+                const proteges = protegesParUneOperation(st);
+                const vivants = Object.values(CHARS).filter(c => !partis.has(c.id)
+                    && c.id !== st.romance.partner && !proteges.has(c.id) && c.id !== "falltos");
+                const ansEcoules = Math.max(0, (st.currentDate - GAME_START_DATE) / (365 * 86400000));
+                if (vivants.length && Math.random() < Math.min(0.55, 0.05 + ansEcoules * 0.022)) {
+                    const p = vivants[Math.floor(Math.random() * vivants.length)];
+                    morts.push(p.name);
+                    const rels = { ...st.relations };
+                    delete rels[p.id];
+                    st = { ...st, deceased: [...new Set([...(st.deceased || []), p.id])], relations: rels };
+                }
+                // ── Le casting fait des enfants ────────────────────────────────────
+                const kids = st.npcKids || [];
+                const parents = Object.values(CHARS).filter(c => !partis.has(c.id) && c.id !== "falltos"
+                    && canBecomeParent(st, c)
+                    && ["music", "cinema", "sport", "business", "mode", "influencer", "politique"].includes((c.cat || "").toLowerCase()));
+                const combien = 1 + Math.floor(Math.random() * 3);
+                for (let k = 0; k < combien && parents.length; k++) {
+                    const par = parents[Math.floor(Math.random() * parents.length)];
+                    const deja = (st.npcKids || []).filter(x => x.parentId === par.id);
+                    const cotes = kidOdds(par);
+                    if (deja.length < cotes.length && Math.random() < cotes[deja.length]) {
+                        const used = new Set(deja.map(x => x.name.split(" ")[0]));
+                        const kid = makeNpcKid(par, st.currentDate, used);
+                        nes.push(kid.name);
+                        st = { ...st, npcKids: [...(st.npcKids || []), kid] };
+                    }
+                }
+                // ── Les enfants du casting entrent en scène à seize ans ────────────
+                st = { ...st, npcKids: (st.npcKids || []).map(k => (!k.debuted && (st.currentDate - k.birth) >= 16 * 365.25 * 86400000) ? { ...k, debuted: true } : k) };
+                // ── On raccroche les crampons ──────────────────────────────────────
+                if ((st.sanJoseSquad || []).length && !(st.soldBusinesses || {}).san_jose) {
+                    const fin = (st.sanJoseSquad || []).filter(pl => an >= retirementYear(pl));
+                    if (fin.length) {
+                        fin.forEach(pl => retraites.push(pl.name));
+                        st = { ...st, retiredPlayers: [...new Set([...(st.retiredPlayers || []), ...fin.map(pl => pl.id)])],
+                            sanJoseSquad: (st.sanJoseSquad || []).filter(pl => !fin.includes(pl)) };
+                    }
+                }
+                // ── La célébrité et la réputation vivent leur vie ──────────────────
+                // On ne simule pas seize ans d'inactivité : on simule une carrière qui
+                // continue. La célébrité glisse donc vers le palier que tient un artiste
+                // installé de ton rang, au lieu de tomber à zéro — sans quoi le saut
+                // ramènerait un inconnu le jour où son enfant entre dans la lumière.
+                const rg = st.elite && !st.eliteFallen ? eliteRank(st) : null;
+                const palierFame = (st.elite ? 66 : 52) + (rg ? (rg.lvl || 0) * 2.4 : 0);
+                const palierRep = (st.elite ? 62 : 50) + (rg ? (rg.lvl || 0) * 2 : 0);
+                st = { ...st,
+                    fame: Math.max(1, Math.round(st.fame + (palierFame - st.fame) * 0.12)),
+                    rep: Math.max(1, Math.round(st.rep + (palierRep - st.rep) * 0.10)),
+                    // Les liens se distendent sans se rompre : on se voit moins, on
+                    // s'appelle encore.
+                    relations: Object.fromEntries(Object.entries(st.relations).map(([k, v]) => [k, { ...v, score: Math.max(-100, Math.round((v.score || 0) * 0.97)) }])) };
+            }
+            return { ...st, sautFait: { morts, nes: nes.length, retraites, jusquA: st.currentDate } };
+        }
         case "SET_MEMBRE_DEPUIS":
             return state.membreDepuis ? state : { ...state, membreDepuis: state.currentDate };
         case "GROSSESSE_CERCLE":
@@ -26113,6 +26191,26 @@ function FiscoGame() {
             addLog("[???] Le sommet, d'un coup");
             setCalAlert({ emoji: "🕯️", title: "Le cercle intérieur",
                 desc: `Tu as récité ces lignes en plateau, face caméra, chez Colbert. Douze personnes au monde pouvaient les reconnaître. Onze d'entre elles regardaient.\n\nEn une nuit, sans mission, sans sacrifice visible et sans explication, tu te retrouves au **Cercle intérieur** — le rang le plus élevé qu'un vivant puisse atteindre.\n\n**100 influences** sont à ta disposition. Deux milliards sur tes comptes. Aucun faux pas à ton dossier.\n\nPersonne ne te demandera jamais comment.` });
+            return;
+        }
+        // ── Troisième code secret : seize ans d'un coup ──
+        // Il n'a de sens que si un enfant a été livré au cercle : c'est le jour où
+        // l'on apprend ce qu'il est devenu.
+        if (kind === "interview" && (interviewOutlet === null || interviewOutlet === void 0 ? void 0 : interviewOutlet.id) === "tf1jt"
+            && norm(text).includes(norm("Déchiré j'vois s'arrêter le temp"))
+            && norm(text).includes(norm("J'suis pas chez moi j'ai plus trop le temp"))
+            && norm(text).includes(norm("Entre Toronto et Paris"))
+            && norm(text).includes(norm("T'a Kapté la vie c'est magique"))) {
+            setFreeTextModal(null);
+            setFreeTextValue("");
+            if (!gs.enfantLivre) {
+                toast("Rien ne se passe. Pas encore.", "#ff9f1c");
+                return;
+            }
+            dispatch({ type: "SAUT_SEIZE_ANS" });
+            addLog("[???] Seize ans passent d'un coup");
+            setCalAlert({ emoji: "⏳", title: "Le temps s'arrête, puis repart sans toi",
+                desc: `Tu as récité ces lignes au journal de 20h, face à onze millions de personnes qui n'ont rien remarqué.\n\nQuand tu reposes le micro, seize ans ont passé. Des gens que tu connaissais sont morts, d'autres sont nés, des joueurs que tu avais signés ont raccroché, et les enfants de tes amis donnent aujourd'hui des interviews.\n\nTu as vieilli comme les autres. Ta célébrité aussi.\n\nEt quelque part, un enfant de seize ans que tu as signé un mardi matin vient d'entrer dans la lumière.` });
             return;
         }
         const len = text.trim().length;
