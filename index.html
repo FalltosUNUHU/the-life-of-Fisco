@@ -1582,6 +1582,8 @@ const ADDICTIONS = [
     { id: "ad_work", label: "Travail", emoji: "⚙️", trigger: "work", desc: "Tu ne sais plus t'arrêter, et tu appelles ça de la discipline." },
     { id: "ad_gambling", label: "Jeu", emoji: "🎰", trigger: "casino", desc: "Le casino n'est plus un divertissement." },
     { id: "ad_porn", label: "Pornographie", emoji: "🔞", trigger: "lonely", desc: "Les nuits d'hôtel se ressemblent toutes. Tu remplis le vide avec ce qui est à portée, et ça t'éloigne un peu plus de ceux qui t'aiment." },
+    { id: "ad_coke", label: "Cocaïne", emoji: "❄️", trigger: "cercle", desc: "Ça a commencé dans une pièce où tout le monde en prenait, et où personne n'en parlait. Maintenant tu ne sais plus tenir une semaine sans." },
+    { id: "ad_women", label: "Les femmes", emoji: "💔", trigger: "cercle", desc: "Tu ne cherches plus quelqu'un, tu cherches la preuve que tu peux encore. Chaque conquête tient trois jours, et le vide revient plus grand." },
 ];
 // ─── CATALOGUE EXPLOITABLE : rééditions et inédits ─────────────────────────
 const REISSUE_TYPES = [
@@ -1930,9 +1932,12 @@ function calcProjectStats(project, gs) {
     // Le cercle ouvre quelques portes, sans miracle
     // Le public se détourne de quelqu'un qu'on présente comme complotiste
     const eliteFactor = (gs.elite ? 1.06 : 1) * (gs.inResistance ? 0.62 : 1);
+    // L'album commandé par le cercle : les radios sont acquises, les playlists
+    // suivent, et le public ne décide de rien. Il ne peut pas rester inaperçu.
+    const commande = alSoutenu(gs, project.title) ? 2.1 : 1;
     const catalogPull = 1;
     let ultimate = Math.round(H * qualityFactor * typeFactor * fameFactor * variance * featFactor
-        * seasonFactor * rolloutFactor * studioFactor * eliteFactor * catalogPull);
+        * seasonFactor * rolloutFactor * studioFactor * eliteFactor * catalogPull * commande);
     // Le plafond s'applique dès la naissance du projet, pas seulement à l'arrivée
     ultimate = tasserStreams(ultimate);
     // ── Le poids des décennies ──────────────────────────────────────────────
@@ -10333,6 +10338,20 @@ function resistAllies(gs) {
     const ids = [...new Set([...RESISTANCE_ALLIES, ...Object.keys(st)])];
     return ids.filter(id => !dead.has(id) && !["absent", "mort", "parti"].includes(st[id] || "actif"));
 }
+// ─── CE QUE TU AS RÉPARÉ ────────────────────────────────────────────────────
+// Le contrepoids exact de la dette d'âme du cercle : là-bas on monte en prenant,
+// ici on compte ce qu'on a rendu. Ça ne rapporte rien, et c'est tout l'intérêt.
+function bienTotal(gs) {
+    return (gs && gs.bienFaits || []).reduce((a, b) => a + (b.poids || 1), 0);
+}
+const BIEN_PALIERS = [
+    { at: 4, label: "Quelque chose a tenu",
+        desc: "Des gens vivent mieux à cause d'une décision que tu as prise. Tu ne les connaîtras jamais." },
+    { at: 10, label: "Ce n'est plus un geste",
+        desc: "Ce n'est plus de la générosité : c'est une œuvre, avec des gens dedans, et elle ne dépend plus de ton humeur." },
+    { at: 18, label: "Ça te survivra",
+        desc: "Ce que tu as monté continuera sans toi. C'est la seule chose qu'ils n'ont jamais pu t'offrir." },
+];
 function resistCount(gs) { return resistAllies(gs).length; }
 // « Vous êtes » compte Fisco avec les siens : six alliés autour de lui, cela fait
 // sept personnes dans la pièce. Le compte suit les départs et les arrivées, donc
@@ -11270,6 +11289,165 @@ const WAR_MISSIONS = [
         loseT: "Il s'est refermé",
         loseD: "Il a cessé de répondre du jour au lendemain.\n\nTrois semaines plus tard, il publiait une vidéo souriante pour démentir « les rumeurs ». Quelqu'un a dû lui rappeler ce qu'il risquait.",
         winFx: { rep: +16 }, loseFx: { stress: +20 }, winAlly: "justin_bieber" },
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CE QU'ILS FONT VRAIMENT — on ne ressort pas intact de ces dossiers.
+    // Gagner sauve quelqu'un. Perdre ne se répare pas. Dans les deux cas, ce
+    // qu'on a lu reste.
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: "wm_liste", emoji: "🗂️", title: "La liste des douze", days: 50, chance: 0.42, cost: 24000000,
+        brief: "Une source vous fait parvenir douze pages. Douze noms de jeunes artistes, entre dix-huit et vingt-deux ans, avec pour chacun une case cochée et une date.\n\nLa case s'appelle « disponibilité famille ». Vous comprenez en une heure ce que ça veut dire : on a vérifié, pour chacun d'eux, s'il avait quelqu'un capable de poser des questions.\n\nNeuf n'ont personne. Ce sont les neuf qui ont été retenus.\n\nIls ont tous signé. Aucun ne sait ce qu'il a signé.",
+        goal: "Sortir les neuf de là",
+        winT: "Sept sur neuf",
+        winD: "Vos avocats attaquent les contrats un par un, sur le même vice : des engagements signés sans conseil et sans contrepartie chiffrée.\n\nSept sont libérés. Deux refusent de partir — ils ont déjà été payés, et ils ont peur.\n\nVous les avez tous rencontrés. Aucun n'a compris ce dont vous le sortiez, et c'est tant mieux : ils dormiront mieux que vous.\n\nTu as relu la liste une dernière fois avant de la classer. La case cochée, la date. Tu penses à ceux dont personne n'a jamais reçu la liste.",
+        loseT: "La liste est devenue une rumeur",
+        loseD: "Les contrats tiennent. Juridiquement, tout est en ordre : chaque signature est valide, chaque case a été cochée par un adulte consentant.\n\nDeux des neuf changent de numéro. Un troisième sort un disque six mois plus tard, excellent, sous un nom qui n'est pas le sien.\n\nVous gardez les douze pages. Elles ne serviront à rien, et vous ne pourrez jamais les jeter.",
+        winFx: { rep: +16, stress: +22 }, loseFx: { rep: -4, stress: +38 },
+        winMental: { purpose: +14, anxiety: +8 }, loseMental: { purpose: -16, anxiety: +20 },
+        winOpinion: 5, bien: 3, evLoss: 0 },
+    { id: "wm_protocole", emoji: "🏥", title: "Le protocole d'une île", days: 70, chance: 0.36, cost: 38000000,
+        brief: "Une clinique privée de la région ferme du jour au lendemain. Un comptable vous envoie ce qu'il a emporté : des factures de matériel médical de recherche, adressées à une société sans activité déclarée, livrées sur une île privée.\n\nLes quantités ne correspondent à aucune population de patients. Les commandes sont régulières depuis des années, et la ligne la plus fréquente parle de « sujets » numérotés, jamais nommés.\n\nIl n'y a pas de noms. C'est précisément ce qui vous tient réveillés.",
+        goal: "Faire exister ce dossier",
+        winT: "Une commission s'en saisit",
+        winD: "Vous ne faites pas de conférence de presse. Vous confiez l'intégralité à trois parlementaires de trois pays différents, le même matin, par trois canaux séparés.\n\nUne commission d'enquête est ouverte. Elle avancera lentement, elle sera entravée, et elle n'aboutira peut-être jamais. Mais à partir d'aujourd'hui, la société existe dans un document officiel.\n\nLe comptable est relogé ailleurs, sous un autre nom. Il t'a juste demandé si ses enfants étaient en sécurité. Tu as répondu oui. Tu espères ne pas avoir menti.",
+        loseT: "Le dossier n'a jamais existé",
+        loseD: "La société est dissoute en onze jours. Le comptable se rétracte à l'écrit, puis cesse de répondre.\n\nLes factures restent. Elles ne prouvent plus rien : la société qu'elles désignent n'a jamais existé légalement.\n\nTu as encore les quantités en tête. Tu as fait le calcul un soir, tout seul, pour savoir combien de personnes ça représentait. Tu as arrêté avant d'avoir fini.",
+        winFx: { rep: +22, stress: +30 }, loseFx: { rep: -6, stress: +46, health: -8 },
+        winMental: { purpose: +18, anxiety: +14 }, loseMental: { purpose: -22, anxiety: +26, loneliness: +10 },
+        winOpinion: 9, bien: 4 },
+    { id: "wm_filiere", emoji: "🚪", title: "La filière", days: 55, chance: 0.4, cost: 19000000,
+        brief: "Trois agences de casting, trois villes, un même modèle de contrat. On recrute dans les quartiers où personne ne lit les clauses, on promet une carrière, on fait signer une cession de droits à vie.\n\nSur quarante dossiers que vous obtenez, trente-huit signataires ont moins de vingt-trois ans et aucun n'a vu d'avocat.\n\nCe n'est pas illégal. C'est pire : c'est parfaitement légal, et répété depuis des années.",
+        goal: "Casser le modèle de contrat",
+        winT: "Le contrat est devenu inutilisable",
+        winD: "Vous ne poursuivez pas les agences : vous publiez le contrat, annoté ligne par ligne, avec la traduction en français courant de chaque clause.\n\nDeux mille partages en une journée. Trois écoles de musique l'intègrent à leur programme. Une agence ferme, les deux autres réécrivent tout.\n\nUn gamin de dix-neuf ans t'envoie un message : il avait rendez-vous le lendemain pour signer. Il n'y est pas allé.\n\nC'est la seule victoire de ta vie que personne n'a commentée.",
+        loseT: "La filière tourne encore",
+        loseD: "Les agences portent plainte pour diffamation et obtiennent le retrait du document. Vous avez le droit de dire que le contrat existe, pas de le montrer.\n\nIl se signe encore aujourd'hui, dans les mêmes villes, avec les mêmes promesses.\n\nTu as gardé les quarante dossiers. Tu connais les prénoms par cœur.",
+        winFx: { rep: +14, stress: +16 }, loseFx: { rep: -8, stress: +28, money: -14000000 },
+        winMental: { purpose: +16 }, loseMental: { purpose: -14, anxiety: +16 },
+        winOpinion: 6, bien: 3 },
+    { id: "wm_annonce_vue", emoji: "📺", title: "Ils l'avaient annoncé", days: 45, chance: 0.44, cost: 12000000,
+        brief: "Un de vos analystes passe trois mois à remonter des fictions : séries, films, clips, campagnes.\n\nIl trouve onze cas où un événement précis — une loi, une faillite, une fusion, une panne — apparaît dans une œuvre grand public avant de se produire. Pas des allusions : des détails exacts, des noms de dispositifs, des mécanismes.\n\nCe n'est pas de la voyance. C'est une méthode, et elle a un nom chez eux : on annonce pour que personne ne se révolte quand ça arrive.\n\nVous avez tous les onze cas. Et vous avez surtout le douzième, qui n'est pas encore arrivé.",
+        goal: "Rendre la méthode lisible",
+        winT: "Les gens ont vu le montage",
+        winD: "Vous ne criez pas au complot : vous publiez un montage de onze minutes, brut, sans musique et sans commentaire. L'extrait de fiction, puis l'archive de l'événement réel. Onze fois.\n\nQuarante millions de vues. Pas de panique, pas d'émeute : un malaise, immense et calme, dans quarante millions de salons.\n\nEt la douzième scène, laissée à la fin sans un mot d'explication. Des millions de gens savent maintenant quoi regarder venir.\n\nC'est la première fois que vous les prenez à leur propre règle.",
+        loseT: "Le montage est passé pour un jeu",
+        loseD: "La vidéo marche très bien. Trop bien : elle devient un format. Des dizaines de copies sortent, de plus en plus fausses, de plus en plus grosses.\n\nEn trois semaines, la méthode réelle est noyée sous les inventions. Plus personne ne peut faire la différence, et c'est devenu un divertissement.\n\nVous leur avez offert exactement ce dont ils avaient besoin : du bruit autour de la vérité.",
+        winFx: { rep: +20, fame: +6, stress: +18 }, loseFx: { rep: -14, stress: +30 },
+        winMental: { purpose: +15, anxiety: +10 }, loseMental: { purpose: -18, anxiety: +18 },
+        winOpinion: 11 },
+    { id: "wm_celui_qui_parle", emoji: "🕯️", title: "Celui qui était dans la pièce", days: 60, chance: 0.38, cost: 33000000,
+        brief: "Un homme de soixante-huit ans demande à vous voir. Il a travaillé trente ans pour eux : logistique, déplacements, discrétion. Il n'a jamais rien décidé et il a tout vu.\n\nIl est malade. Il veut parler, tout, en une fois, à visage découvert.\n\nSa famille le supplie de se taire. Il vous dit une seule chose : « Je ne demande pas à être protégé. Je demande à être cru. »\n\nVous avez les moyens de l'enregistrer, de le sourcer, de le blinder. Vous n'avez pas les moyens de garantir qu'on le croira.",
+        goal: "Recueillir et établir son témoignage",
+        winT: "Neuf heures d'enregistrement",
+        winD: "Neuf heures, sept séances, deux avocats, un notaire et trois journalistes de trois pays. Chaque fait recoupé, chaque date vérifiée, chaque nom confirmé par un document.\n\nIl meurt quatre mois plus tard, chez lui, entouré. Le témoignage sort la semaine suivante et tient debout : personne n'a pu en démonter une ligne.\n\nIl ne verra pas ce que ça change. À la dernière séance, il t'a pris la main et t'a dit merci. Tu es sorti de la pièce avant de pleurer.",
+        loseT: "Il s'est tu",
+        loseD: "À la quatrième séance, sa fille arrive avec un avocat. Une plainte a été déposée contre lui le matin même : abus de confiance, trente ans en arrière, sur des faits que personne n'avait jamais évoqués.\n\nIl choisit sa famille. Tu ne peux rien lui reprocher, et tu ne lui reproches rien.\n\nIl meurt quelques mois plus tard. Tu as les trois premières séances, inutilisables sans la suite. Tu les écoutes encore, parfois, le soir.",
+        winFx: { rep: +24, stress: +34 }, loseFx: { rep: -5, stress: +42 },
+        winMental: { purpose: +20, loneliness: +12 }, loseMental: { purpose: -20, loneliness: +18, anxiety: +16 },
+        winOpinion: 10, bien: 2 },
+    // ═══════════════════════════════════════════════════════════════════════════
+    // CE QUE TU CONSTRUIS — ça coûte une fortune, ça ne rapporte rien, et c'est
+    // la seule chose qu'ils ne savent pas faire.
+    // ═══════════════════════════════════════════════════════════════════════════
+    { id: "wm_maison", emoji: "🏡", title: "La maison qu'on ne t'a pas donnée", days: 120, chance: 0.62, cost: 180000000,
+        brief: "Tu n'as pas été élevé. Tu as survécu dans une forêt de l'Ain jusqu'à ce que quelqu'un veuille bien de toi.\n\nTu as les moyens de faire en sorte que ça n'arrive à personne d'autre dans ce département : un lieu d'accueil, du personnel formé et payé correctement, des familles d'accueil accompagnées, et un financement qui ne dépend pas d'une subvention annuelle.\n\nTon conseiller te dit que c'est une mauvaise opération : aucun retour, une charge à vie, et un sujet dont la presse se lasse en trois semaines.\n\nTu lui as demandé de la boucler.",
+        goal: "Ouvrir le lieu, et le financer à vie",
+        winT: "Le lieu a ouvert",
+        winD: "Vingt-huit places, douze familles accompagnées, une dotation placée dont seuls les intérêts sont consommés. Il tournera encore dans cinquante ans.\n\nTu n'as pas mis ton nom dessus. Tu as refusé la plaque, le discours et les caméras.\n\nTu y es allé une fois, un mercredi, sans prévenir. Un garçon de sept ans t'a demandé si tu travaillais ici. Tu as répondu non, que tu étais juste passé.\n\nTu as pleuré dans la voiture pendant quarante minutes, et c'était la première fois depuis très longtemps que ce n'était pas de la fatigue.",
+        loseT: "Le projet s'est enlisé",
+        loseD: "Deux ans de procédure administrative, un permis refusé deux fois, une campagne de riverains, et un élu qui découvre soudain des irrégularités dans ton dossier.\n\nTu comprends vite d'où vient le blocage. Ce n'est même pas méchant de leur part : c'est juste qu'ils n'aiment pas ce que tu deviens quand tu fais ça.\n\nL'argent est immobilisé. Les vingt-huit places n'existent pas. Tu recommenceras.",
+        winFx: { rep: +26, stress: -18, health: +6 }, loseFx: { rep: +4, stress: +30, money: -40000000 },
+        winMental: { purpose: +34, loneliness: -20, anxiety: -12 }, loseMental: { purpose: -10, anxiety: +14 },
+        winOpinion: 12, bien: 5 },
+    { id: "wm_hopital", emoji: "🏨", title: "Un hôpital qui ne demande rien", days: 150, chance: 0.55, cost: 420000000,
+        brief: "À Nassau, se faire soigner correctement suppose d'avoir une assurance, et beaucoup de gens n'en ont pas.\n\nTu peux construire et doter un hôpital gratuit : urgences, maternité, pédiatrie, et un budget de fonctionnement garanti sur vingt ans, indépendant de l'État et de toi.\n\nC'est le plus gros chèque de ta vie. Il ne te rapportera jamais un dollar.",
+        goal: "Construire et doter l'hôpital",
+        winT: "L'hôpital a ouvert",
+        winD: "Quatre cents lits, aucune caisse à l'entrée, aucune question posée. Le premier bébé y est né un dimanche matin.\n\nLa dotation est logée dans une structure que tu ne contrôles pas : même ruiné, même mort, même s'ils t'achètent, l'hôpital continue.\n\nTu as fait le calcul : ça t'a coûté moins que ce que le cercle t'a versé pour une seule campagne.\n\nC'est la pensée la plus écœurante que tu aies eue cette année.",
+        loseT: "Le chantier est à l'arrêt",
+        loseD: "Permis gelés, matériaux bloqués au port, trois entreprises qui se désengagent le même mois en invoquant les mêmes raisons rédigées de la même façon.\n\nLes murs sont debout, vides, visibles depuis la route. On t'en parle en interview comme d'un caprice de rappeur.\n\nTu passes devant deux fois par semaine.",
+        winFx: { rep: +30, stress: -14 }, loseFx: { rep: -8, stress: +34, money: -120000000 },
+        winMental: { purpose: +32, anxiety: -14 }, loseMental: { purpose: -16, anxiety: +20 },
+        winOpinion: 14, bien: 6 },
+    { id: "wm_innocent", emoji: "⚖️", title: "Dix-neuf ans pour rien", days: 95, chance: 0.47, cost: 26000000,
+        brief: "Un homme purge sa dix-neuvième année de prison pour un meurtre qu'il n'a pas commis. Le dossier tient sur un témoignage unique, rétracté depuis onze ans, et une expertise jamais contre-expertisée.\n\nIl n'intéresse personne : ni la presse, ni les associations saturées, ni les Élites, qui n'ont rien à voir avec cette affaire.\n\nC'est bien ça qui t'a décidé. Pour une fois, il ne s'agit pas d'eux.",
+        goal: "Obtenir la révision",
+        winT: "Il est sorti",
+        winD: "Vous avez payé la contre-expertise, les avocats, l'enquêteur privé, et les deux ans de procédure. L'expertise initiale s'effondre en quatre pages.\n\nIl sort un mardi matin. Il a cinquante-deux ans et il ne sait pas se servir d'un téléphone.\n\nTu n'es pas venu, et tu n'as rien communiqué : sa sortie n'était pas ta campagne. Vous vous êtes vus deux mois plus tard, dans une cuisine, et il a fait le café.\n\nIl y a quatre cents dossiers comme le sien. Tu le sais. Tu en as fait sortir un.",
+        loseT: "La révision est refusée",
+        loseD: "La cour juge les éléments nouveaux « insuffisamment déterminants ». Quatre pages, deux ans d'attente.\n\nIl t'écrit pour te remercier. C'est la lettre la plus difficile que tu aies jamais lue.\n\nTu paieras les avocats pour le prochain recours. Et pour celui d'après.",
+        winFx: { rep: +18, stress: -8 }, loseFx: { rep: +2, stress: +26 },
+        winMental: { purpose: +26, anxiety: -8 }, loseMental: { purpose: -8, anxiety: +14 },
+        winOpinion: 7, bien: 4 },
+    { id: "wm_presse", emoji: "📰", title: "Des journaux qu'on ne peut pas acheter", days: 110, chance: 0.5, cost: 260000000,
+        brief: "Le problème n'est pas que les médias mentent : c'est qu'ils appartiennent à six personnes, dont quatre siègent au cercle.\n\nTu peux doter huit rédactions indépendantes — quatre en Europe, quatre ailleurs — par un fonds irrévocable : l'argent est versé une fois, tu n'as aucun droit de regard, aucun siège, aucun moyen de reprendre.\n\nTon avocat insiste : c'est irréversible, et tu ne pourras même pas les empêcher de t'attaquer.\n\nC'est exactement le but.",
+        goal: "Doter le fonds, sans droit de regard",
+        winT: "Huit rédactions qui ne te doivent rien",
+        winD: "Le fonds est signé, irrévocable, administré par un conseil où tu n'as pas de voix. Huit rédactions, cent quatre-vingts journalistes, dix ans de salaires garantis.\n\nQuatre mois plus tard, l'une d'elles publie une enquête à charge sur tes propres entreprises. Solide, documentée, exacte sur trois points sur cinq.\n\nTon service de presse veut réagir. Tu as dit non, et tu as souri tout seul dans ton bureau.\n\nTu viens de créer quelque chose qu'ils ne savent pas acheter : des gens payés pour ne rien devoir à personne.",
+        loseT: "Le fonds n'a pas tenu",
+        loseD: "Deux des huit rédactions sont rachetées avant la fin du montage. Une troisième accepte un partenariat commercial qui vide la charte de son sens.\n\nIl en reste cinq, sous-dotées, qui tiendront quatre ans au mieux.\n\nTu as appris quelque chose : l'argent ne suffit pas à rendre des gens libres. Il faut aussi qu'ils le veuillent.",
+        winFx: { rep: +22, stress: +10 }, loseFx: { rep: -6, stress: +24, money: -60000000 },
+        winMental: { purpose: +24 }, loseMental: { purpose: -12, anxiety: +12 },
+        winOpinion: 13, bien: 5 },
+    { id: "wm_charte", emoji: "🎙️", title: "La charte UNUHU", days: 80, chance: 0.58, cost: 90000000,
+        brief: "Tu as signé des artistes avec les contrats de l'industrie : cession longue, recoupement des avances, propriété des masters.\n\nTu peux tout réécrire : masters rendus aux artistes au bout de sept ans, avances non recoupables sur le fonds de catalogue, sortie libre sans pénalité, et un conseil juridique payé par le label pour défendre l'artiste contre le label.\n\nTa directrice financière a chiffré ce que ça coûte. Elle t'a demandé si tu avais bien compris la question.",
+        goal: "Adopter la charte, et la rendre opposable",
+        winT: "La charte est opposable",
+        winD: "Déposée, publiée, intégrée à tous les contrats existants par avenant automatique. Les artistes déjà signés en bénéficient rétroactivement.\n\nTrois majors la dénoncent publiquement comme « irresponsable ». Deux labels indépendants la recopient mot pour mot.\n\nUn de tes artistes t'appelle un soir, un peu gêné, pour te dire qu'il part ailleurs — et que c'est grâce à ta charte qu'il peut le faire. Tu l'as remercié.\n\nC'est de très loin la décision la plus coûteuse et la plus juste que tu aies prise depuis que tu diriges ce label.",
+        loseT: "La charte est restée un communiqué",
+        loseD: "Les distributeurs refusent d'appliquer les avenants, invoquant des contrats-cadres antérieurs. Tes propres juristes y trouvent neuf failles.\n\nElle existe sur papier, on la cite en interview, et elle ne change la vie de personne.\n\nTu sais pourquoi ça a échoué : tu as voulu le faire proprement au lieu de le faire brutalement.",
+        winFx: { rep: +20, money: -30000000, stress: +8 }, loseFx: { rep: -4, stress: +20 },
+        winMental: { purpose: +22 }, loseMental: { purpose: -10 },
+        winOpinion: 8, bien: 4 },
+    { id: "wm_quartier", emoji: "🧱", title: "Le quartier de Falltos", days: 130, chance: 0.57, cost: 310000000,
+        brief: "Le quartier de Nice où ton cousin t'a recueilli n'a pas bougé en vingt ans, sauf en pire : écoles saturées, deux terrains condamnés, un centre social fermé faute de douze mille euros par an.\n\nTu peux financer la réhabilitation complète : logements rénovés sans expulsion, deux équipements sportifs, un centre de santé, et les salaires du centre social garantis pour trente ans.\n\nUne condition s'impose d'elle-même : rien à ton nom, et pas une caméra.",
+        goal: "Reconstruire sans rien signer",
+        winT: "Le quartier a changé",
+        winD: "Quatre ans de travaux, aucune expulsion, aucune plaque, aucun reportage autorisé.\n\nLe centre social a réouvert avec les mêmes personnes, payées correctement cette fois. Les terrains sont éclairés jusqu'à vingt-deux heures.\n\nPersonne ne sait que c'est toi. Deux ou trois anciens ont des doutes et ne posent pas la question.\n\nFalltos y est passé. Il t'a juste envoyé une photo du terrain, le soir, avec des gamins dessus. Aucun texte.",
+        loseT: "Les travaux ont tourné court",
+        loseD: "Un montage immobilier parallèle se greffe sur le projet : les logements rénovés sortent du parc social, les loyers doublent, et des familles partent.\n\nTu coupes le financement en urgence, trop tard pour onze d'entre elles.\n\nTu voulais réparer un endroit. Tu as servi d'alibi à ceux qui le vidaient.",
+        winFx: { rep: +24, stress: -16 }, loseFx: { rep: -12, stress: +32, money: -90000000 },
+        winMental: { purpose: +30, loneliness: -16 }, loseMental: { purpose: -18, anxiety: +18 },
+        winOpinion: 11, bien: 5 },
+    { id: "wm_eau", emoji: "💧", title: "Deux cent mille robinets", days: 140, chance: 0.53, cost: 350000000,
+        brief: "Un dossier qui n'a rien de spectaculaire : l'accès à l'eau potable dans une région où deux cent mille personnes n'en ont pas.\n\nForages, réseau, stations de traitement, et surtout la maintenance — c'est toujours la maintenance qui tue ces projets, trois ans après l'inauguration.\n\nTu peux financer les deux : l'installation et les trente ans qui suivent.\n\nPersonne n'en parlera. Il n'y a pas d'histoire, pas de méchant, pas de scandale. Juste de l'eau.",
+        goal: "Installer le réseau, et sa maintenance",
+        winT: "L'eau coule",
+        winD: "Quatre ans, deux cent onze mille personnes raccordées, et une société de maintenance locale dotée pour trente ans, formée sur place, employant cent quarante personnes.\n\nIl n'y a eu aucune couverture médiatique. Tu as refusé l'inauguration.\n\nUn ingénieur t'a envoyé un relevé, à la fin : la mortalité infantile de la zone a chuté de moitié en trois ans. Juste un tableau, en pièce jointe, sans commentaire.\n\nTu l'as imprimé. Il est dans un tiroir de ton bureau, et tu le ressors les mauvais jours.",
+        loseT: "Le réseau est à sec",
+        loseD: "Les forages sont faits, le réseau est posé, et la convention de maintenance est captée par un intermédiaire qui ne maintient rien.\n\nQuatorze mois plus tard, un tiers des points d'eau ne fonctionne plus. Les gens sont retournés au puits, avec cette fois des tuyaux inutiles dans leur rue.\n\nTu as appris la leçon la plus chère de ta vie : dans ce métier-là, ce n'est pas l'argent qui manque, c'est le contrôle.",
+        winFx: { rep: +28, stress: -12 }, loseFx: { rep: -10, stress: +28, money: -80000000 },
+        winMental: { purpose: +30, anxiety: -10 }, loseMental: { purpose: -16, anxiety: +16 },
+        winOpinion: 10, bien: 6 },
+    { id: "wm_ecoles", emoji: "🏫", title: "Ce qu'on n'apprend pas à l'école", days: 100, chance: 0.56, cost: 140000000,
+        brief: "Vous avez des milliers de pages. Personne ne les lira jamais.\n\nAlors vous retournez le problème : au lieu de dénoncer, apprendre à lire. Un programme gratuit — comment vérifier une source, reconnaître une campagne coordonnée, lire un contrat, comprendre à qui appartient un média.\n\nPas un mot sur les Élites. Pas un mot sur toi. Rien que des outils.\n\nSi ça marche, dans quinze ans leur méthode ne marchera plus. C'est la seule attaque contre laquelle ils n'ont aucune défense.",
+        goal: "Faire adopter le programme",
+        winT: "Le programme est entré en classe",
+        winD: "Conçu avec des enseignants, testé pendant un an, adopté par deux académies et quatre réseaux d'établissements, traduit en six langues et versé dans le domaine public.\n\nTon nom n'apparaît nulle part, à ta demande. Les gamins qui suivent ce module n'auront jamais entendu parler de toi.\n\nDans quinze ans, certains d'entre eux occuperont des postes où on leur demandera de cocher une case. Ils sauront la lire.\n\nC'est le coup le plus dur que vous leur ayez porté, et il n'y a eu aucun bruit.",
+        loseT: "Le programme a été écarté",
+        loseD: "Les commissions le trouvent « militant ». Le mot revient dans les quatre avis défavorables, écrit de la même façon.\n\nIl reste en ligne, libre, téléchargé par une poignée de professeurs qui l'utilisent en cachette.\n\nTu as appris qu'on peut bloquer une idée sans jamais la combattre : il suffit de la qualifier.",
+        winFx: { rep: +18, stress: -6 }, loseFx: { rep: -4, stress: +22 },
+        winMental: { purpose: +28 }, loseMental: { purpose: -14, anxiety: +12 },
+        winOpinion: 9, bien: 5 },
+    { id: "wm_fonds", emoji: "🌱", title: "Ce qui te survivra", days: 160, chance: 0.49, cost: 600000000,
+        brief: "Tu as compris une chose en montant ces dossiers : tant que tout dépend de toi, tout s'arrête avec toi. Un accident, un procès, une offre qu'on ne refuse pas, et il ne reste rien.\n\nTu peux loger l'essentiel de ta fortune dans une fondation irrévocable, dont les statuts interdisent toute reprise de contrôle — par toi, par tes héritiers, par un acquéreur. Un conseil indépendant, un objet écrit noir sur blanc, et des versements annuels automatiques.\n\nTu ne pourras plus jamais récupérer cet argent. Même ruiné. Même à genoux.",
+        goal: "Rendre l'œuvre irréversible",
+        winT: "La fondation existe",
+        winD: "Statuts déposés dans trois juridictions, conseil indépendant, objet verrouillé, versements automatiques. Tu n'as ni voix, ni veto, ni droit de retrait.\n\nIls ont essayé de l'acheter deux fois. La deuxième offre dépassait l'entendement. Il n'y avait personne à qui la présenter — et c'est précisément la raison d'être du montage.\n\nTu as dormi huit heures d'affilée le soir de la signature. Ça ne t'était pas arrivé depuis des années.",
+        loseT: "La fondation n'a pas pu naître",
+        loseD: "Deux des trois juridictions refusent l'enregistrement sur des motifs techniques qui n'ont jamais bloqué personne. La troisième accepte, avec une clause de reprise que ton avocat n'arrive pas à faire retirer.\n\nTu signes quand même. L'œuvre existe, mais elle reste reprenable — et quelqu'un, quelque part, a noté par où.\n\nTu recommenceras le montage. Autrement, ailleurs.",
+        winFx: { rep: +26, money: -100000000, stress: -20 }, loseFx: { rep: +4, stress: +30 },
+        winMental: { purpose: +36, anxiety: -18, loneliness: -10 }, loseMental: { purpose: -12, anxiety: +16 },
+        winOpinion: 12, bien: 7 },
+    { id: "wm_simple", emoji: "📡", title: "Le dire simplement", days: 65, chance: 0.45, cost: 28000000,
+        brief: "Vous avez tout : les pages, les noms, les montages, les témoignages. Et personne ne comprend rien, parce que c'est illisible.\n\nVous pouvez tout refaire autrement : quarante minutes, un langage que tout le monde comprend, des sources cliquables, zéro musique anxiogène, zéro insinuation. Ce qui est prouvé est présenté comme prouvé ; ce qui ne l'est pas est écarté, même quand vous y croyez.\n\nL'équipe veut garder le reste — les trois quarts du dossier, les parties troublantes mais fragiles.\n\nTu décides de tout jeter. Il ne restera que ce qui tient.",
+        goal: "Publier la version solide",
+        winT: "Quarante minutes, et personne n'a pu répondre",
+        winD: "Quarante minutes, cent douze sources, aucune affirmation non étayée. Vous avez retiré les deux tiers du dossier, dont les passages dont vous étiez les plus fiers.\n\nIls ont essayé l'arme habituelle : traiter ça de théorie du complot. Ça n'a pas pris, pour une raison simple — il n'y avait rien d'invérifiable dedans.\n\nTrois commissions parlementaires s'en saisissent. Deux universités l'intègrent à leurs cours.\n\nC'est moins spectaculaire que ce que vous rêviez de publier. C'est la première chose qu'ils n'ont pas pu démonter.",
+        loseT: "Vous avez publié trop large",
+        loseD: "L'équipe a eu le dernier mot : vous avez tout gardé. Deux cent quatre-vingts pages, dont une quarantaine de pages fragiles.\n\nIls n'ont attaqué que ces quarante-là. Ça a suffi : le reste est tombé avec.\n\nVous avez compris trop tard que la force d'un dossier, c'est ce qu'on accepte d'en retirer.",
+        winFx: { rep: +24, fame: +5, stress: +12 }, loseFx: { rep: -16, stress: +34 },
+        winMental: { purpose: +22 }, loseMental: { purpose: -20, anxiety: +22 },
+        winOpinion: 15, bien: 3 },
 ];
 // ─── LES CIBLES ─────────────────────────────────────────────────────────────
 // Chaque membre a un seuil d'exposition. Les Architectes n'en ont pas : ils ne tombent pas.
@@ -12192,6 +12370,22 @@ const ATONEMENT_BRIEFS = [
     "Ce qu'on t'a demandé de faire n'a pas de nom dans les conversations normales.\n\nTu l'as fait. Ton ardoise est effacée. Une partie de toi ne l'est pas.",
     "On t'a prévenu que tu ne dormirais plus pareil après. On ne t'a pas menti.\n\nMais le cercle considère désormais l'affaire comme close.",
 ];
+// ─── CE QUE LE CERCLE TE COÛTE ─────────────────────────────────────────────
+// Monter, rendre service, racheter ses faux pas : chacune de ces choses se paie
+// ailleurs que sur le compte en banque. La dette ne se rembourse jamais, elle
+// ne fait que grossir — et c'est elle qui nourrit les dépendances, la solitude
+// et la perte de sens. Le cercle donne la célébrité ; il prend le reste.
+function detteDAme(gs) {
+    if (!gs || !gs.elite)
+        return 0;
+    const rang = (typeof eliteRank === "function" ? (eliteRank(gs).lvl || 0) : 0);
+    const services = gs.eliteService || 0;
+    const rachats = (gs.atoneLog || []).length;
+    const sacrifices = (gs.sacrificesDone || []).length;
+    const livre = gs.enfantLivre ? 1 : 0;
+    const d = rang * 9 + Math.min(34, services * 2.1) + rachats * 13 + sacrifices * 11 + livre * 16;
+    return Math.max(0, Math.min(100, Math.round(d)));
+}
 const ATONEMENT_COST = { money: -120000000, rep: -12, stress: 48, health: -14 };
 // On ne se rachète pas indéfiniment : deux fois par année civile au maximum,
 // et chaque rachat déjà consenti rend le suivant plus lourd.
@@ -12533,6 +12727,81 @@ function opTrackNamed(gs, op, titre) {
     const cible = normTxt(titre);
     return opTracks(gs, op).find(t => normTxt(t.title) === cible) || null;
 }
+// ── « RIGHT LAND » : la série que le cercle fait écrire ──────────────────────
+// Annoncer à l'avance, sous forme de fiction, ce qu'on prépare vraiment : le
+// public applaudit, personne ne croit un scénario, et plus rien ne peut
+// surprendre quand ça arrive. La série doit exister exactement comme
+// commandée — titre, diffuseur, rôles — sinon le dispositif ne sert à rien.
+const RL_TITRE = "Right Land";
+const RL_PLATEFORME = "Apple TV+";
+const RL_DISTRIBUTION = [
+    { acteur: "act_fr_pierre_niney", perso: "Eden" },
+    { acteur: "act_fr_jean_dujardin", perso: "Monsieur Berg" },
+    { acteur: "act_fr_ad_le_exarchopoulos", perso: "Clara" },
+    { acteur: "act_fr_vincent_cassel", perso: "Serge" },
+];
+function rlSeries(gs) {
+    const cible = normTxt(RL_TITRE);
+    return (gs.seriesography || []).find(x => normTxt(x.title) === cible) || null;
+}
+// Un rôle est tenu si l'acteur demandé y est, sous le nom de personnage demandé.
+function rlRoleTenu(serie, d) {
+    if (!serie)
+        return false;
+    return (serie.seasons || []).some(ss => (ss.cast || []).some(c => c.id === d.acteur && normTxt(c.characterName) === normTxt(d.perso)));
+}
+function rlDistributionComplete(gs) {
+    const serie = rlSeries(gs);
+    if (!serie)
+        return false;
+    return RL_DISTRIBUTION.every(d => rlRoleTenu(serie, d));
+}
+function rlConforme(gs) {
+    const serie = rlSeries(gs);
+    return !!serie && normTxt(serie.platform) === normTxt(RL_PLATEFORME) && rlDistributionComplete(gs);
+}
+// Le cercle est derrière la série : elle ne peut pas faire un flop.
+function rlSoutenue(gs, titre) {
+    if (normTxt(titre) !== normTxt(RL_TITRE))
+        return false;
+    const enCours = gs.circleOp && gs.circleOp.id === "co_rightland";
+    const faite = (gs.circleOpsDone || []).includes("co_rightland");
+    return !!(enCours || faite);
+}
+// ── « LE DERNIER AVERTISSEMENT » : l'album que le cercle fait écrire ────────
+// Même règle que pour la série, mais en musique : trois titres qui nomment ce
+// qui vient, chantés pendant des années par des gens qui ne les entendront
+// jamais. Un album qu'on fredonne ne peut plus faire peur.
+const AL_TITRE = "Le Dernier Avertissement";
+const AL_MORCEAUX = ["Le Dernier Avertissement", "Plus De Liquide", "Tout Le Monde Dort"];
+function alAlbum(gs) {
+    const cible = normTxt(AL_TITRE);
+    return (gs.discography || []).find(d => normTxt(d.title) === cible) || null;
+}
+function alTitresPresents(album) {
+    if (!album)
+        return 0;
+    const titres = (album.trackBreakdown || album.tracks || []).map(t => normTxt(t.title));
+    return AL_MORCEAUX.filter(m => titres.includes(normTxt(m))).length;
+}
+// L'album doit être un album — pas un single, pas un EP — et porter les trois
+// titres imposés, sinon l'annonce n'est pas faite.
+function alConforme(gs) {
+    const a = alAlbum(gs);
+    if (!a)
+        return false;
+    if (a.type && normTxt(a.type) !== "album")
+        return false;
+    return alTitresPresents(a) === AL_MORCEAUX.length;
+}
+// Le cercle est derrière le disque : il ne peut pas passer inaperçu.
+function alSoutenu(gs, titre) {
+    if (normTxt(titre) !== normTxt(AL_TITRE))
+        return false;
+    const enCours = gs.circleOp && gs.circleOp.id === "co_album";
+    const faite = (gs.circleOpsDone || []).includes("co_album");
+    return !!(enCours || faite);
+}
 const CIRCLE_OPS = [
     { id: "co_scandale", emoji: "🔥", title: "Le scandale de l'année", months: 4, minRank: 0, service: 3,
         tag: "Occuper toute la place médiatique pendant qu'un texte passe ailleurs.",
@@ -12573,6 +12842,90 @@ const CIRCLE_OPS = [
         win: "La loi est passée un mardi matin, en quinze minutes, dans un hémicycle à moitié vide. Aucun journal ne l'a mise en une : ils étaient tous sur toi.\n\nPersonne ne fera jamais le lien. C'était précisément l'objectif.",
         lose: "Le calendrier a glissé, le texte est reparti en commission, et quelqu'un a eu le temps de le lire. Ce n'était pas censé arriver.",
         reward: { money: 120000000, fame: +6 } },
+    { id: "co_rightland", emoji: "📺", title: "Right Land", months: 6, minRank: 0, service: 4, ordre: 2,
+        tag: "Annoncer ce qui vient sous forme de fiction : personne ne croit un scénario.",
+        brief: "On commence par t'expliquer une règle, et c'est la première fois qu'on t'explique quelque chose.\n\n« Rien de ce que nous faisons n'est caché. Tout est annoncé. Une fiction, une affiche, une série — et le jour où ça arrive, les gens ont déjà vu la scène. Ils ne se révoltent pas contre ce qu'ils reconnaissent. C'est pour ça qu'on annonce : ce qui est annoncé ne nous revient pas dessus. »\n\nTu produiras une série. Elle s'appellera **Right Land**. Humour noir, une Europe de fiction rongée par la corruption, les manipulations et les luttes de pouvoir — et, glissé dedans, le calendrier de ce qui est réellement prévu.\n\nElle sortira sur **Apple TV+**, et sur rien d'autre. Le synopsis et la distribution sont déjà écrits. Tu n'as rien à inventer.",
+        steps: [
+            { id: "rl1", emoji: "📄", label: "Lire le synopsis qu'on t'a remis",
+                how: "Une chemise cartonnée, sans logo, posée sur la table avant même que tu t'assoies.",
+                act: { btn: "📄 Ouvrir la chemise", effects: { stress: +10 },
+                    out: "**RIGHT LAND — synopsis**\n\nDans une Europe fictive, un pays est rongé par la corruption, les scandales politiques et les inégalités. Pour rétablir l'ordre, le gouvernement lance RIGHT LAND, un programme censé créer une société plus sûre, moderne et juste.\n\nMais Eden, un jeune employé d'une entreprise partenaire, découvre des documents secrets annonçant des événements qui ne se sont pas encore produits.\n\nAvec ses proches, il enquête et découvre un système impliquant politiciens, milliardaires, médias, célébrités et organisations puissantes.\n\nEntre complots, violence, argent etc… Eden comprend peu à peu que RIGHT LAND ne cherche peut-être pas seulement à contrôler la société…\n\nIl pourrait être en train de préparer son avenir.\n\n— — —\n\n**Distribution imposée**\n**Eden** — Pierre Niney\n**Monsieur Berg** — Jean Dujardin\n**Clara** — Adèle Exarchopoulos\n**Serge** — Vincent Cassel\n\nTu refermes la chemise. Tu as reconnu deux événements du deuxième épisode. Ils n'ont pas encore eu lieu." },
+            },
+            { id: "rl2", emoji: "🎬", label: "Produire « Right Land » sur Apple TV+, distribution exacte",
+                how: "Studio → PRODUIRE UNE SÉRIE. Titre « Right Land », diffuseur Apple TV+ uniquement, et les quatre acteurs demandés avec le nom de leur personnage : Pierre Niney en Eden, Jean Dujardin en Monsieur Berg, Adèle Exarchopoulos en Clara, Vincent Cassel en Serge.",
+                auto: (gs, op) => rlConforme(gs) },
+            { id: "rl3", emoji: "📺", label: "Passer chez M6 et réciter la réponse",
+                how: "Le cercle a préparé ta réponse. C'est l'annonce : elle doit être dite en clair, à une heure de grande écoute.\n\nVa dans Médias → 🎤 Interview, choisis **M6 — 19.45**, et donne cette réponse. Tu peux l'habiller de tes mots, mais les deux phrases clés doivent y être.",
+                // Validée par une vraie interview sur M6 : voir la détection dans submitFreeText.
+                auto: (gs, op) => !!gs.rlM6 && gs.rlM6 >= (op.startedAt || 0),
+                act: { infoOnly: true, btn: "J'ai noté la réponse",
+                    question: "« Right Land décrit une Europe corrompue, manipulée, gouvernée par quelques-uns. Où avez-vous trouvé tout ça ? »",
+                    script: "On n'a rien inventé, on a juste pris de l'avance. Tout y est annoncé avant d'arriver.",
+                    out: "Tu apprends les deux phrases par cœur. Elles sont écrites pour être entendues sans être comprises.\n\nIl ne reste plus qu'à les dire sur M6 — et à ce moment-là, l'étape se validera d'elle-même." } },
+            { id: "rl4", emoji: "📈", label: "Installer la série : trois saisons",
+                how: "Enchaîne les saisons de « Right Land » tant que la campagne court. Le public doit prendre l'habitude.",
+                auto: (gs, op) => { const x = rlSeries(gs); return !!x && (x.seasons || []).length >= 3 && rlConforme(gs); } },
+        ],
+        // Diffusée ailleurs, l'annonce n'a aucune valeur : le dispositif tombe.
+        penalty: (gs, op) => {
+            const x = rlSeries(gs);
+            if (x && normTxt(x.platform) !== normTxt(RL_PLATEFORME))
+                return `La série est partie chez ${x.platform}. On avait dit Apple TV+, et ce n'était pas une préférence de goût : c'était le seul diffuseur avec lequel l'accord était déjà signé. Tout le dispositif est à refaire, et il ne se refera pas.`;
+            return null;
+        },
+        win: "Trois saisons, un carton européen. On en parle dans les lycées, dans les bureaux, dans les dîners ; des comptes entiers décortiquent chaque épisode image par image, et les théories des spectateurs sont parfois plus justes qu'ils ne le croient.\n\nPersonne n'a peur. C'est une série. On la regarde en riant, on applaudit l'écriture, on attend la suite.\n\nIls ont vu leur avenir, ils l'ont noté, ils l'ont recommandé à leurs amis. Le jour où ça arrivera, ils diront « on l'avait vu venir » — et ils ne se révolteront pas, parce qu'on ne se révolte pas contre ce qu'on a déjà applaudi.",
+        lose: "La série n'est pas devenue ce qu'elle devait être. L'annonce n'a pas été faite, et ce qui n'est pas annoncé se paie — pas par eux, par toi. Personne ne te le dira jamais aussi clairement.",
+        reward: { money: 260000000, fame: +9, rep: +6 } },
+    { id: "co_album", emoji: "💿", title: "Le disque qu'on t'a écrit", months: 5, minRank: 1, service: 4, ordre: 3,
+        tag: "Trois titres qui nomment ce qui vient, chantés par des gens qui ne les entendent pas.",
+        brief: "« Tu as compris le principe avec la série. On passe à ce que tu sais faire. »\n\nUn album. Le titre est choisi, trois morceaux sont imposés, et leurs noms ne sont pas des images : ils désignent des choses précises, dans l'ordre où elles arriveront.\n\nTu écris ce que tu veux dedans. On ne touche pas à tes textes — on veut juste que ces trois titres existent, qu'ils passent en radio, et que des millions de gens les connaissent par cœur avant.\n\nUn refrain, ça ne s'oublie pas. Et ça ne fait peur à personne.",
+        steps: [
+            { id: "al1", emoji: "✉️", label: "Ouvrir l'enveloppe",
+                how: "Une enveloppe kraft, trois feuillets, aucune signature.",
+                act: { effects: { stress: +9 }, btn: "✉️ Lire les trois feuillets",
+                    out: "**L'ALBUM**\n\nTitre imposé : **Le Dernier Avertissement**. Format album, pas un EP, pas un single.\n\n**Les trois morceaux qui doivent y figurer**\n**1.** Le Dernier Avertissement\n**2.** Plus De Liquide\n**3.** Tout Le Monde Dort\n\nLe reste du disque t'appartient : le nombre de morceaux, les textes, les invités, la direction. On ne corrigera pas une ligne.\n\n— — —\n\nTu relis les trois titres. Pris séparément, ce sont des titres de rap. Mis dans cet ordre, c'est un calendrier.\n\nTu refermes l'enveloppe en te disant que personne ne fera le lien. C'est exactement ce qu'ils t'ont dit, la dernière fois." } },
+            { id: "al2", emoji: "💿", label: "Sortir l'album, titre et tracklist exacts",
+                how: "Studio → créer un projet de type Album intitulé « Le Dernier Avertissement », contenant les morceaux « Le Dernier Avertissement », « Plus De Liquide » et « Tout Le Monde Dort ». Le reste du disque est libre.",
+                auto: (gs, op) => alConforme(gs) },
+            { id: "al3", emoji: "🎧", label: "L'écoute privée, avant la sortie",
+                how: "Douze personnes, une pièce, aucun téléphone. Ils écoutent les trois morceaux et rien d'autre.",
+                act: { question: "Personne ne parle pendant l'écoute. À la fin, un seul commentaire : « Le deuxième est très clair. Trop ? »",
+                    options: [
+                        { id: "garder", label: "Ne rien changer : c'est ce qui était demandé", ok: true,
+                            effects: { rep: +4, stress: +14 },
+                            out: "Tu réponds que c'est le titre qu'on t'a donné, et que tu ne l'as pas choisi. Un silence, puis quelqu'un hoche la tête.\n\n« Parfait. C'est trop clair pour être cru. »\n\nIls sortent un par un, sans te saluer. L'écoute a duré onze minutes." },
+                        { id: "adoucir", label: "Proposer de renommer le deuxième", ok: false, partial: true,
+                            effects: { stress: +22 },
+                            out: "Tu proposes un autre titre, plus large, plus poétique. On te laisse finir ta phrase, et on ne te répond pas.\n\n« Ce n'était pas une suggestion. »\n\nL'étape reste à refaire, et cette fois tu sais déjà ce qu'on attend." },
+                        { id: "refuser", label: "Refuser de leur faire écouter", ok: false,
+                            effects: { rep: +9, stress: +34 },
+                            out: "Tu annules l'écoute la veille, par message. Tu n'as pas eu de réponse, et c'est bien pire qu'une colère.\n\nLe disque sortira quand même. Mais quelque chose, dans la façon dont on te parlera ensuite, aura changé." }
+                    ] } },
+            { id: "al4", emoji: "🎤", label: "Le défendre sur scène en France",
+                how: "Monte une tournée passant par au moins une ville française, après la sortie de l'album.",
+                auto: (gs, op) => {
+                    const a = alAlbum(gs);
+                    if (!a)
+                        return false;
+                    const apres = t => (t || 0) >= (a.releaseDate || 0);
+                    return (gs.tourHistory || []).some(t => apres(t.date) && (t.regions || []).some(r => /eu|europe|fr/i.test(String(r))))
+                        || (gs.detailedTour && apres(gs.detailedTour.startDate) && (gs.detailedTour.cities || []).some(c => c.zone === "FR"))
+                        || (gs.tourHistory || []).some(t => apres(t.date) && /fr|europe/i.test(String(t.region || "")));
+                } },
+        ],
+        // Un single ou un EP ne porte pas une annonce : il faut un album, entier.
+        penalty: (gs, op) => {
+            const a = alAlbum(gs);
+            if (a && a.type && normTxt(a.type) !== "album")
+                return `« Le Dernier Avertissement » est sorti en ${a.type}. On avait dit un album : un disque entier, qu'on écoute en boucle pendant des années. Un EP s'oublie en trois semaines, et une annonce oubliée ne vaut rien.`;
+            if (a && alTitresPresents(a) < AL_MORCEAUX.length)
+                return `Le disque est sorti sans les trois titres. C'étaient les trois seules choses imposées, et ce sont les trois seules qui comptaient : le reste n'était là que pour les porter.`;
+            return null;
+        },
+        win: "Disque de diamant, trois singles en playlist partout, et des refrains que des millions de gens connaissent sans y avoir jamais réfléchi.\n\n« Plus De Liquide » devient une blague de cour de récré. « Tout Le Monde Dort » finit en légende de vidéos de vacances. On t'en remercie en interview comme d'un trait d'esprit.\n\nTu as mis trois phrases dans la tête de toute une génération. Le jour où elles se réaliseront, personne n'entendra rien : ils chanteront.",
+        lose: "L'album n'est pas devenu ce qu'il devait être. Les trois titres n'ont pas pris, ou n'ont jamais existé.\n\nOn ne te reprochera rien. On confiera simplement l'annonce à quelqu'un d'autre, et tu l'entendras un jour à la radio, chantée par une voix que tu connais.",
+        reward: { money: 230000000, fame: +10, rep: +5 },
+        after: { mental: { purpose: -18, anxiety: +14 } } },
     { id: "co_tournee", emoji: "🌍", title: "La tournée mondiale", months: 4, minRank: 1, service: 4,
         tag: "Mesurer, salle après salle, ce qu'un public accepte d'avaler.",
         brief: "Quatre-vingts dates. Quatre versions du show, distribuées par zone : paroles modifiées, symboles ajoutés, mise en scène retravaillée, messages diffusés sur les écrans entre deux morceaux.\n\nOn ne te demande pas d'y croire. On te demande de les jouer, et de faire remonter ce que tu observes — où ça passe, où ça bloque, où le public reprend en chœur sans avoir compris ce qu'il chante.\n\nCe que tu appelles une tournée, eux l'appellent un protocole.",
@@ -13303,6 +13656,38 @@ function kaneAvailable(gs) {
     return retirementYear(k) > new Date(gs.currentDate).getFullYear();
 }
 // Une étape est-elle remplie ? (auto = vérifiée sur l'état, act = validée par toi)
+// Quelle campagne le cercle te propose, à l'instant où il peut le faire.
+// Isolée de l'interface pour être vérifiable telle quelle.
+function campagneProposee(gs) {
+    const rank = eliteRank(gs).lvl;
+    const faits = new Set([...(gs.circleOpsDone || []), ...(gs.circleOpsFailed || [])]);
+    const pool = CIRCLE_OPS.filter(o => !faits.has(o.id) && rank >= o.minRank && (!o.avail || o.avail(gs)));
+    // Le dossier Kane passe avant tout le reste : sa carrière se joue en quelques
+    // semaines, on ne le garde pas sous le coude pendant des années.
+    const menees = (gs.circleOpsDone || []).length + (gs.circleOpsFailed || []).length;
+    const urgent = menees < 2 ? pool.filter(o => o.first) : [];
+    // Certaines campagnes ont leur place dans l'ordre : « Right Land » doit
+    // arriver en deuxième ou troisième, quand tu viens d'entrer et qu'on commence
+    // tout juste à t'expliquer comment ils fonctionnent.
+    // « Right Land » en deuxième ou troisième, puis le disque juste après : les
+    // deux campagnes d'annonce se suivent, la fiction d'abord, la musique ensuite.
+    const programmees = (menees === 1 || menees === 2) ? pool.filter(o => o.ordre === 2)
+        : (menees === 3 || menees === 4) ? pool.filter(o => o.ordre === 3) : [];
+    if (urgent.length)
+        return urgent[Math.floor(Math.random() * urgent.length)];
+    if (programmees.length)
+        return programmees[0];
+    if (pool.length && Math.random() < 0.6) {
+        // On privilégie ce qui correspond à ton rang : plus tu montes, plus ce qu'on
+        // te confie est sale. Les campagnes d'entrée de gamme finissent par ne plus
+        // t'être proposées du tout.
+        const plafond = Math.max(...pool.map(o => o.minRank));
+        const sombres = pool.filter(o => o.minRank >= plafond - 1);
+        const choix = (sombres.length && Math.random() < 0.75) ? sombres : pool;
+        return choix[Math.floor(Math.random() * choix.length)];
+    }
+    return null;
+}
 function opStepDone(gs, op, st) {
     if ((op.done || []).includes(st.id))
         return true;
@@ -13762,17 +14147,21 @@ const NOM_FILS_REAPPARU = "Isaac Myrando";
 const NUMERO_FILS = 6;
 const NOMS_REAPPARUS = [NOM_FILS_REAPPARU];
 // Ce que devient l'enfant qu'on a livré, et sous quel nom on le retrouve.
-// Avant ses seize ans, il n'existe nulle part : ni dans les contacts, ni ailleurs.
-// Le jour où tu apprends ce qu'il est devenu, il entre dans ta vie comme un
-// personnage du jeu — et il n'en sortira plus.
+// Dès la signature, il reste dans tes contacts : c'est ton enfant, et le cercle
+// ne t'a pas accordé l'oubli. Mais tant que tu n'as pas appris ce qu'ils en ont
+// fait, tu n'as qu'un prénom et une date — ni nom, ni visage, ni nouvelle.
 function enfantLivreVisible(gs) {
     const e = gs && gs.enfantLivre;
     if (!e)
         return null;
     const ans = (gs.currentDate - (e.born || 0)) / (365.25 * 86400000);
     const fille = e.sex === "fille";
-    if (ans < 16 && !gs.enfantRevu)
-        return null;
+    // Avant la révélation : il est là, sans réponse.
+    if (ans < 16 && !gs.enfantRevu) {
+        return { nom: e.name, statut: "emmené par le cercle · aucune nouvelle",
+            score: null, fille, ans: Math.max(0, Math.floor(ans)), prenom: e.name,
+            emoji: "🕯️", avantRevelation: true };
+    }
     const nom = fille ? `${e.name} ${MAISON_LIGNEE.nom}` : (e.nomPublic || e.name);
     // Ce qu'elle fait de sa vie, et ce qu'elle pense de toi
     let statut, score;
@@ -13789,7 +14178,7 @@ function enfantLivreVisible(gs) {
         score = 0; // il ne sait pas qui tu es
     }
     return { nom, statut, score, fille, ans: Math.floor(ans),
-        prenom: e.name, emoji: fille ? "👗" : "⚽" };
+        prenom: e.name, emoji: fille ? "👗" : "⚽", avantRevelation: false };
 }
 const LIGNEES_FEMININES = new Set(["kendall_jenner", "kylie_jenner", "kim_k"]);
 function makeNpcKid(parent, birthTs, usedNames) {
@@ -15288,16 +15677,24 @@ const SERIES_PLATFORMS = [
     { id: "canal", label: "Canal+", costPerEp: 900000, capRoles: 18, audienceMult: 6, tag: "ancrage francophone fort" },
 ];
 const EPISODE_OPTIONS = [4, 6, 8, 10, 12];
-function computeSeriesOutcome(gs, platform, episodes, cast, previousSeasons) {
+function computeSeriesOutcome(gs, platform, episodes, cast, previousSeasons, titre) {
     const starPower = cast.reduce((s, c) => { var _a; return s + (((_a = MOVIE_ROLES.find(r => r.id === c.role)) === null || _a === void 0 ? void 0 : _a.weight) || 0.5); }, 0);
     // Les saisons précédentes réussies fidélisent l'audience, les échecs la font fuir
     const legacyBonus = previousSeasons.reduce((s, ss) => s + (ss.profit > 0 ? 6 : -8), 0);
     // Même logique que pour les films : Fisco n'est pas un showrunner reconnu
     const selfIn = cast.some(c => c.id === "__fisco__");
     const amateurCap = selfIn ? 64 : 76;
-    const quality = Math.min(amateurCap, Math.max(5, 23 + starPower * 2.7 + gs.fame * 0.06 + legacyBonus + Math.random() * 16));
+    // Une série commandée par le cercle n'échoue pas : la presse est acquise, les
+    // algorithmes la poussent, et l'Europe entière finit par la regarder.
+    const cercle = rlSoutenue(gs, titre);
+    const brut = 23 + starPower * 2.7 + gs.fame * 0.06 + legacyBonus + Math.random() * 16;
+    const quality = cercle
+        ? Math.max(82, Math.min(96, 72 + brut * 0.18 + Math.random() * 9))
+        : Math.min(amateurCap, Math.max(5, brut));
     const cost = platform.costPerEp * episodes;
-    const successFactor = Math.max(0.1, Math.min(0.8, (quality / 118))) * (0.6 + Math.random() * 0.55);
+    const successFactor = cercle
+        ? (0.85 + Math.random() * 0.5)
+        : Math.max(0.1, Math.min(0.8, (quality / 118))) * (0.6 + Math.random() * 0.55);
     const revenue = Math.round(cost * platform.audienceMult * successFactor * 0.3);
     const viewers = Math.round(revenue / 3.2); // spectateurs estimés
     const profit = revenue - cost;
@@ -18291,7 +18688,7 @@ const INIT = {
     clashHistory: [], socialFeed: [], lastPostDate: null, activeTrend: null, activeClash: null, viralTrack: null,
     sponsoredCount: 0, lastTrendYear: null, socialCrisis: null, brandOffer: null,
     feedLog: [], eliteDeathDate: null,
-    eliteSince: null, membreDepuis: null, grossesseCercle: null, enfantLivre: null, enfantRevu: false, sacrifices: [], warMission: null, warMissionsDone: [], docLeaked: false, eliteInfluence: 0, favorsUsed: [], circleNews: [], evidence: 0, exposure: 0, activeOps: [], pendingCM: null, cmDone: [], activeOp: null, opsDone: [], targetExposure: {}, exposedTargets: [],
+    rlM6: null, detteVue: 0, bienFaits: [], bienVu: 0, eliteSince: null, membreDepuis: null, grossesseCercle: null, enfantLivre: null, enfantRevu: false, sacrifices: [], warMission: null, warMissionsDone: [], docLeaked: false, eliteInfluence: 0, favorsUsed: [], circleNews: [], evidence: 0, exposure: 0, activeOps: [], pendingCM: null, cmDone: [], activeOp: null, opsDone: [], targetExposure: {}, exposedTargets: [],
     allyState: { falltos: "actif", kanye_west: "actif", candace_owens: "actif", alain_soral: "actif", dieudonne: "actif", ryan_garcia: "actif", justin_bieber: "absent", the_weeknd: "absent" },
     inResistance: false, awardsBanned: false, conspiracist: false, tutorialDone: false, baptismDate: null, faithStart: null, faithStage: 0, faithDone: false, exElite: false,
     npcKids: [], warrant: null, mourning: false, mourningTold: false, boughtGrammys: [], lawShield: false, openCountries: [], mediaCycle: null, kaineEnded: null, eliteMet: [], newElites: {}, lastRecruitYear: null, curiaNames: null, curiaUntil: null, mkStage: {}, mkActive: null, mkFails: [], mkDone: {}, sacrificesDone: [], festivalDisaster: null, sabotaged: [], erased: [], seatsPlaced: [], lawsPassed: [], exitStrikes: [], resistanceTried: false, resistDeclinedAt: null, musicTier: null, musicOn: true, falltosSacrificed: false, lastFalltosOffer: null, eliteService: 0, rankSeen: null, eliteMission: null, eliteMissionsDone: [], circleOp: null, circleOpsDone: [], circleOpsFailed: [], lastCircleOpAt: null, eliteEndDone: false, lastEliteOffer: null, eliteOfferAt: null, eliteRefused: false, pendingDeath: null, elite: false, eliteOffered: false, eliteStrikes: 0, eliteFallen: false, hits: [], postStreaming: null, lastSummerHitYear: null, mentalAspects: { anxiety: 22, burnout: 18, loneliness: 25, purpose: 78 }, therapy: null, addictions: [], stis: [], unsafeActs: 0, lastStiCheck: null, stiTested: null,
@@ -18381,6 +18778,55 @@ function connaitLeCercle(gs) {
         || gs.inResistance || gs.resistanceTried || gs.faithStart || gs.faithDone
         || (gs.eliteMet || []).length > 0);
 }
+// ─── CÉLÉBRITÉ : UN NIVEAU QUE LA CARRIÈRE JUSTIFIE ────────────────────────
+// La célébrité ne s'érodait que vers le bas : un artiste qui enchaînait clips,
+// concerts, plateaux et sorties voyait quand même son niveau baisser tous les
+// mois, ce qui n'a aucun sens. Elle converge désormais vers un socle calculé
+// sur ce que vaut vraiment la carrière — et ce socle monte quand tu travailles,
+// descend quand tu disparais.
+function fameActivite(gs) {
+    const j = gs.currentDate, J = 86400000;
+    let a = 0;
+    const sorties = (gs.discography || []).filter(x => j - (x.releaseDate || 0) < 270 * J).length;
+    a += Math.min(12, sorties * 5); // sortir reste le moteur principal
+    const clips = (gs.clipography || []).filter(x => j - (x.date || 0) < 180 * J).length;
+    a += Math.min(5, clips * 2.5);
+    if (gs.activeTour || gs.detailedTour)
+        a += 7; // être sur la route compte
+    else if ((gs.tourHistory || []).some(t => j - (t.date || 0) < 300 * J))
+        a += 4;
+    a += Math.min(5, (gs.mediaThisYear || 0) * 1.4); // plateaux et interviews
+    const posts = (gs.socialFeed || []).filter(x => j - (x.date || 0) < 60 * J).length;
+    a += Math.min(4, posts * 0.8);
+    if ((gs.seriesography || []).some(x => (x.seasons || []).some(ss => (ss.date || 0) > j - 400 * J)))
+        a += 3;
+    if ((gs.filmography || []).some(x => j - (x.date || 0) < 400 * J))
+        a += 3;
+    return Math.min(20, a);
+}
+function fameSocle(gs) {
+    if (!gs)
+        return 0;
+    const tot = (gs.discography || []).reduce((x, d) => x + (d.ultimate || d.streams || 0), 0);
+    // Calibré sur deux points : l'artiste du début de partie se maintient autour
+    // de son niveau, et il faut une carrière complète ET une actualité constante
+    // pour approcher le plafond de 88 sans le cercle.
+    const catalogue = 30 * (1 - Math.exp(-tot / 2950000000)); // 0 à 30 : le poids du catalogue
+    const hits = Math.min(8, (gs.hits || []).length * 1.3);
+    const trophees = Math.min(6, (gs.achievements || []).length * 0.33);
+    let socle = 24 + catalogue + hits + trophees + fameActivite(gs);
+    if (gs.elite && !gs.eliteFallen) {
+        socle += eliteRank(gs).lvl * 2.2 + Math.min(4, (gs.eliteService || 0) * 0.12);
+    }
+    socle -= (gs.eliteStrikes || 0) * 6; // un faux pas se voit tout de suite
+    if (gs.inResistance)
+        socle -= 14;
+    if (gs.boycott)
+        socle -= 10;
+    if (gs.inPrison)
+        socle -= 8;
+    return Math.max(0, Math.min(fameCeiling(gs), Math.round(socle * 10) / 10));
+}
 const FAME_CAP_SANS_CERCLE = 88;
 function fameCeiling(gs) { return (gs && gs.elite) ? 100 : FAME_CAP_SANS_CERCLE; }
 function capFame(next) {
@@ -18401,7 +18847,7 @@ function capFame(next) {
 // s'en approcher.
 // Affichée dans les paramètres : elle dit d'un coup d'œil si la partie tourne
 // bien sur la dernière version du jeu.
-const VERSION_JEU = "82";
+const VERSION_JEU = "86";
 // Le seuil à partir duquel une fortune commence à se défendre au lieu de croître
 const SEUIL_GRANDE_FORTUNE = 3000000000;
 const TAUX_FROTTEMENT = 0.34; // par an sur la part au-dessus du seuil, et ça s'accélère
@@ -19548,6 +19994,18 @@ function gameReducerInner(state, action) {
             return state.membreDepuis ? state : { ...state, membreDepuis: state.currentDate };
         case "GROSSESSE_CERCLE":
             return { ...state, grossesseCercle: action.due ? { mere: action.mere, due: action.due, annonceAt: state.currentDate } : null };
+        case "BIEN_FAIT":
+            // Ce qu'on a réparé ne s'efface pas, et ne se compte pas en argent.
+            if ((state.bienFaits || []).some(b => b.id === action.id))
+                return state;
+            return { ...state, bienFaits: [...(state.bienFaits || []),
+                    { id: action.id, poids: action.poids || 1, date: state.currentDate }] };
+        case "BIEN_VU":
+            return { ...state, bienVu: Math.max(state.bienVu || 0, action.palier || 0) };
+        case "DETTE_VUE":
+            return { ...state, detteVue: Math.max(state.detteVue || 0, action.palier || 0) };
+        case "RL_M6":
+            return { ...state, rlM6: state.currentDate };
         case "ENFANT_REVU":
             return { ...state, enfantRevu: true,
                 enfantLivre: state.enfantLivre && state.enfantLivre.sex !== "fille" && !state.enfantLivre.nomPublic
@@ -20485,11 +20943,24 @@ function gameReducerInner(state, action) {
     }
 }
 const ARC_MAX_STAGE = { booba_riv: 3, riv_kaine: 3, kendrick_saga: 2, empire_arc: 4, falltos_family: 3 };
+// La compagne doit être là, en vie, et toujours avec toi.
+function partenaireVivante(gs) {
+    const id = gs && gs.romance && gs.romance.partner;
+    if (!id)
+        return null;
+    if (!["couple", "fiancee", "marie"].includes(gs.romance.status))
+        return null;
+    if ((gs.deceased || []).includes(id))
+        return null;
+    if ((gs.erased || []).includes(id))
+        return null;
+    return id;
+}
 function resolvePartnerEvent(ev, gs) {
     var _a;
-    if (!ev || !ev.dynamicPartner || !gs.romance.partner)
+    const partnerId = partenaireVivante(gs);
+    if (!ev || !ev.dynamicPartner || !partnerId)
         return ev;
-    const partnerId = gs.romance.partner;
     const fullName = ((_a = CHARS_BY_ID[partnerId]) === null || _a === void 0 ? void 0 : _a.name) || "elle";
     const firstName = fullName.split(" ")[0];
     const swapText = s => typeof s === "string" ? s.split("Jenna Ortega").join(fullName).split("Jenna").join(firstName) : s;
@@ -20516,6 +20987,52 @@ function resolvePartnerEvent(ev, gs) {
             });
         }),
     };
+}
+// Un événement ne doit jamais nommer quelqu'un qui est mort ou qu'on a effacé —
+// ni dans ses personnages, ni dans ses effets, ni dans une phrase de son texte.
+// Ce contrôle sert à tous les chemins : moteur d'événements comme majeurs.
+// Beaucoup de textes ne disent que le prénom (« Jenna »). On ne s'y fie que si
+// ce prénom ne désigne qu'une personne dans tout le casting.
+let _PRENOMS_UNIQUES = null;
+function prenomUnique(id) {
+    if (!_PRENOMS_UNIQUES) {
+        const compte = {};
+        Object.values(CHARS_BY_ID || {}).forEach(c => {
+            const p = String((c && c.name) || "").split(" ")[0];
+            if (p)
+                compte[p] = (compte[p] || 0) + 1;
+        });
+        _PRENOMS_UNIQUES = {};
+        Object.entries(CHARS_BY_ID || {}).forEach(([k, c]) => {
+            const p = String((c && c.name) || "").split(" ")[0];
+            if (p && compte[p] === 1 && p.length >= 4)
+                _PRENOMS_UNIQUES[k] = p;
+        });
+    }
+    return _PRENOMS_UNIQUES[id] || null;
+}
+function citeUnAbsent(ev, gs) {
+    if (!ev || !gs)
+        return false;
+    const partis = [...(gs.deceased || []), ...(gs.erased || [])];
+    if (!partis.length)
+        return false;
+    const dansChars = (ev.chars || []).some(c => partis.includes(c));
+    if (dansChars)
+        return true;
+    const full = `${ev.title || ""} ${ev.context || ""} ${(ev.choices || []).map(c => `${c.text || ""} ${c.consequence || ""}`).join(" ")}`;
+    const relIds = new Set((ev.choices || []).flatMap(c => Object.keys((c.effects || {}).rel || {})));
+    for (const id of partis) {
+        if (relIds.has(id))
+            return true;
+        const nm = (CHARS_BY_ID[id] || {}).name;
+        if (nm && full.includes(nm))
+            return true;
+        const pr = prenomUnique(id);
+        if (pr && new RegExp(`\\b${pr}\\b`).test(full))
+            return true;
+    }
+    return false;
 }
 // ─── COHÉRENCE : un événement ne sort que si la situation le permet ─────────
 // L'âge des enfants compte : un nourrisson ne rentre pas à l'école et ne
@@ -20574,7 +21091,10 @@ function requiresMet(gs, ev) {
         return false;
     if (r.marriedOnly && gs.romance.status !== "marie")
         return false;
-    if (r.needsPartner && !gs.romance.partner)
+    // Une compagne morte, effacée ou partie n'est plus une compagne : sans ce
+    // contrôle, on recevait des scènes de couple au nom de quelqu'un qui n'est
+    // plus là.
+    if (r.needsPartner && !partenaireVivante(gs))
         return false;
     if (r.noChild && (gs.children || []).length)
         return false;
@@ -20631,25 +21151,8 @@ class EventEngine {
                 return false;
             if (sold.san_jose && /san jos|san josé|ton club|ton équipe de football/.test(txt))
                 return false;
-            if ((ev.chars || []).some(c => (gs.deceased || []).includes(c)))
+            if (citeUnAbsent(ev, gs))
                 return false;
-            // Quelqu'un qu'on a effacé du paysage ne réapparaît nulle part
-            if ((ev.chars || []).some(c => (gs.erased || []).includes(c)))
-                return false;
-            // Filet de sécurité : beaucoup d'événements citent quelqu'un dans leur texte
-            // sans le déclarer. On relit donc l'événement entier avant de le sortir.
-            const goneNow = [...(gs.deceased || []), ...(gs.erased || [])];
-            if (goneNow.length) {
-                const full = `${ev.title} ${ev.context} ${(ev.choices || []).map(c => `${c.text} ${c.consequence || ""}`).join(" ")}`;
-                const relIds = new Set((ev.choices || []).flatMap(c => Object.keys((c.effects || {}).rel || {})));
-                for (const id of goneNow) {
-                    if (relIds.has(id))
-                        return false;
-                    const nm = (CHARS_BY_ID[id] || {}).name;
-                    if (nm && full.includes(nm))
-                        return false;
-                }
-            }
             // Un cycle médiatique acheté oriente ce qui sort : on détourne, on cible, on impose
             const mc = gs.mediaCycle;
             if (mc) {
@@ -21792,7 +22295,7 @@ function FiscoGame() {
                         const ev = ALL_EVENTS.find(e => e.id === nextId);
                         const okForStage4 = nextId !== "fam_4" || (gs.children || []).length > 0;
                         if (ev && okForStage4)
-                            setActiveEvent(ev);
+                            setActiveEvent(resolvePartnerEvent(fitChoices(ev, gs), gs));
                     }
                 }
             }
@@ -21817,11 +22320,14 @@ function FiscoGame() {
                         // Les événements majeurs ignoraient leurs propres conditions :
                         // on pouvait recevoir « Menace sur ta famille » sans enfant.
                         && requiresMet(gs, e)
+                        // Les majeurs ne passaient pas par le filtre du moteur : ils
+                        // pouvaient nommer une morte, ou l'ancienne compagne.
+                        && !citeUnAbsent(e, gs)
                         && !(e.id === "maj_festival_disaster" && ((gs.soldBusinesses || {}).bahasco || gs.boycott)));
                     if (available.length) {
                         const ev = available[Math.floor(Math.random() * available.length)];
                         dispatch({ type: "MARK_MAJOR", id: ev.id, year });
-                        const majPret = fitChoices(ev, gs);
+                        const majPret = resolvePartnerEvent(fitChoices(ev, gs), gs);
                         setActiveEvent({ ...majPret, cat: "scandal", sub: "majeur", rarity: "legendary", isMajor: true,
                             choices: majPret.choices.map(c => ({ ...c, effects: {}, consequence: "" })) });
                     }
@@ -22146,34 +22652,87 @@ function FiscoGame() {
                 || !!gs.activeTour || !!gs.detailedTour
                 || (gs.tourHistory || []).some(t => jour - (t.date || 0) < 180 * 86400000);
             const frein = gs.elite ? 0.55 : 1; // le cercle entretient ta présence
-            // La célébrité s'érode d'autant plus vite qu'elle est haute : tenir 100
-            // demande une actualité permanente.
-            const hautFame = Math.max(0, gs.fame - 70) / 30;
-            const perteFame = recent ? 0.35 + hautFame * 0.8 : 1.5 + hautFame * 2.2;
             // La réputation redescend vers un socle : ce que valent vraiment ton
             // œuvre et ton image, hors coup d'éclat.
             const socle = Math.min(92, 48 + (gs.fame * 0.22) + ((gs.achievements || []).length * 0.35));
             const ecart = gs.rep - socle;
             const perteRep = ecart > 0 ? Math.min(2.4, 0.25 + ecart * 0.11) : 0;
-            let dF = Math.round(perteFame * frein * 10) / 10;
             const dR = Math.round(perteRep * frein * 10) / 10;
-            // ── Dans le cercle, la célébrité se gagne et se perd ──────────────────
-            // Le rang et les services rendus la font monter mois après mois ; chaque
-            // faux pas la fait redescendre bien plus vite qu'ils ne la font monter.
-            if (gs.elite && !gs.eliteFallen) {
-                const rang = eliteRank(gs);
-                // Le rang et les services AMORTISSENT l'érosion, ils ne la renversent
-                // jamais : sans cette borne, un membre haut placé regagnait chaque mois
-                // plus qu'il ne perdait et restait cloué à 100 pour toujours. Dans le
-                // cercle comme ailleurs, la célébrité ne monte que grâce à ce qu'on
-                // sort ; le cercle se contente de freiner la descente.
-                const parLeRang = (rang.lvl || 0) * 0.34; // 0 à 1,7
-                const parLesService = Math.min(1.5, (gs.eliteService || 0) * 0.045);
-                const parLesFautes = (gs.eliteStrikes || 0) * 1.8; // un faux pas coûte cher
-                dF = Math.round((Math.max(0, dF - parLeRang - parLesService) + parLesFautes) * 10) / 10;
+            // ── La célébrité rejoint le niveau que ta carrière justifie ───────────
+            // Elle monte si tu es en dessous, elle descend si tu es au-dessus. Trois
+            // points par mois au maximum, dans les deux sens : ça bouge vraiment,
+            // sans jamais basculer d'un coup.
+            const cible = fameSocle(gs);
+            let dFame = (cible - gs.fame) * 0.18;
+            // Monter demande un peu plus d'élan que descendre, et le cercle pousse.
+            if (dFame > 0)
+                dFame *= gs.elite && !gs.eliteFallen ? 1.15 : 1;
+            dFame = Math.max(-3, Math.min(3, Math.round(dFame * 10) / 10));
+            // Sans la moindre actualité, la pente descendante ne s'arrête jamais tout
+            // à fait : rester au sommet sans rien faire est impossible.
+            if (!recent && dFame > 0)
+                dFame = 0;
+            if (dFame !== 0 || dR > 0)
+                dispatch({ type: "DRIFT", fame: dFame, rep: -dR });
+        }
+        // ── LE PRIX QUE PERSONNE NE T'A CHIFFRÉ ───────────────────────────────
+        // Chaque mois dans le cercle, la dette d'âme ronge le sens, la solitude et
+        // l'anxiété. Plus tu es haut, plus ça va vite. Rien ne compense : la
+        // célébrité monte d'un côté, tout le reste descend de l'autre.
+        if (phase === "game" && !ending && gs.elite && !gs.eliteFallen && d.getDate() === 7) {
+            const dette = detteDAme(gs);
+            if (dette > 0) {
+                dispatch({ type: "MENTAL", deltas: {
+                        purpose: -Math.max(1, Math.round(dette * 0.075)),
+                        loneliness: +Math.max(1, Math.round(dette * 0.055)),
+                        anxiety: +Math.max(1, Math.round(dette * 0.05)),
+                        burnout: +Math.round(dette * 0.035)
+                    } });
+                if (dette >= 45)
+                    dispatch({ type: "APPLY", effects: { health: -1, stress: +Math.round(dette * 0.06) } });
             }
-            if (dF !== 0 || dR > 0)
-                dispatch({ type: "DRIFT", fame: -dF, rep: -dR });
+        }
+        // ── Tu finis par comprendre ce que tu as signé ─────────────────────────
+        // Trois paliers, trois constats. Ils ne se répètent pas, et on ne peut pas
+        // les passer : c'est le moment où le marché devient lisible.
+        if (phase === "game" && !ending && gs.elite && !gs.eliteFallen) {
+            const dette = detteDAme(gs);
+            const vus = gs.detteVue || 0;
+            const palier = dette >= 70 ? 3 : dette >= 45 ? 2 : dette >= 25 ? 1 : 0;
+            if (palier > vus) {
+                const m = gs.mentalAspects || {};
+                const addicts = (gs.addictions || []).map(a => a.label.toLowerCase());
+                const liste = addicts.length ? addicts.join(", ") : null;
+                dispatch({ type: "DETTE_VUE", palier });
+                const textes = [null,
+                    `Tu as tout ce que tu voulais. Les chiffres, les salles, les portes qui s'ouvrent avant que tu frappes.\n\nEt depuis quelques mois, tu te réveilles à quatre heures sans raison. Tu as arrêté de compter les soirs où tu rentres sans savoir ce que tu as fait de la journée.\n\nPersonne ne t'avait dit que ça commencerait comme ça. Personne ne t'avait rien dit du tout.`,
+                    `Tu montes. Les services s'accumulent, les faux pas se rachètent, et chaque fois c'est un peu plus cher.\n\nTu ne te souviens plus de la dernière chose que tu as faite pour toi.${liste ? `\n\nIl y a aussi ${liste} — et tu sais très bien quand ça a commencé.` : ""}\n\nCe qu'ils t'ont donné se compte en millions et en couvertures. Ce qu'ils ont pris ne se compte pas, et c'est pour ça que tu l'as accepté sans discuter.`,
+                    `Tu es en haut. Il n'y a presque plus personne au-dessus de toi, et c'est le plus vide que tu aies jamais été.\n\nTu as une célébrité que personne n'atteint, des gens partout, et plus un seul endroit où poser quelque chose de vrai.${liste ? `\n\n${liste.charAt(0).toUpperCase() + liste.slice(1)} : ce ne sont pas des accidents. C'est ce que ça coûte, étalé dans le temps pour que tu ne le voies pas arriver.` : ""}\n\nIls n'ont jamais menti. Ils ont simplement laissé croire que le prix serait de l'argent.`];
+                setAnnonceMajeure({ emoji: palier === 3 ? "🕳️" : palier === 2 ? "🩶" : "🌫️", majeur: true,
+                    title: palier === 3 ? "Le prix, en entier" : palier === 2 ? "Ce que ça coûte vraiment" : "Quelque chose a changé",
+                    desc: textes[palier] });
+                addLog(`[CERCLE] Tu commences à mesurer ce que ça coûte`);
+            }
+        }
+        // ── CE QUE TU AS RÉPARÉ FINIT PAR TE RATTRAPER AUSSI ──────────────────
+        // L'exact symétrique des trois constats du cercle. Là-bas on comprend ce
+        // qu'on a vendu ; ici on mesure ce qu'on a rendu.
+        if (phase === "game" && !ending && gs.inResistance) {
+            const b = bienTotal(gs);
+            const vus = gs.bienVu || 0;
+            const palier = b >= 18 ? 3 : b >= 10 ? 2 : b >= 4 ? 1 : 0;
+            if (palier > vus) {
+                dispatch({ type: "BIEN_VU", palier });
+                const t = BIEN_PALIERS[palier - 1];
+                const textes = [null,
+                    `Tu as passé des années à documenter ce qu'ils font. Tu n'avais encore rien construit.\n\n${t.desc}\n\nPersonne ne t'a félicité, aucun média n'en a parlé, et ça ne t'a pas rapporté un dollar. Tu t'es surpris à y penser en te couchant, et à bien dormir.`,
+                    `Tu as de quoi payer n'importe quoi, et tu t'es mis à payer des choses qui ne reviennent pas.\n\n${t.desc}\n\nEux t'auraient donné dix fois plus en te demandant une seule chose. Tu commences à comprendre pourquoi tu as dit non.`,
+                    `Regarde ce que tu as monté. Ça fonctionne sans toi, ça ne t'appartient pas, et personne ne peut te le reprendre.\n\n${t.desc}\n\nIls offrent la gloire, l'argent, l'impunité, et tout ça s'arrête le jour où tu t'arrêtes. Toi, tu as fait la seule chose qu'ils ne savent pas faire : quelque chose qui tient sans son propriétaire.\n\nC'est pour ça qu'ils n'ont jamais compris pourquoi tu as refusé.`];
+                setAnnonceMajeure({ emoji: palier === 3 ? "🌳" : palier === 2 ? "🧱" : "🌱", majeur: true,
+                    title: palier === 3 ? "Ça te survivra" : palier === 2 ? "Ce n'est plus un geste" : "Quelque chose a tenu",
+                    desc: textes[palier] });
+                addLog(`[CENTRE] ${t.label}`);
+            }
         }
         // ── Les relations se dégradent dans le silence ──
         if (phase === "game" && !ending && d.getDate() === 15) {
@@ -22352,7 +22911,12 @@ function FiscoGame() {
                     : `Après ${t.weeks} semaine${t.weeks > 1 ? "s" : ""}, tu ressors différent. Rien n'est réglé définitivement, mais tu as retrouvé un peu de terrain sur l'anxiété, l'épuisement et le sens de ce que tu fais.\n\nLes gens autour de toi l'ont remarqué avant toi.` });
         }
         // Apparition de dépendances
-        if (phase === "game" && !ending && !anyOverlayOpen() && d.getDate() % 11 === 0 && Math.random() < 0.2) {
+        // Une dépendance par trimestre au maximum : la chute doit rester lisible,
+        // sinon on ramasse tout le catalogue en un an et ça n'a plus de sens.
+        const derniereAddiction = (gs.addictions || []).reduce((m, a) => Math.max(m, a.since || 0), 0);
+        const repitAddiction = gs.currentDate - derniereAddiction >= 80 * 86400000;
+        if (phase === "game" && !ending && !anyOverlayOpen() && d.getDate() % 11 === 0 && repitAddiction
+            && Math.random() < 0.2 + detteDAme(gs) * 0.0045) {
             const m = gs.mentalAspects || {};
             const held = new Set((gs.addictions || []).map(a => a.id));
             const risk = [];
@@ -22375,6 +22939,23 @@ function FiscoGame() {
                 risk.push("ad_porn");
             if (gs.detailedTour && ((_h = m.loneliness) !== null && _h !== void 0 ? _h : 0) > 30)
                 risk.push("ad_porn");
+            // ── Ce que le cercle fabrique ────────────────────────────────────────
+            // Plus la dette est lourde, plus ce sont SES dépendances qui arrivent :
+            // ce qui circule dans ces pièces-là, et ce qu'on prend pour tenir.
+            const dette = detteDAme(gs);
+            if (dette >= 22) {
+                risk.push("ad_coke");
+                risk.push("ad_pills");
+            }
+            if (dette >= 35) {
+                risk.push("ad_women");
+                risk.push("ad_coke");
+            }
+            if (dette >= 55) {
+                risk.push("ad_women");
+                risk.push("ad_pills");
+                risk.push("ad_alcohol");
+            }
             const pool = ADDICTIONS.filter(a => risk.includes(a.id) && !held.has(a.id));
             if (pool.length) {
                 const a = pool[Math.floor(Math.random() * pool.length)];
@@ -22729,6 +23310,16 @@ function FiscoGame() {
                 killFalltos: !win && m.killFalltos,
                 killWho: !win ? (m.killOnLose || null) : null });
             dispatch({ type: "APPLY", effects: { ...(win ? m.winFx : m.loseFx), deliberate: true } });
+            // Une mission du centre ne se joue pas qu'en points de réputation : ce
+            // qu'on découvre abîme, ce qu'on répare rend un peu de sens.
+            const mtl = win ? m.winMental : m.loseMental;
+            if (mtl)
+                dispatch({ type: "MENTAL", deltas: mtl });
+            const dop = win ? (m.winOpinion || 0) : (m.loseOpinion || 0);
+            if (dop)
+                dispatch({ type: "OPINION", delta: dop });
+            if (win && m.bien)
+                dispatch({ type: "BIEN_FAIT", id: m.id, poids: m.bien });
             if (!win && m.loseToElite) {
                 dispatch({ type: "APPLY", effects: { rel: { [m.loseToElite]: -60 }, deliberate: true } });
                 // Deuxième exception, avec le clone de Kanye : quelqu'un du centre
@@ -22923,7 +23514,7 @@ function FiscoGame() {
             if (!(gs.rivalMilestones || []).includes(key)) {
                 const ev = generateRivalMilestoneEvent(gs);
                 ev.milestoneKey = key;
-                setActiveEvent(ev);
+                setActiveEvent(resolvePartnerEvent(ev, gs));
             }
         }
         // ── La rivalité finit par se conclure, dans un sens ou dans l'autre ──
@@ -23163,27 +23754,9 @@ function FiscoGame() {
         if (phase === "game" && !ending && !anyOverlayOpen() && !gs.inPrison && gs.elite && !gs.eliteFallen
             && !gs.circleOp && d.getDate() === 11
             && (!gs.lastCircleOpAt || gs.currentDate - gs.lastCircleOpAt >= 365 * 86400000)) {
-            const rank = eliteRank(gs).lvl;
-            const faits = new Set([...(gs.circleOpsDone || []), ...(gs.circleOpsFailed || [])]);
-            const pool = CIRCLE_OPS.filter(o => !faits.has(o.id) && rank >= o.minRank && (!o.avail || o.avail(gs)));
-            // Un an écoulé : la proposition finit toujours par tomber, sans être
-            // rivée au même jour chaque année.
-            // Le dossier Kane passe avant tout le reste : sa carrière se joue en
-            // quelques semaines, on ne le garde pas sous le coude pendant des années.
-            const menees = (gs.circleOpsDone || []).length + (gs.circleOpsFailed || []).length;
-            const urgent = menees < 2 ? pool.filter(o => o.first) : [];
-            if (urgent.length) {
-                setCircleOpOffer(urgent[Math.floor(Math.random() * urgent.length)]);
-            }
-            else if (pool.length && Math.random() < 0.6) {
-                // On privilégie ce qui correspond à ton rang : plus tu montes, plus ce
-                // qu'on te confie est sale. Les campagnes d'entrée de gamme finissent
-                // par ne plus t'être proposées du tout.
-                const plafond = Math.max(...pool.map(o => o.minRank));
-                const sombres = pool.filter(o => o.minRank >= plafond - 1);
-                const choix = (sombres.length && Math.random() < 0.75) ? sombres : pool;
-                setCircleOpOffer(choix[Math.floor(Math.random() * choix.length)]);
-            }
+            const choisie = campagneProposee(gs);
+            if (choisie)
+                setCircleOpOffer(choisie);
         }
         // Campagne en cours : rappel à mi-parcours, puis échéance
         if (phase === "game" && !ending && !anyOverlayOpen() && gs.circleOp) {
@@ -23545,7 +24118,7 @@ function FiscoGame() {
                 if (daysSince >= delay) {
                     const ev = ALL_EVENTS.find(e => e.id === nextId);
                     if (ev)
-                        setActiveEvent(ev);
+                        setActiveEvent(resolvePartnerEvent(fitChoices(ev, gs), gs));
                 }
             }
         }
@@ -23851,7 +24424,7 @@ function FiscoGame() {
                 if (ev) {
                     engineRef.current.lastShown.set(ev.id, gs.currentDate);
                     dispatch({ type: "SEE_EVENT", id: ev.id });
-                    const pret = fitChoices(ev, gs);
+                    const pret = resolvePartnerEvent(fitChoices(ev, gs), gs);
                     setTimeout(() => setActiveEvent(pret), 400);
                     return;
                 }
@@ -24017,7 +24590,7 @@ function FiscoGame() {
         const ev = ALL_EVENTS.find(e => e.id === "fam_1");
         if (ev) {
             toast("💞 Vous essayez d'agrandir la famille…", "#c77dff");
-            setActiveEvent(ev);
+            setActiveEvent(resolvePartnerEvent(fitChoices(ev, gs), gs));
         }
     }, [gs, toast]);
     // Un seul événement à la fois, avec un délai de respiration entre deux
@@ -25536,7 +26109,7 @@ function FiscoGame() {
         const platform = data.platform;
         const existing = data.seriesId ? (gs.seriesography || []).find(s => s.id === data.seriesId) : null;
         const previousSeasons = existing ? existing.seasons : [];
-        const outcome = computeSeriesOutcome(gs, platform, data.episodes, data.cast, previousSeasons);
+        const outcome = computeSeriesOutcome(gs, platform, data.episodes, data.cast, previousSeasons, data.title);
         if (gs.money < outcome.cost) {
             toast("💸 Budget insuffisant pour cette saison", "#ff6b6b");
             return;
@@ -26163,12 +26736,20 @@ function FiscoGame() {
             if (Object.keys(relGains).length)
                 dispatch({ type: "APPLY", effects: { rel: relGains } });
         }
-        const gm = GUEST_MOMENTS.filter(m => { try {
-            return m.need(gids, gs);
-        }
-        catch (e) {
-            return false;
-        } });
+        const absents = new Set([...(gs.deceased || []), ...(gs.erased || [])]);
+        const gm = GUEST_MOMENTS.filter(m => {
+            try {
+                if (!m.need(gids, gs))
+                    return false;
+                // Une scène écrite pour quelqu'un en particulier ne sort pas si cette
+                // personne n'est plus là : c'est ce qui faisait parler une morte.
+                const vises = Object.keys((m.choices || []).reduce((a, c) => Object.assign(a, (c.effects || {}).rel || {}), {}));
+                return !vises.some(id => absents.has(id));
+            }
+            catch (e) {
+                return false;
+            }
+        });
         if (gm.length && Math.random() < 0.75) {
             const m = gm[Math.floor(Math.random() * gm.length)];
             setTimeout(() => setActiveEvent({ id: `${m.id}_${Date.now()}`, cat: "relations", sub: "soiree", rarity: "epic",
@@ -26259,6 +26840,19 @@ function FiscoGame() {
             setAnnonceMajeure({ emoji: "⏳", title: "Le temps s'arrête, puis repart sans toi", majeur: true,
                 desc: `Tu as récité ces lignes ${(interviewOutlet === null || interviewOutlet === void 0 ? void 0 : interviewOutlet.id) === "tf1jt" ? "au journal de 20h, face à des millions de personnes qui n'ont rien remarqué" : `chez ${(interviewOutlet === null || interviewOutlet === void 0 ? void 0 : interviewOutlet.name) || "eux"}, et personne n'a rien remarqué`}.\n\nQuand tu reposes le micro, seize ans ont passé. Des gens que tu connaissais sont morts, d'autres sont nés, des joueurs que tu avais signés ont raccroché, et les enfants de tes amis donnent aujourd'hui des interviews.\n\nTu as vieilli comme les autres. Ta célébrité aussi.\n\nIl reste sept jours avant les seize ans de l'enfant que tu as signé un matin ordinaire. Tu ne sais pas encore ce qu'on en a fait. Tu le sauras dans une semaine.` });
             return;
+        }
+        // ── L'annonce de « Right Land », sur M6, à une heure de grande écoute ──
+        // La campagne demande deux phrases précises : on les reconnaît même
+        // reformulées autour, et l'étape se valide d'elle-même.
+        if (kind === "interview" && (interviewOutlet === null || interviewOutlet === void 0 ? void 0 : interviewOutlet.id) === "m6_1945"
+            && gs.circleOp && gs.circleOp.id === "co_rightland" && !gs.rlM6
+            && norm(text).includes(norm("on n'a rien inventé"))
+            && norm(text).includes(norm("pris de l'avance"))
+            && norm(text).includes(norm("annoncé avant d'arriver"))) {
+            dispatch({ type: "RL_M6" });
+            addLog("[CERCLE] L'annonce a été faite sur M6");
+            setAnnonceMajeure({ emoji: "📺", title: "Tu viens de le dire à la télévision", majeur: true,
+                desc: `Tu l'as dit sur le ton de la promo, en souriant, à 19h45. Le plateau a ri. La journaliste a enchaîné sur les audiences.\n\nL'extrait tourne pendant trois jours sous un titre léger : « Fisco taquine les complotistes ». Des millions de gens viennent de l'entendre, et aucun ne l'a entendu.\n\nC'est exactement ce qu'on attendait de toi. L'étape est validée.` });
         }
         const len = text.trim().length;
         const wordVariety = new Set(text.toLowerCase().split(/\s+/)).size;
@@ -29386,6 +29980,31 @@ function FiscoGame() {
                         " : ",
                         nx.label)));
             })(),
+            (() => {
+                const b = bienTotal(gs);
+                if (!b)
+                    return null;
+                const t = [...BIEN_PALIERS].reverse().find(x => b >= x.at);
+                const nx = BIEN_PALIERS.find(x => x.at > b);
+                return (react_1.default.createElement("div", { style: { background: "rgba(120,200,255,.05)", border: "1px solid rgba(120,200,255,.28)", borderRadius: 10, padding: 11, marginBottom: 10 } },
+                    react_1.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+                        react_1.default.createElement("span", { style: { fontSize: 9, color: "rgba(120,200,255,.75)", letterSpacing: 2, fontFamily: "'Space Mono',monospace" } }, "CE QUE TU AS R\u00C9PAR\u00C9"),
+                        react_1.default.createElement("span", { style: { fontSize: 13, color: "#78c8ff", fontFamily: "'Space Mono',monospace", fontWeight: 700 } }, b)),
+                    react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(255,255,255,.5)", marginTop: 4, lineHeight: 1.45 } },
+                        (gs.bienFaits || []).length,
+                        " chantier",
+                        (gs.bienFaits || []).length > 1 ? "s" : "",
+                        " men\u00E9",
+                        (gs.bienFaits || []).length > 1 ? "s" : "",
+                        " au bout. Rien de tout \u00E7a ne t'a rapport\u00E9 un dollar."),
+                    t && react_1.default.createElement("div", { style: { fontSize: 11.5, fontWeight: 700, color: "#78c8ff", marginTop: 6 } }, t.label),
+                    t && react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(255,255,255,.5)", marginTop: 2, lineHeight: 1.45 } }, t.desc),
+                    nx && react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(255,255,255,.32)", marginTop: 4, fontFamily: "'Space Mono',monospace" } },
+                        "Prochain palier \u00E0 ",
+                        nx.at,
+                        " : ",
+                        nx.label)));
+            })(),
             MK_CASES.map(cs => {
                 const st = Math.min((gs.mkStage || {})[cs.id] || 0, cs.steps.length);
                 const done = ((gs.mkDone || {})[cs.id]) || st >= cs.steps.length;
@@ -29928,12 +30547,14 @@ function FiscoGame() {
                         a.script,
                         " \u00BB"))),
                 react_1.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7 } },
-                    (a.options || [{ id: "go", label: a.btn || "Faire", ok: true, effects: a.effects, out: a.out }]).map((o, i) => (react_1.default.createElement("button", { key: o.id, onClick: () => {
+                    (a.options || [{ id: "go", label: a.btn || "Faire", ok: a.infoOnly ? null : true, info: !!a.infoOnly, effects: a.effects, out: a.out }]).map((o, i) => (react_1.default.createElement("button", { key: o.id, onClick: () => {
                             sfx(o.ok === false ? "warn" : "confirm");
                             if (o.effects)
                                 dispatch({ type: "APPLY", effects: o.effects });
-                            // Une option ratée ne valide pas l'étape : elle reste ouverte
-                            if (o.ok !== false)
+                            // Une option ratée ne valide pas l'étape : elle reste ouverte.
+                            // Une étape informative ne valide rien non plus, et ne rate rien :
+                            // elle se joue ailleurs dans le jeu.
+                            if (o.ok !== false && !o.info)
                                 dispatch({ type: "CIRCLE_OP_STEP", stepId: st.id, choice: o.id });
                             setOpStepModal(null);
                             setCalAlert({ emoji: st.emoji, title: st.label,
@@ -32420,7 +33041,8 @@ function FiscoGame() {
                     const el = enfantLivreVisible(gs);
                     if (!el)
                         return null;
-                    const col = el.score > 60 ? "#69ff8a" : el.score > 10 ? "#ffce63" : "#ff6b6b";
+                    const col = el.avantRevelation ? "rgba(255,255,255,.35)"
+                        : el.score > 60 ? "#69ff8a" : el.score > 10 ? "#ffce63" : "#ff6b6b";
                     return (react_1.default.createElement(react_1.default.Fragment, null,
                         react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(199,125,255,.45)", letterSpacing: 2, margin: "4px 0", fontFamily: "'Space Mono',monospace" } }, "CE QUE TU AS SIGN\u00C9"),
                         react_1.default.createElement("div", { style: { display: "flex", gap: 9, alignItems: "center", padding: "7px 0", borderBottom: "1px solid rgba(199,125,255,.12)" } },
@@ -32428,14 +33050,14 @@ function FiscoGame() {
                             react_1.default.createElement("div", { style: { flex: 1 } },
                                 react_1.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
                                     react_1.default.createElement("span", { style: { fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.9)" } }, el.nom),
-                                    react_1.default.createElement("span", { style: { fontSize: 10, color: col, fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums" } },
-                                        el.score >= 0 ? "+" : "",
-                                        el.score)),
+                                    react_1.default.createElement("span", { style: { fontSize: 10, color: col, fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums" } }, el.avantRevelation ? "—" : `${el.score >= 0 ? "+" : ""}${el.score}`)),
                                 react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(199,125,255,.7)", fontFamily: "'Space Mono',monospace", textTransform: "uppercase", letterSpacing: 1 } },
                                     el.ans,
-                                    " ans \u00B7 ",
+                                    " an",
+                                    el.ans > 1 ? "s" : "",
+                                    " \u00B7 ",
                                     el.statut),
-                                react_1.default.createElement(StatBar, { val: (el.score + 100) / 2, color: col, height: 2 }))),
+                                !el.avantRevelation && react_1.default.createElement(StatBar, { val: (el.score + 100) / 2, color: col, height: 2 }))),
                         react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(255,180,80,.5)", letterSpacing: 2, margin: "10px 0 4px", fontFamily: "'Space Mono',monospace" } }, "ENTOURAGE")));
                 })(),
                 (() => {
