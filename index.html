@@ -1915,7 +1915,11 @@ function calcProjectStats(project, gs) {
     // sorties atterrissent près de l'attendu, quelques-unes s'effondrent, et
     // quelques-unes explosent.
     const tirage = (Math.random() + Math.random() + Math.random()) / 3; // ≈ loi normale
-    const variance = Math.exp((tirage - 0.5) * ETALEMENT_ACCUEIL) * CENTRE_ACCUEIL;
+    // Un public fidèle ne fait pas les gros chiffres, mais il est toujours là :
+    // l'écart se resserre, et un disque ne s'effondre plus complètement.
+    const fidelite = Math.min(3, gs.publicFidele || 0);
+    const etalement = ETALEMENT_ACCUEIL * (1 - fidelite * 0.13);
+    const variance = Math.max(fidelite ? 0.55 + fidelite * 0.05 : 0, Math.exp((tirage - 0.5) * etalement) * CENTRE_ACCUEIL);
     // Poids commercial des featurings : une superstar mondiale porte le morceau, un feat francophone beaucoup moins
     const fa = analyzeFeats(project.tracks);
     const featFactor = fa.count ? (0.75 + fa.power * 0.85) : 1.0; // franco ≈ 0.89, elite ≈ 1.6
@@ -8196,13 +8200,6 @@ const MAJOR_EVENTS = [
             { text: "Répondre avec un morceau dévastateur", major: "WKND_DISS" },
             { text: "Couper les ponts en silence", major: "WKND_CUT" },
         ] },
-    { id: "maj_falltos_war", emoji: "✝️", title: "Falltos te réclame sa part", chars: ["falltos"],
-        context: "Ton cousin, celui qui t'a sorti de la forêt et t'a tout appris, estime avoir été spolié depuis le début. Il exige 30% de tout ce que tu as bâti, avocats à l'appui, et menace de raconter publiquement ce qu'il sait de tes débuts.",
-        choices: [
-            { text: "Lui donner ce qu'il demande", major: "FALL_GIVE" },
-            { text: "Refuser et l'affronter en justice", major: "FALL_FIGHT" },
-            { text: "Tenter une réconciliation en face à face", major: "FALL_TALK" },
-        ] },
     { id: "maj_affair_child", emoji: "💔", title: "Un enfant caché", chars: [], requires: { needsPartner: true }, dynamicPartner: true,
         context: "Une femme avec qui tu as eu une liaison brève t'annonce qu'elle a eu un enfant de toi il y a trois ans. Elle ne demande rien — mais un journaliste vient d'obtenir l'information et publiera dans 48h.",
         choices: [
@@ -10300,6 +10297,412 @@ const FAITH_STAGES = [
         apply: { rep: +12, stress: -30, health: +10 }, mental: { purpose: +25, anxiety: -20, loneliness: -18 }, baptised: true },
 ];
 const FAITH_DURATION = 195;
+// ═══ APRÈS LE BAPTÊME ══════════════════════════════════════════════════════
+// Le baptême n'est pas une fin de parcours : c'est le premier jour. Ce qui suit
+// peut se perdre, se reprendre, et coûte quelque chose à chaque fois.
+// ─── LA MARCHE ──────────────────────────────────────────────────────────────
+// Une jauge qui descend toute seule et que seules des choses concrètes font
+// remonter. Rien n'est jamais acquis, et rien n'est jamais définitivement perdu.
+const MARCHE_DEPART = 72;
+const MARCHE_EROSION = 0.35; // par jour, sans rien faire : une dizaine de points par mois
+const FOI_PRATIQUES = [
+    // Les pratiques sont celles que le cours donne après le baptême : persévérer
+    // dans l'enseignement des apôtres, la communion fraternelle, la fraction du
+    // pain et la prière. Rien n'a été ajouté de l'extérieur.
+    { id: "priere", emoji: "🙏", label: "Prier", libre: true, gain: 5,
+        verse: "« La prière peut nous donner la paix. »", ref: "Philippiens 4:4-7",
+        fx: { energy: -1, stress: -4 }, mental: { anxiety: -3 },
+        out: "À voix basse, sans savoir si tu t'y prends bien. Tu n'as rien demandé cette fois-ci." },
+    { id: "lecture", emoji: "📖", label: "Ton moment avec Dieu", libre: true, gain: 5,
+        verse: "« Ils examinaient chaque jour les Écritures. »", ref: "Actes 17:11",
+        fx: { energy: -2, stress: -4 }, mental: { purpose: +3 },
+        out: "Un chapitre, lentement, et le cahier de méditation ouvert à côté. Tu bloques vingt minutes sur trois versets et tu refermes sans avoir avancé — et c'est pourtant la meilleure demi-heure de ta journée." },
+    { id: "partager", emoji: "🗣️", label: "Parler de ta foi", libre: true, gain: 6,
+        verse: "« Allez, faites de toutes les nations des disciples. »", ref: "Matthieu 28:18-20",
+        fx: { energy: -3, stress: +3 }, mental: { purpose: +4, loneliness: -3 },
+        out: "Une conversation, pas un sermon : tu demandes à quelqu'un ce qu'il croit, et tu écoutes la réponse avant de parler.\n\nLa plupart du temps ça ne mène à rien. Une fois sur vingt, on te demande d'en reparler." },
+    { id: "dimanche", emoji: "⛪", label: "Le culte du dimanche", dimanche: true, jours: 6, gain: 9,
+        verse: "« N'abandonnons pas notre assemblée. »", ref: "Hébreux 10:23-25",
+        fx: { energy: -6, stress: -9 }, mental: { loneliness: -6, purpose: +4 },
+        out: "Le même appartement du vieux Nice, les mêmes chaises dépareillées. Personne ne te demande rien, et tu es le seul de la pièce à trouver ça extraordinaire." },
+    { id: "repas", emoji: "🍞", label: "Le repas du Seigneur", dimanche: true, jours: 6, gain: 7,
+        verse: "« Faites ceci en mémoire de moi. »", ref: "1 Corinthiens 11:23-32",
+        fx: { stress: -7 }, mental: { purpose: +5 },
+        out: "Le pain, puis la coupe, passés de main en main sans un mot.\n\nTu t'examines toi-même avant de prendre, comme il est demandé. Certains dimanches, c'est la partie la plus difficile de la semaine." },
+    { id: "semaine", emoji: "📅", label: "La réunion de mi-semaine", semaine: true, jours: 5, gain: 7,
+        verse: "« Ils persévéraient dans l'enseignement des apôtres. »", ref: "Actes 2:42",
+        fx: { energy: -5, stress: -6 }, mental: { loneliness: -4, purpose: +3 },
+        out: "On étudie un texte, on prend des nouvelles, quelqu'un raconte sa semaine sans l'arranger. La collecte pour les pauvres passe à la fin.\n\nTu es venu fatigué. Tu repars moins seul." },
+    { id: "formation", emoji: "👥", label: "Un temps de formation avec Falltos", jours: 9, gain: 8,
+        verse: "« Obéissez à vos conducteurs. »", ref: "Hébreux 13:17",
+        fx: { energy: -4, stress: -5 }, mental: { purpose: +6, loneliness: -5 },
+        out: "Deux heures avec Falltos, sans ordre du jour. Il te demande où tu en es vraiment, et il attend la deuxième réponse — celle qui vient après la réponse polie.\n\nC'est lui ton formateur." },
+    { id: "jeune", emoji: "🍽️", label: "Jeûner une journée", jours: 24, gain: 12,
+        verse: "« Quand tu jeûnes, parfume ta tête et lave ton visage. »", ref: "Matthieu 6:17",
+        fx: { energy: -14, health: -2, stress: +6 }, mental: { purpose: +6, anxiety: -5 },
+        out: "Vingt-quatre heures. Tu as passé la moitié de la journée à penser à manger, et l'autre moitié à penser à autre chose que toi. C'est la première fois depuis longtemps." },
+    { id: "hospitalite", emoji: "🏠", label: "Inviter des gens chez toi", jours: 14, gain: 8,
+        verse: "« Exercez l'hospitalité les uns envers les autres. »", ref: "Après le baptême",
+        fx: { energy: -7, money: -30000, stress: -6 }, mental: { loneliness: -7, purpose: +4 },
+        out: "Douze personnes autour d'une table, dans une maison qui a vu passer des gens autrement plus connus.\n\nPersonne ne photographie rien. Quelqu'un fait la vaisselle sans qu'on le lui demande." },
+];
+// Combien rapporte une pratique maintenant : plein la première fois de la
+// journée, la moitié la deuxième, puis plus rien — mais on peut toujours le
+// faire. On ne met pas de verrou sur la prière.
+function marcheGainDu(gs, pr) {
+    const jour = new Date(gs.currentDate).toDateString();
+    const reg = (gs.marcheJour && gs.marcheJour.jour === jour) ? gs.marcheJour.n || {} : {};
+    const n = reg[pr.id] || 0;
+    return n === 0 ? pr.gain : n === 1 ? Math.round(pr.gain / 2) : 0;
+}
+// Une pratique à date fixe n'est pas bloquée par un compteur : elle a son jour.
+function marchePrete(gs, pr) {
+    const d = new Date(gs.currentDate).getDay();
+    if (pr.dimanche)
+        return d === 0;
+    // Le document parle de « réunions de mi-semaine » sans fixer de jour : on
+    // ouvre donc toute la semaine, hors dimanche.
+    if (pr.semaine)
+        return d >= 2 && d <= 5;
+    if (pr.libre)
+        return true;
+    const last = (gs.marcheActs || {})[pr.id] || 0;
+    return (gs.currentDate - last) >= (pr.jours || 0) * 86400000;
+}
+// Celui qui a tout arrêté pour Dieu : il ne reste que la marche. Plus de scène,
+// plus de studio, plus de plateaux, plus de réseaux, plus de cercle, plus de
+// centre anti-élite, et plus aucune nouvelle du monde des célébrités.
+function enRetrait(gs) { return !!(gs && gs.bonnePart); }
+function marcheNiveau(gs) {
+    if (!gs || !gs.faithDone)
+        return null;
+    return typeof gs.marche === "number" ? gs.marche : MARCHE_DEPART;
+}
+// ─── LES CONVICTIONS ────────────────────────────────────────────────────────
+// Celles du mouvement des Églises Chrétiennes Internationales, telles qu'elles
+// sont enseignées dans les Principes Fondamentaux. Elles ne sont ni catholiques,
+// ni protestantes, et le jeu ne mélange pas : tout ce qui touche à la foi de
+// Fisco découle de cette liste.
+const CONVICTIONS = [
+    // ── Les traits distinctifs, tels que le document les énumère (L'Église, §6) ──
+    { id: "cv_resurrection", emoji: "✝️", titre: "Dieu a physiquement ressuscité Jésus",
+        ref: "L'Église, §6.A",
+        texte: "Le premier des traits distinctifs du mouvement : Dieu a physiquement ressuscité Jésus d'entre les morts." },
+    { id: "cv_autorite", emoji: "📖", titre: "La Bible est inspirée de Dieu et notre seule autorité",
+        ref: "L'Église, §6.B · 2 Timothée 3:16-17",
+        texte: "La Bible est inspirée par Dieu et elle est notre seule autorité. Puisque nous ne nous séparons pas de la vérité, nous nous considérons comme non confessionnels." },
+    { id: "cv_toute_bible", emoji: "📚", titre: "Toute la Bible, pas juste le Nouveau Testament",
+        ref: "L'Église, §6.C · 2 Timothée 3:14-17",
+        texte: "L'Ancien Testament s'applique à notre vie autant que le Nouveau, à l'exception de la loi de Moïse et de tout enseignement du Nouveau Testament qui la remplace." },
+    { id: "cv_eglise_visible", emoji: "⛪", titre: "L'Église visible : des disciples baptisés et complètement engagés",
+        ref: "L'Église, §6.D · Actes 11:25-26 · Éphésiens 4:4-6",
+        texte: "Comme dans le livre des Actes, l'Église visible ne devrait être composée que de disciples baptisés et complètement engagés. Église = disciples = chrétiens." },
+    { id: "cv_silence", emoji: "🤫", titre: "Se taire quand la Bible parle, parler quand la Bible se tait",
+        ref: "L'Église, §6.E · Genèse 2:19",
+        texte: "Nous devons obéir à la Parole de Dieu ; mais quand la Bible n'interdit pas une pratique ou un nom, nous sommes libres d'utiliser la créativité que Dieu nous a donnée." },
+    { id: "cv_direction", emoji: "🧭", titre: "Une direction centralisée, et l'unité des dirigeants",
+        ref: "L'Église, §6.F · 1 Corinthiens 4:15-17 · Tite 1:5",
+        texte: "Dans la Bible, quand le peuple de Dieu était un, c'est parce qu'il y avait une direction centrale et un dirigeant central puissant. Au premier siècle, les assemblées formaient un grand mouvement, et non des congrégations autonomes." },
+    { id: "cv_vision", emoji: "🌍", titre: "Évangéliser toutes les nations dans cette génération",
+        ref: "L'Église, §6.G · Matthieu 28:19-20",
+        texte: "Notre vision sera accomplie si chaque disciple fait des disciples, et si tous les disciples ont une relation de formation." },
+    // ── Le cœur de la conversion, repris des séances du cours ──
+    { id: "cv_disciple", emoji: "🚶", titre: "Sauvé = chrétien = disciple",
+        ref: "Disciple · Actes 11:19-26 · Luc 9:23-26 · Luc 14:25-33",
+        texte: "Le terme « chrétien » n'apparaît que trois fois dans le Nouveau Testament ; « disciple », plus de 270 fois. Jésus est venu faire des disciples, et seuls les disciples baptisés seront sauvés. Être disciple : renoncer à soi, porter sa croix chaque jour, calculer la dépense, aimer Christ plus que toute autre personne, et renoncer à tout ce qu'on possède." },
+    { id: "cv_bapteme", emoji: "💧", titre: "Le baptême par immersion, pour le pardon des péchés",
+        ref: "Lumière et ténèbres · Actes 2:38 · Romains 6:1-4 · Colossiens 2:12 · 1 Pierre 3:21",
+        texte: "On croit, on se repent — le mot grec veut dire faire demi-tour — et on est immergé. C'est à cet instant que les péchés sont pardonnés, que la personne est sauvée, et qu'elle reçoit l'Esprit Saint qui donne la capacité de vivre selon les commandements de Dieu. Le baptême est la participation à la mort, à l'ensevelissement et à la résurrection de Jésus : c'est bien plus qu'un symbole." },
+    { id: "cv_fausses", emoji: "🚫", titre: "Ce que nous ne croyons pas",
+        ref: "Conversion dans le Nouveau Testament · Ézéchiel 18:20 · Apocalypse 3:20",
+        texte: "Le baptême des enfants : un bébé ne peut ni croire ni se repentir, et il n'y a pas de péché originel — chacun est responsable de ses propres actes. « Prier Jésus d'entrer dans son cœur » : cette phrase n'est pas dans la Bible, et le verset qu'on cite pour elle s'adresse à des chrétiens déjà convertis devenus tièdes. Le baptême n'est ni un signe extérieur, ni une œuvre : c'est le moment du salut." },
+    { id: "cv_royaume", emoji: "👑", titre: "L'Église est le royaume de Dieu sur terre",
+        ref: "L'avènement du Royaume · Colossiens 1:15-18 · Actes 2 · Actes 2:42",
+        texte: "L'Église est le corps de Christ, la famille de Dieu, fondée exclusivement sur la Parole. Le royaume est établi à la Pentecôte. En tant que citoyens, nous persévérons dans quatre choses : l'enseignement des apôtres, la communion fraternelle, la fraction du pain, et la prière." },
+    { id: "cv_dons", emoji: "🕊️", titre: "Les dons miraculeux ont cessé",
+        ref: "Les dons miraculeux · 1 Corinthiens 13:8-10 · Actes 8:18",
+        texte: "Les dons miraculeux étaient reçus par l'imposition des mains des apôtres, et ceux qui les recevaient ne pouvaient pas les transmettre à leur tour. Il n'y a plus d'apôtres aujourd'hui. On peut être rempli du Saint-Esprit sans parler en langues : Jésus avait l'Esprit sans mesure et n'a jamais parlé en langues." },
+    { id: "cv_formation", emoji: "👥", titre: "Chaque disciple a une relation de formation",
+        ref: "L'Église, §6.G · Après le baptême · Hébreux 13:17",
+        texte: "Chaque membre devrait avoir un formateur ou une formatrice. Ce sont ceux qui sont stables qui forment, pas tout le monde. Fisco, lui, est formé par Falltos." },
+    { id: "cv_reunions", emoji: "🤝", titre: "Assister à toutes les réunions de l'Église",
+        ref: "Après le baptême · Hébreux 10:23-25 · 1 Corinthiens 12:14-27",
+        texte: "Le culte du dimanche, les réunions de mi-semaine, les discussions bibliques, les moments de formation. On a besoin du corps et le corps a besoin de nous : il faut réorganiser son emploi du temps pour pouvoir venir." },
+    { id: "cv_collecte", emoji: "💶", titre: "La dîme et la collecte",
+        ref: "Après le baptême · Malachie 3:6-12 · 2 Corinthiens 9:6-8",
+        texte: "La collecte du dimanche, c'est la dîme — dix pour cent — et la collecte pour les pauvres se fait pendant les réunions de mi-semaine. Donner permet de mesurer notre sacrifice, et il faut donner avec un cœur joyeux, non sous la contrainte." },
+    { id: "cv_repas", emoji: "🍞", titre: "Le repas du Seigneur",
+        ref: "Après le baptême · 1 Corinthiens 11:23-32",
+        texte: "La fraction du pain chaque dimanche. Le repas du Seigneur aide à rester inébranlable dans son engagement, et à ne pas devenir spirituellement infirme, malade ou mort." },
+];
+const MARCHE_PALIERS = [
+    { at: 0, cle: "eteinte", label: "Éteinte", desc: "Tu n'as plus rien fait depuis des mois. Tu dis encore que tu crois, et c'est tout ce qui reste." },
+    { at: 25, cle: "tiede", label: "Tiède", desc: "Tu y penses encore, de loin. Les anciennes choses ont retrouvé le chemin de la maison." },
+    { at: 50, cle: "debout", label: "Debout", desc: "Tu tiens. Rien d'héroïque : tu es là le dimanche, et tu ouvres le livre dans la semaine." },
+    { at: 72, cle: "vivante", label: "Vivante", desc: "Ça n'a plus rien d'un effort. C'est devenu la façon dont tes journées sont construites." },
+    { at: 90, cle: "profonde", label: "Profonde", desc: "Les gens le remarquent avant que tu n'en parles. Quelque chose en toi ne se négocie plus." },
+];
+function marchePalier(v) { return [...MARCHE_PALIERS].reverse().find(p => v >= p.at) || MARCHE_PALIERS[0]; }
+// ─── LES TENTATIONS ─────────────────────────────────────────────────────────
+// Ils ne te reprendront jamais : on ne revient pas dans le cercle. Mais ils
+// savent exactement ce que tu aimais, et ils peuvent te le rendre à l'unité.
+// Accepter ne te fait pas rentrer : ça te fait servir de l'extérieur, une fois.
+const FOI_TENTATIONS = [
+    { id: "tt_catalogue", emoji: "💰", titre: "Le double, par un tiers",
+        verse: "« Nul ne peut servir deux maîtres. »", ref: "Matthieu 6:24",
+        texte: "Un fonds que tu ne connais pas propose de racheter l'intégralité de ton catalogue au double de sa valeur. L'offre est propre, signée, immédiate.\n\nTon avocat a mis quatre jours à remonter la chaîne des actionnaires. Au bout, il y a deux noms que tu connais.\n\nCe n'est pas un retour qu'on te propose : personne ne te reprendra jamais. On te propose de leur vendre quelque chose, une fois, très cher.",
+        oui: { label: "Signer — c'est juste un catalogue", money: 1400000000, fx: { rep: -10, stress: +18 }, marche: -24,
+            out: "Le virement arrive en une matinée. Tu n'as jamais vu autant d'argent d'un coup, même au sommet.\n\nTrois semaines plus tard, tes morceaux servent de bande-son à une campagne dont tu n'aurais jamais voulu. Tu n'as aucun recours : tu as tout vendu.\n\nPersonne ne t'a reprise dans le cercle. On ne t'a même pas remercié." },
+        non: { label: "Refuser, sans expliquer pourquoi", fx: { stress: +8 }, marche: +11,
+            out: "Tu refuses par un message de deux lignes. Ton avocat te demande si tu es sûr. Ta directrice financière te demande si tu te sens bien.\n\nTu n'as rien gagné aujourd'hui. Tu as juste encore tes morceaux, et le droit de dire non une deuxième fois." } },
+    { id: "tt_prix", emoji: "🏆", titre: "Un prix pour l'ensemble de ta carrière",
+        verse: "« Que votre lumière brille devant les hommes. »", ref: "Matthieu 5:16",
+        texte: "Une académie t'annonce un prix d'honneur pour l'ensemble de ta carrière. Grande soirée, diffusion mondiale, discours de huit minutes.\n\nC'est l'un d'eux qui te le remettra sur scène. On te l'a dit à l'avance, comme une délicatesse.\n\nTu sais exactement à quoi sert cette photo.",
+        oui: { label: "Monter sur scène et le prendre", fx: { fame: +9, rep: +6, stress: +14 }, marche: -15,
+            out: "La salle se lève. Il te serre la main un peu trop longtemps, le temps que les photographes fassent leur travail.\n\nLa photo tourne pendant une semaine. On y voit deux hommes qui se félicitent, et c'est exactement ce qu'elle dit.\n\nTu as rangé le trophée dans un placard le soir même." },
+        non: { label: "Décliner, par écrit, sans un mot de plus", fx: { rep: -5, fame: -3 }, marche: +12,
+            out: "Tu déclines la veille. L'académie publie un communiqué poli sur ton « indisponibilité ».\n\nDeux journalistes écrivent que tu es devenu difficile. Un troisième écrit que tu es devenu fou.\n\nTu n'auras pas la photo. C'était tout l'enjeu." } },
+    { id: "tt_ile", emoji: "🏝️", titre: "Une invitation, comme simple invité",
+        verse: "« Ne vous conformez pas au siècle présent. »", ref: "Romains 12:2",
+        texte: "Un carton, sans logo : trois jours sur une île, entre gens du même monde. Aucune obligation, aucun service demandé, aucun engagement.\n\n« Juste venir. Tu connais déjà tout le monde. »\n\nTu te souviens très bien de ce qui se passe là-bas, et tu te souviens aussi de ce que tu ressentais en y allant.",
+        oui: { label: "Y aller trois jours", money: 260000000, fx: { rep: -14, stress: +26, health: -6 }, marche: -30,
+            out: "Trois jours. Tu n'as rien fait de ce qu'ils font, et tu étais là.\n\nUn contrat te tombe dessus en rentrant, qu'on ne t'avait pas promis et que personne n'a négocié.\n\nTu as prié le dernier soir, sur la terrasse, et tu n'as pas réussi à finir une phrase." },
+        non: { label: "Jeter le carton", fx: { stress: +6 }, marche: +13,
+            out: "Tu jettes le carton sans répondre. Deux personnes t'appellent dans la semaine pour s'assurer que tu l'avais bien reçu.\n\nTu confirmes que oui. Il n'y a pas de troisième appel.\n\nTu n'avais jamais mesuré à quel point un refus pouvait être silencieux." } },
+    { id: "tt_silence", emoji: "🤐", titre: "Le silence, à vie",
+        verse: "« Vous connaîtrez la vérité, et la vérité vous affranchira. »", ref: "Jean 8:32",
+        texte: "Une rente. Pas un versement : une rente mensuelle, à vie, indexée, pour toi et pour tes enfants.\n\nUne seule contrepartie, écrite en une phrase : ne plus jamais parler d'eux, nulle part, sous aucune forme.\n\nL'homme qui te présente le document précise que ce n'est pas une menace. Et c'est vrai : ce n'en est pas une.",
+        oui: { label: "Signer la clause de silence", money: 620000000, fx: { rep: -18, stress: +22 }, marche: -32,
+            out: "Tu signes. Le premier virement tombe le mois suivant, à la date exacte annoncée.\n\nTu as encore ta foi, ton église, ta rivière et tes frères. Tu as juste perdu le droit de dire ce que tu sais.\n\nLa première fois qu'on te pose la question en interview, tu entends ta propre voix changer de sujet." },
+        non: { label: "Repousser le document sur la table", fx: { stress: +16 }, marche: +15,
+            out: "Tu repousses le document sans le lire jusqu'au bout. L'homme le remet dans sa sacoche, te souhaite une bonne soirée et part.\n\nLes représailles reprennent trois semaines plus tard, exactement là où elles s'étaient arrêtées.\n\nTu as choisi de pouvoir encore parler. Tu n'as pas choisi d'être tranquille." } },
+    { id: "tt_feat", emoji: "🎙️", titre: "Le featuring qui ferait un numéro un",
+        verse: "« Que sert à l'homme de gagner tout le monde ? »", ref: "Marc 8:36",
+        texte: "Un des leurs te propose un morceau à deux. Production immense, sortie calée, playlists réservées, numéro un garanti dans dix-sept pays.\n\nLe texte est déjà écrit. On te demande juste de poser dessus.\n\nTu l'as lu deux fois. Il n'y a rien d'horrible dedans. C'est simplement quelque chose que tu n'écrirais plus.",
+        oui: { label: "Poser sur le morceau", fx: { fame: +12, rep: -8, money: +90000000, stress: +16 }, marche: -19,
+            out: "Numéro un dans dix-neuf pays, pas dix-sept. Le meilleur démarrage de ta carrière.\n\nÀ l'assemblée du dimanche, personne ne t'en parle. C'est précisément ce qui est insupportable.\n\nUn des frères finit par te dire une seule phrase, sans reproche : « C'est bien, musicalement. »" },
+        non: { label: "Dire non au morceau", fx: { stress: +9 }, marche: +12,
+            out: "Tu refuses sans négocier. Ton équipe met trois jours à s'en remettre.\n\nLe morceau sort avec quelqu'un d'autre et fait exactement ce qui était annoncé. Tu l'entends partout pendant quatre mois.\n\nTu l'écoutes une fois, en entier, seul dans la voiture. Puis tu changes de station." } },
+    { id: "tt_vengeance", emoji: "🗡️", titre: "De quoi en détruire un",
+        verse: "« À moi la vengeance, dit le Seigneur. »", ref: "Romains 12:19",
+        texte: "Tu as de quoi détruire l'un d'eux. Pas avec la vérité — la vérité ne suffirait pas — mais avec un montage qui tiendrait, parce que tu sais comment ils s'y prennent.\n\nÇa marcherait. Tu en es certain, et c'est bien le problème.\n\nIl a brisé des gens que tu connais. Personne ne te le reprocherait.",
+        oui: { label: "Le faire tomber, par leurs méthodes", fx: { rep: +14, fame: +7, stress: +30 }, marche: -27,
+            out: "En onze jours, il n'est plus rien. Tu as utilisé exactement leur méthode, avec exactement leur efficacité.\n\nTu attends le soulagement. Il ne vient pas.\n\nÀ sa place, dans le cercle, quelqu'un d'autre s'assoit dès le mois suivant. Tu as détruit un homme et rien d'autre." },
+        non: { label: "Ne pas s'abaisser à ça", fx: { stress: +20 }, marche: +16,
+            out: "Tu brûles le dossier. Pas au sens figuré : tu le brûles.\n\nIl continue sa vie, intact, et tu continueras à le croiser sur des photos pendant des années.\n\nC'est le refus le plus coûteux de ta vie, et le seul que tu ne regretteras jamais." } },
+    { id: "tt_antenne", emoji: "📻", titre: "Redevenir le plus grand",
+        verse: "« Celui qui me confessera devant les hommes… »", ref: "Luc 12:8",
+        texte: "Un groupe audiovisuel te propose un retour en grâce complet : antennes, playlists, couvertures, documentaire, tournée relayée partout.\n\nUne seule condition, formulée avec beaucoup de douceur : ne plus parler de ça à l'antenne. Ni Dieu, ni l'église, ni la rivière. « Ça met le public mal à l'aise. »\n\nIls ne te demandent pas de renier quoi que ce soit. Juste de te taire sur un sujet.",
+        oui: { label: "Accepter de ne plus en parler", fx: { fame: +14, rep: +4, money: +40000000 }, marche: -22,
+            out: "Tout revient en six semaines : les couvertures, les antennes, les chiffres.\n\nOn te pose la question en direct, une fois. Tu réponds que tu préfères garder ça pour toi, et tu enchaînes sur l'album.\n\nLe lendemain, un message d'un des frères : « On a regardé hier soir. On est contents pour toi. » Il n'y a aucune ironie dedans, et c'est pire." },
+        non: { label: "Refuser la condition", fx: { fame: -6, money: -20000000 }, marche: +14,
+            out: "Tu refuses la clause et tout le reste tombe avec elle.\n\nTu restes à l'écart des grandes antennes pendant des années. Ton public est plus petit, et il est là à chaque fois.\n\nTu diras cette phrase sur scène quatre mois plus tard, devant quatre mille personnes au lieu de quarante mille." } },
+    { id: "tt_nuit", emoji: "🌙", titre: "Un message à deux heures du matin",
+        verse: "« Veillez et priez, afin que vous ne tombiez pas dans la tentation. »", ref: "Matthieu 26:41",
+        texte: "Un nom que tu n'avais plus vu depuis des années s'affiche à deux heures du matin. Trois phrases, rien d'explicite, et une adresse.\n\nLe timing n'a rien d'un hasard : c'est la pire semaine que tu aies passée depuis le baptême, et quelqu'un le sait.\n\nTu connais la suite par cœur. Tu l'as vécue cent fois avant.",
+        oui: { label: "Y aller", fx: { stress: -12, rep: -6, health: -4 }, marche: -21,
+            out: "Tu y vas. C'est exactement comme avant, et c'est bien ça qui te glace : rien n'a changé, sauf toi.\n\nTu rentres au petit matin. Tu ne pries pas ce soir-là, ni les trois suivants.\n\nPersonne ne l'a su. C'est la première fois que ça ne te rassure pas." },
+        non: { label: "Éteindre le téléphone", fx: { stress: +14 }, marche: +13,
+            out: "Tu éteins le téléphone et tu le laisses dans une autre pièce. Tu ne dors pas de la nuit.\n\nAu matin, tu appelles un des frères et tu lui racontes, bêtement, comme un gamin. Il ne fait aucun commentaire et te propose un café.\n\nC'est la première fois de ta vie que tu demandes de l'aide avant d'être tombé." } },
+];
+// ─── FALLTOS, TON FORMATEUR ────────────────────────────────────────────────
+// Il ne disparaît pas après le baptême : c'est là que son travail commence. Plus
+// tu es faible, plus il est là — et il ne vient jamais pour te faire la morale.
+const FALLTOS_FORMATION = [
+    { id: "ff_nouvelles", emoji: "☕", titre: "Il passe sans prévenir", seuil: 100,
+        texte: "Il sonne un mardi à sept heures du matin, avec deux cafés et rien à dire de particulier.\n\nIl te demande comment tu vas. Tu réponds « ça va ». Il attend. Tu finis par répondre pour de vrai, et ça prend une heure et demie.\n\nIl ne commente presque rien. Il repart en disant qu'il repasse la semaine prochaine, et il repassera.",
+        marche: +6, mental: { loneliness: -7, anxiety: -4 } },
+    { id: "ff_texte", emoji: "📖", titre: "Un texte, et une question", seuil: 100,
+        texte: "Il ouvre à un passage sans rien annoncer, te le fait lire à voix haute, puis pose une seule question : « Qu'est-ce que ça change pour toi cette semaine ? »\n\nTu donnes la réponse d'école. Il attend encore. Tu donnes l'autre réponse, celle qui te coûte.\n\n« Voilà. On part de là. »",
+        marche: +7, mental: { purpose: +6 } },
+    { id: "ff_argent", emoji: "💶", titre: "Il te parle d'argent sans gêne", seuil: 100,
+        texte: "Personne n'ose aborder ça avec toi. Lui, si.\n\nIl te demande ce que tu donnes, à qui, et pourquoi. Il te demande aussi ce que tu gardes, et ce que ça protège.\n\nTu n'as pas aimé la conversation. Tu y repenses pendant trois semaines.",
+        marche: +5, mental: { purpose: +4, anxiety: +3 } },
+    { id: "ff_confession", emoji: "🫂", titre: "Tu lui dis ce que tu n'as dit à personne", seuil: 55,
+        texte: "Tu tiens trois semaines, puis tu craques un dimanche soir, dans sa voiture, moteur éteint.\n\nTu lui racontes la chose que tu n'as jamais racontée. Il ne sursaute pas, ne te coupe pas, ne cite aucun verset.\n\nÀ la fin, il dit juste : « Merci de me l'avoir dit. On va s'en occuper ensemble. » Le « ensemble » te démonte plus que tout le reste.",
+        marche: +12, mental: { loneliness: -14, anxiety: -10, purpose: +8 }, fx: { stress: -20 } },
+    { id: "ff_reprise", emoji: "🪞", titre: "Il te reprend, et ça pique", seuil: 45,
+        texte: "Il a vu l'interview. Il a vu la façon dont tu as parlé de quelqu'un.\n\nIl te le dit en face, calmement, sans adoucir : « Ce n'est pas toi, ça. Ou alors c'est redevenu toi, et c'est pire. »\n\nTu te défends dix minutes. Puis tu te tais, parce qu'il a raison et que vous le savez tous les deux.",
+        marche: +9, mental: { purpose: +6, anxiety: +5 }, fx: { stress: +12 } },
+    { id: "ff_urgence", emoji: "🚪", titre: "Il débarque chez toi", seuil: 30,
+        texte: "Tu n'es pas venu depuis trois semaines. Tu ne réponds plus aux messages.\n\nIl se pointe chez toi un soir, s'assoit dans ton salon et annonce qu'il ne partira pas avant que vous ayez parlé. Il reste quatre heures.\n\nIl ne te fait aucun reproche. Il te dit une seule chose en partant : « Tu ne tomberas pas tant que quelqu'un te tient. Je te tiens. »",
+        marche: +15, mental: { loneliness: -16, purpose: +10, anxiety: -8 }, fx: { stress: -18 } },
+    { id: "ff_tous_jours", emoji: "📞", titre: "Il appelle tous les jours", seuil: 20,
+        texte: "Depuis dix jours, il appelle chaque matin. Jamais longtemps : deux minutes, parfois moins.\n\n« T'as lu ? » « T'as prié ? » « Tu viens dimanche ? » Et il raccroche.\n\nTu as trouvé ça pesant les trois premiers jours. Au dixième, c'est la seule chose fixe de ta semaine.",
+        marche: +13, mental: { loneliness: -12, purpose: +9 } },
+    { id: "ff_jeune", emoji: "🍽️", titre: "Il jeûne pour toi", seuil: 18,
+        texte: "Tu l'apprends par quelqu'un d'autre, trois semaines plus tard, et pas par lui.\n\nIl a jeûné et prié pour toi pendant que tu t'éloignais, sans jamais te le dire, sans jamais s'en servir.\n\nQuand tu lui en parles, il hausse les épaules et change de sujet. C'est tout ce que tu obtiendras.",
+        marche: +16, mental: { loneliness: -14, purpose: +12 }, fx: { stress: -14 } },
+];
+// ─── NAËL : CELUI QU'ON T'ENVOIE ───────────────────────────────────────────
+// Un gamin de Bourg-en-Bresse, comme toi. On lui propose exactement ce qu'on
+// t'a proposé, et il ne comprend pas encore ce que c'est. Il entre vraiment dans
+// la partie : il a une fiche, une relation, et il y reste.
+const NAEL = { id: "nael_bouaziz", name: "Naël Bouaziz", emoji: "🎧", cat: "music_fr", loc: "Bourg-en-Bresse" };
+const NAEL_BIOS = [
+    "Dix-neuf ans, deux projets sortis seul, et une proposition qu'il n'a pas comprise.",
+    "Dix-neuf ans. On lui a proposé beaucoup plus d'argent qu'il n'en a jamais vu, et il t'a appelé avant de répondre.",
+    "Il a refusé. Il ne sait pas encore ce qu'il a refusé, et il ne le saura peut-être jamais.",
+    "Il vient à l'assemblée le dimanche. Il arrive toujours en retard et repart toujours le dernier.",
+    "Baptisé dans la même rivière que toi. Il t'appelle « grand frère » et ça te fait quelque chose chaque fois.",
+    "Il a dit non. Puis il a dit oui, six semaines plus tard, sans te rappeler.",
+];
+// ─── FORMER NAËL ───────────────────────────────────────────────────────────
+// Après son baptême, c'est toi son formateur. Sa foi a sa propre jauge : elle
+// descend toute seule, tes décisions la font monter ou la font tomber, et ta
+// propre marche pèse — il regarde comment tu vis avant d'écouter ce que tu dis.
+// Si elle atteint zéro, il tombe de la foi, cesse d'être disciple, et il aura
+// trop honte pour te reparler.
+const NAEL_FOI_DEPART = 68;
+const NAEL_EROSION = 0.12; // par jour
+const FORMATION_NAEL = [
+    { id: "fn_premiere", emoji: "📖", titre: "Sa première semaine",
+        texte: "Il t'appelle le mardi : il n'a pas réussi à lire une seule fois depuis dimanche. Il s'excuse comme s'il avait commis un crime.",
+        options: [
+            { label: "Lui donner un plan simple et le rappeler chaque matin", bon: +10,
+                out: "Un chapitre par jour, et un message de toi tous les matins pendant trois semaines. Au bout d'un mois, il n'a plus besoin du message.\n\nIl te dira plus tard que c'est ce mois-là qui a tout tenu." },
+            { label: "Lui dire que ce n'est pas grave et passer à autre chose", bon: -6,
+                out: "Tu le rassures, vous parlez de musique, et vous raccrochez.\n\nIl n'a pas lu la semaine suivante non plus. Personne ne lui a redemandé." },
+            { label: "Lui reprocher de ne pas être sérieux", bon: -12,
+                out: "Tu lui expliques qu'il a signé pour quelque chose et qu'il doit tenir.\n\nIl dit oui à tout. Il ne t'appellera plus pour te dire qu'il a échoué — il te dira que tout va bien, et ce sera faux." }
+        ] },
+    { id: "fn_ancienne", emoji: "🌙", titre: "Son ancienne vie rappelle",
+        texte: "Ses anciens amis l'invitent à une soirée dont tu connais très bien le genre. Il te demande s'il peut y aller, et tu entends dans sa voix qu'il veut que tu dises oui.",
+        options: [
+            { label: "Y aller avec lui", bon: +12,
+                out: "Tu viens. Tu ne fais pas la police, tu es juste là, et vous repartez à une heure raisonnable.\n\nIl n'a rien fait qu'il regrette. Et il a vu qu'on pouvait rester soi-même dans cette pièce-là." },
+            { label: "Lui dire de décider lui-même", bon: -5,
+                out: "Tu lui réponds qu'il est grand et que c'est à lui de voir.\n\nTout est vrai. Il y est allé seul, et il est rentré à six heures du matin." },
+            { label: "Le lui interdire", bon: -8,
+                out: "Tu es ferme. Il n'y va pas.\n\nIl n'y va pas, et il t'en veut — pas d'avoir raison, de l'avoir traité comme un gamin. La fois suivante, il ne te demandera pas." }
+        ] },
+    { id: "fn_doute", emoji: "❓", titre: "Il doute, pour de vrai",
+        texte: "Il a lu un passage qu'il ne comprend pas et qui le heurte. Il te demande, gêné, si on a le droit de ne pas être d'accord avec la Bible.",
+        options: [
+            { label: "Étudier le passage avec lui, sans réponse toute faite", bon: +11,
+                out: "Vous passez trois soirées dessus. Tu ne lui sers aucune réponse d'autorité : vous cherchez ensemble, et tu admets deux fois que tu ne sais pas.\n\nIl ressort avec une conviction qui est la sienne, pas la tienne. C'est celle-là qui tient dans la durée." },
+            { label: "Lui dire d'arrêter de se poser ces questions", bon: -14,
+                out: "Tu lui réponds que ce n'est pas le moment, que ça viendra, qu'il faut d'abord faire confiance.\n\nIl a arrêté de poser des questions. Il a aussi arrêté de chercher." },
+            { label: "Renvoyer vers quelqu'un d'autre", bon: +2,
+                out: "Tu l'envoies vers un frère plus solide que toi sur ce sujet-là. Il y va, et ça l'aide.\n\nMais c'est à toi qu'il avait demandé." }
+        ] },
+    { id: "fn_fille", emoji: "💔", titre: "Il est amoureux",
+        texte: "Elle n'est pas disciple et ne compte pas le devenir. Il est fou d'elle et il le sait très bien, ce qui est précisément le problème.",
+        options: [
+            { label: "Écouter longuement avant de dire quoi que ce soit", bon: +9,
+                out: "Tu le laisses parler deux heures. Tu lui demandes ce qu'il veut dans dix ans et tu te tais.\n\nIl prend sa décision lui-même, trois semaines plus tard, et il la tient — parce que c'est la sienne." },
+            { label: "Trancher à sa place", bon: -9,
+                out: "Tu lui dis quoi faire. Il obéit.\n\nIl la quitte, et il t'en voudra pendant des mois sans jamais te le dire en face." },
+            { label: "Ne pas t'en mêler", bon: -4,
+                out: "Tu changes de sujet. Ça ne te regarde pas, après tout.\n\nIl se débrouille. C'est bien ce qu'il craignait." }
+        ] },
+    { id: "fn_rechute", emoji: "🕳️", titre: "Il a rechuté",
+        texte: "Il t'appelle à deux heures du matin. Il a refait exactement ce qu'il avait arrêté, et il n'arrive pas à finir ses phrases.",
+        options: [
+            { label: "Venir, maintenant", bon: +15,
+                out: "Tu prends la voiture. Tu es chez lui à trois heures.\n\nVous ne parlez presque pas. Tu restes jusqu'au matin, et au petit-déjeuner vous reprenez à zéro, sans drame.\n\nC'est la nuit qui l'a gardé." },
+            { label: "Le rappeler demain, à tête reposée", bon: -10,
+                out: "Tu lui dis de dormir et que vous en parlerez demain.\n\nDemain, il minimisera. Et vous n'en parlerez plus jamais vraiment." },
+            { label: "Lui dire que ça arrive à tout le monde", bon: -7,
+                out: "Tu le rassures un peu vite, pour qu'il se sente mieux et que la conversation s'arrête.\n\nIl se sent mieux. Et il a compris que tu ne voulais pas en entendre davantage." }
+        ] },
+    { id: "fn_carriere", emoji: "🎤", titre: "Sa carrière décolle",
+        texte: "Un vrai contrat se présente, propre, sans arrière-pensée. Les dates tombent toutes le dimanche.",
+        options: [
+            { label: "L'aider à renégocier le calendrier", bon: +10,
+                out: "Tu passes deux appels. Les dates bougent, le contrat tient, et personne n'y perd.\n\nIl apprend ce jour-là qu'on peut réussir sans sacrifier la même chose que toi tu as sacrifiée." },
+            { label: "Lui dire de refuser le contrat", bon: -6,
+                out: "Il refuse. Le contrat part à quelqu'un d'autre.\n\nIl ne te le reprochera pas. Il y repensera longtemps." },
+            { label: "Lui dire de signer et de voir plus tard", bon: -11,
+                out: "Il signe. Il ne vient plus le dimanche pendant huit mois.\n\nQuand la tournée s'arrête, il ne sait plus comment revenir." }
+        ] },
+    { id: "fn_toi", emoji: "🪞", titre: "Il te regarde vivre",
+        texte: "Il a vu quelque chose chez toi qui ne colle pas avec ce que tu lui demandes. Il ne dit rien, mais tu as vu qu'il a vu.",
+        options: [
+            { label: "Le reconnaître devant lui, sans te justifier", bon: +13,
+                out: "Tu l'abordes le premier. Tu lui dis où tu as failli, sans l'enrober.\n\nIl ne s'attendait pas à ça. C'est le jour où il a vraiment commencé à te faire confiance." },
+            { label: "Faire comme si de rien n'était", bon: -13,
+                out: "Vous n'en parlez pas. La semaine d'après non plus.\n\nIl continue de venir. Il ne te demande simplement plus rien d'important." }
+        ] },
+    { id: "fn_sien", emoji: "🌱", titre: "Quelqu'un vient le voir",
+        texte: "Un gamin de son quartier lui pose des questions sur sa foi. Naël ne se sent pas du tout à la hauteur.",
+        options: [
+            { label: "L'accompagner aux premières études", bon: +12,
+                out: "Tu viens aux trois premières, puis tu te mets au fond, puis tu ne viens plus.\n\nÀ la quatrième, il n'a plus besoin de toi. Il ne s'en est même pas rendu compte." },
+            { label: "Lui dire qu'il n'est pas prêt", bon: -9,
+                out: "Tu lui dis d'attendre d'être plus solide.\n\nLe gamin a arrêté de demander. Naël a compris qu'il n'était bon à rien, et c'est toi qui le lui as appris." }
+        ] },
+];
+function naelFoi(gs) {
+    const n = gs && gs.nael;
+    if (!n || !n.baptise)
+        return null;
+    return typeof n.foi === "number" ? n.foi : NAEL_FOI_DEPART;
+}
+// Ce que tu décides compte, et ta propre marche aussi : il regarde comment tu
+// vis avant d'écouter ce que tu dis.
+function naelEffet(gs, delta) {
+    const m = marcheNiveau(gs);
+    if (typeof m !== "number")
+        return delta;
+    const facteur = delta > 0 ? (0.6 + Math.min(1, m / 70) * 0.7) : (m >= 60 ? 0.8 : m >= 30 ? 1 : 1.35);
+    return Math.round(delta * facteur * 10) / 10;
+}
+function naelEtat(gs) { return (gs && gs.nael) || null; }
+function naelBio(gs) {
+    const n = naelEtat(gs);
+    if (!n)
+        return NAEL_BIOS[0];
+    if (n.tombe)
+        return "Il ne vient plus. On ne sait pas où il en est, et il ne répond à personne.";
+    if (n.perdu)
+        return NAEL_BIOS[5];
+    if (n.baptise)
+        return NAEL_BIOS[4];
+    if (n.stage >= 4)
+        return NAEL_BIOS[3];
+    if (n.stage >= 3)
+        return NAEL_BIOS[2];
+    if (n.stage >= 2)
+        return NAEL_BIOS[1];
+    return NAEL_BIOS[0];
+}
+// Ce que tu lui as dit pèse sur ce qu'il décidera. Ta propre marche aussi : il
+// regarde comment tu vis, pas ce que tu racontes.
+function naelChances(gs) {
+    const n = naelEtat(gs) || {};
+    let p = 0.22;
+    if (n.dit === "verite")
+        p += 0.4;
+    else if (n.dit === "refuse")
+        p += 0.14;
+    const m = marcheNiveau(gs);
+    if (typeof m === "number")
+        p += Math.max(-0.18, Math.min(0.22, (m - 50) * 0.004));
+    if ((gs.temoignages || []).length)
+        p += 0.08;
+    return Math.max(0.05, Math.min(0.95, p));
+}
+// ─── TÉMOIGNER ──────────────────────────────────────────────────────────────
+// Le dire dehors coûte une partie du public et en fait venir un autre : plus
+// petit, et qui ne s'en va plus. C'est la seule célébrité qu'ils ne tiennent pas.
+const FOI_TEMOIGNAGES = [
+    { id: "tm_interview", emoji: "🎤", label: "Le dire en interview",
+        besoin: null,
+        fx: { fame: -7, rep: -5, stress: +16 }, marche: +13,
+        titre: "Tu l'as dit à la télévision",
+        out: "On ne t'a rien demandé : tu l'as amené toi-même, calmement, au milieu d'une question sur l'album.\n\nLe plateau se fige une demi-seconde. L'animateur enchaîne un peu vite.\n\nL'extrait tourne pendant quatre jours, la plupart du temps pour se moquer. Deux marques suspendent leurs contrats. Un présentateur te qualifie d'illuminé à une heure de grande écoute.\n\nEt des gens que tu ne connais pas commencent à t'écrire. Pas des fans : des gens." },
+    { id: "tm_morceau", emoji: "🎵", label: "L'écrire dans un morceau",
+        besoin: null,
+        fx: { fame: -5, rep: +6, stress: +8 }, marche: +15,
+        titre: "Le morceau est sorti",
+        out: "Pas un morceau de gospel, pas un prêche : un morceau de rap, écrit comme tu les écris, qui raconte ce qui t'est arrivé.\n\nLes radios ne le jouent pas. Les playlists l'évitent. Il fait un tiers de tes chiffres habituels.\n\nC'est le morceau qu'on te citera le plus souvent dans la rue pendant les vingt années qui suivent, et de très loin." },
+    { id: "tm_scene", emoji: "🏟️", label: "Le dire sur scène",
+        besoin: "tour",
+        fx: { fame: -4, rep: +4, energy: -10, stress: +12 }, marche: +17,
+        titre: "Tu l'as dit devant toute la salle",
+        out: "Avant le dernier morceau, lumières baissées, tu prends le micro autrement et tu parles deux minutes.\n\nQuelques sifflets au fond. Beaucoup de silence. Des téléphones qui filment.\n\nÀ la sortie, une file de gens attend, et ce ne sont pas des autographes qu'ils veulent. Ton tourneur t'explique que ça a « compliqué » la fin de tournée.\n\nTu l'as redit le lendemain, dans une autre ville." },
+];
 // Les représailles du cercle contre celui qui part
 const EXIT_RETALIATIONS = [
     { id: "ex_seize", emoji: "🏢", title: "Tes sociétés sont saisies",
@@ -13659,6 +14062,8 @@ function kaneAvailable(gs) {
 // Quelle campagne le cercle te propose, à l'instant où il peut le faire.
 // Isolée de l'interface pour être vérifiable telle quelle.
 function campagneProposee(gs) {
+    if (enRetrait(gs))
+        return null;
     const rank = eliteRank(gs).lvl;
     const faits = new Set([...(gs.circleOpsDone || []), ...(gs.circleOpsFailed || [])]);
     const pool = CIRCLE_OPS.filter(o => !faits.has(o.id) && rank >= o.minRank && (!o.avail || o.avail(gs)));
@@ -18191,6 +18596,19 @@ const QUICK_ACTIONS = {
         { label: "Live", emoji: "🔴", ctx: "Fisco fait un live sur toutes les plateformes", energy: -15, money: 5000, rep: 12, social: { instagram: 200000, tiktok: 300000 }, hours: 2 },
     ],
 };
+// ─── CE QUE LA NUIT COÛTE À TA MARCHE ───────────────────────────────────────
+// Un disciple peut encore sortir : la porte n'est pas fermée. Mais faire la fête
+// ou y participer pèse sur sa vie spirituelle, et plus la nuit est longue, plus
+// elle pèse. Passer du temps avec quelqu'un et le Casino Royal n'y touchent pas :
+// ce ne sont pas des fêtes.
+const COUT_SPIRITUEL_NUIT = {
+    "After": -8, "Soirée villa": -7, "Club Azure": -5, "VIP": -5, "Rooftop": -3, "Bahasco shot": -2,
+};
+function coutNuit(gs, label) {
+    if (!gs || !gs.faithDone)
+        return 0;
+    return COUT_SPIRITUEL_NUIT[label] || 0;
+}
 const SYSTEM_PROMPT = `Tu es le moteur narratif d'un jeu de lifestyle immersif premium. Le joueur incarne FISCO, au sommet de sa gloire, à Nassau aux Bahamas. L'histoire peut s'étendre sur plusieurs années : adapte le ton à la durée de la carrière (jeune prodige au début, légende installée plus tard).
 
 FISCO (Federico Sco) — rappeur/chanteur/entrepreneur français.
@@ -18688,7 +19106,7 @@ const INIT = {
     clashHistory: [], socialFeed: [], lastPostDate: null, activeTrend: null, activeClash: null, viralTrack: null,
     sponsoredCount: 0, lastTrendYear: null, socialCrisis: null, brandOffer: null,
     feedLog: [], eliteDeathDate: null,
-    rlM6: null, detteVue: 0, bienFaits: [], bienVu: 0, eliteSince: null, membreDepuis: null, grossesseCercle: null, enfantLivre: null, enfantRevu: false, sacrifices: [], warMission: null, warMissionsDone: [], docLeaked: false, eliteInfluence: 0, favorsUsed: [], circleNews: [], evidence: 0, exposure: 0, activeOps: [], pendingCM: null, cmDone: [], activeOp: null, opsDone: [], targetExposure: {}, exposedTargets: [],
+    rlM6: null, detteVue: 0, bienFaits: [], bienVu: 0, marche: null, bonnePart: false, dime: false, falltosVus: [], naelVus: [], marcheActs: {}, marcheJour: null, marcheVu: null, tentations: [], temoignages: [], publicFidele: 0, nael: null, eliteSince: null, membreDepuis: null, grossesseCercle: null, enfantLivre: null, enfantRevu: false, sacrifices: [], warMission: null, warMissionsDone: [], docLeaked: false, eliteInfluence: 0, favorsUsed: [], circleNews: [], evidence: 0, exposure: 0, activeOps: [], pendingCM: null, cmDone: [], activeOp: null, opsDone: [], targetExposure: {}, exposedTargets: [],
     allyState: { falltos: "actif", kanye_west: "actif", candace_owens: "actif", alain_soral: "actif", dieudonne: "actif", ryan_garcia: "actif", justin_bieber: "absent", the_weeknd: "absent" },
     inResistance: false, awardsBanned: false, conspiracist: false, tutorialDone: false, baptismDate: null, faithStart: null, faithStage: 0, faithDone: false, exElite: false,
     npcKids: [], warrant: null, mourning: false, mourningTold: false, boughtGrammys: [], lawShield: false, openCountries: [], mediaCycle: null, kaineEnded: null, eliteMet: [], newElites: {}, lastRecruitYear: null, curiaNames: null, curiaUntil: null, mkStage: {}, mkActive: null, mkFails: [], mkDone: {}, sacrificesDone: [], festivalDisaster: null, sabotaged: [], erased: [], seatsPlaced: [], lawsPassed: [], exitStrikes: [], resistanceTried: false, resistDeclinedAt: null, musicTier: null, musicOn: true, falltosSacrificed: false, lastFalltosOffer: null, eliteService: 0, rankSeen: null, eliteMission: null, eliteMissionsDone: [], circleOp: null, circleOpsDone: [], circleOpsFailed: [], lastCircleOpAt: null, eliteEndDone: false, lastEliteOffer: null, eliteOfferAt: null, eliteRefused: false, pendingDeath: null, elite: false, eliteOffered: false, eliteStrikes: 0, eliteFallen: false, hits: [], postStreaming: null, lastSummerHitYear: null, mentalAspects: { anxiety: 22, burnout: 18, loneliness: 25, purpose: 78 }, therapy: null, addictions: [], stis: [], unsafeActs: 0, lastStiCheck: null, stiTested: null,
@@ -18819,13 +19237,17 @@ function fameSocle(gs) {
         socle += eliteRank(gs).lvl * 2.2 + Math.min(4, (gs.eliteService || 0) * 0.12);
     }
     socle -= (gs.eliteStrikes || 0) * 6; // un faux pas se voit tout de suite
+    // Ceux qui sont restés après un témoignage ne partent plus : ils forment un
+    // plancher que ni les médias ni le cercle ne peuvent faire bouger.
+    const fidele = Math.min(3, gs.publicFidele || 0);
     if (gs.inResistance)
         socle -= 14;
     if (gs.boycott)
         socle -= 10;
     if (gs.inPrison)
         socle -= 8;
-    return Math.max(0, Math.min(fameCeiling(gs), Math.round(socle * 10) / 10));
+    const plancher = fidele ? 38 + fidele * 7 : 0;
+    return Math.max(plancher, Math.min(fameCeiling(gs), Math.round(socle * 10) / 10));
 }
 const FAME_CAP_SANS_CERCLE = 88;
 function fameCeiling(gs) { return (gs && gs.elite) ? 100 : FAME_CAP_SANS_CERCLE; }
@@ -18847,7 +19269,7 @@ function capFame(next) {
 // s'en approcher.
 // Affichée dans les paramètres : elle dit d'un coup d'œil si la partie tourne
 // bien sur la dernière version du jeu.
-const VERSION_JEU = "86";
+const VERSION_JEU = "92";
 // Le seuil à partir duquel une fortune commence à se défendre au lieu de croître
 const SEUIL_GRANDE_FORTUNE = 3000000000;
 const TAUX_FROTTEMENT = 0.34; // par an sur la part au-dessus du seuil, et ça s'accélère
@@ -19080,6 +19502,11 @@ function gameReducerInner(state, action) {
                 // titulaire. Elle ne s'arrête jamais.
                 if (state.enfantLivre)
                     costs += Math.max(0, gross) * 0.15;
+                // La collecte du dimanche : la dîme, dix pour cent de ce que tu gagnes.
+                // Donnée avec un cœur joyeux et non sous la contrainte — elle se coupe
+                // et se reprend quand tu veux.
+                if (state.dime)
+                    costs += Math.max(0, gross) * 0.10;
                 // Charges sociales et frais de structure des sociétés détenues
                 const ownedBiz = Object.values(state.businesses).filter(b => !(state.soldBusinesses || {})[b.id]).length;
                 costs += ownedBiz * 1400 / 30 * infl;
@@ -19994,6 +20421,97 @@ function gameReducerInner(state, action) {
             return state.membreDepuis ? state : { ...state, membreDepuis: state.currentDate };
         case "GROSSESSE_CERCLE":
             return { ...state, grossesseCercle: action.due ? { mere: action.mere, due: action.due, annonceAt: state.currentDate } : null };
+        case "CHEAT_BAPTEME": {
+            // Tout le chemin de la foi d'un seul coup : les cent quatre-vingt-quinze
+            // jours, les cinq étapes avec leurs effets réels, la sortie du cercle avec
+            // tout ce qu'elle coûte, et le baptême. Rien n'est offert au rabais.
+            if (state.faithDone)
+                return state;
+            let st = state;
+            // Le temps passe pour de vrai : le monde vit ces six mois.
+            for (let i = 0; i < 28 && st.currentDate < state.currentDate + FAITH_DURATION * 86400000; i++) {
+                st = gameReducerInner(st, { type: "ADVANCE_TIME", hours: 24 * 7 });
+            }
+            // Les effets des cinq étapes, un par un, exactement comme sur le chemin
+            for (const et of FAITH_STAGES) {
+                st = gameReducerInner(st, { type: "APPLY", effects: { ...(et.apply || {}), rel: { falltos: +12 }, deliberate: true } });
+                if (et.mental)
+                    st = gameReducerInner(st, { type: "MENTAL", deltas: et.mental });
+            }
+            // La sortie du cercle n'est pas négociable : sociétés saisies, fortune
+            // perdue, réputation et célébrité divisées par quatre. Si tu n'y étais
+            // pas, il n'y a rien à quitter.
+            if (st.elite && !st.eliteFallen) {
+                st = gameReducerInner(st, { type: "LEAVE_ELITE", values: action.values || {} });
+            }
+            return { ...st,
+                faithStart: st.currentDate - FAITH_DURATION * 86400000,
+                faithStage: FAITH_STAGES.length, faithDone: true,
+                baptismDate: st.currentDate,
+                marche: MARCHE_DEPART, marcheActs: {}, marcheJour: null, marcheVu: null,
+                tentations: [], temoignages: [], publicFidele: 0, nael: null };
+        }
+        case "MARCHE": {
+            // La vie spirituelle ne descend jamais sous zéro et ne dépasse pas cent.
+            // Elle n'existe qu'après le baptême.
+            if (!state.faithDone)
+                return state;
+            const base = typeof state.marche === "number" ? state.marche : MARCHE_DEPART;
+            const v = Math.max(0, Math.min(100, Math.round((base + (action.delta || 0)) * 10) / 10));
+            if (!action.pratique)
+                return { ...state, marche: v };
+            // Le compteur du jour : il sert à calculer le fruit, jamais à interdire.
+            const jour = new Date(state.currentDate).toDateString();
+            const prec = (state.marcheJour && state.marcheJour.jour === jour) ? state.marcheJour.n || {} : {};
+            return { ...state, marche: v,
+                marcheActs: { ...(state.marcheActs || {}), [action.pratique]: state.currentDate },
+                marcheJour: { jour, n: { ...prec, [action.pratique]: (prec[action.pratique] || 0) + 1 } } };
+        }
+        case "DIME":
+            return { ...state, dime: !!action.on };
+        case "MARCHE_VUE":
+            return { ...state, marcheVu: action.cle };
+        case "TENTATION":
+            if ((state.tentations || []).some(t => t.id === action.id))
+                return state;
+            return { ...state, tentations: [...(state.tentations || []),
+                    { id: action.id, choix: action.choix, date: state.currentDate }] };
+        case "TEMOIGNER":
+            if ((state.temoignages || []).includes(action.id))
+                return state;
+            // Le public qui reste après un témoignage ne s'en va plus jamais.
+            return { ...state, temoignages: [...(state.temoignages || []), action.id],
+                publicFidele: Math.min(3, (state.publicFidele || 0) + 1) };
+        case "BONNE_PART": {
+            // Tout arrêter. Les sociétés sont vendues, pas saisies : c'est toi qui
+            // pars. Le cercle, le centre, la scène, les plateaux, les réseaux : fini.
+            const vendues = { ...state.soldBusinesses };
+            Object.entries(action.values || {}).forEach(([k, v]) => {
+                if (!vendues[k])
+                    vendues[k] = { soldValue: v, soldDate: state.currentDate,
+                        buybackBase: Math.round(v * 1.22), seized: false, noBuyback: true };
+            });
+            const gains = Object.values(action.values || {}).reduce((a, v) => a + (v || 0), 0);
+            return { ...state, bonnePart: true, soldBusinesses: vendues,
+                money: state.money + Math.round(gains),
+                circleOp: null, warMission: null, infiltration: null, mkActive: null,
+                inResistance: false, activeTour: null, detailedTour: null,
+                pendingRollout: null, mediaCycle: null, activeClash: null, activeTrend: null,
+                staff: [], unuhuRoster: [] };
+        }
+        case "FALLTOS_VU":
+            return { ...state, falltosVus: [...new Set([...(state.falltosVus || []), action.id])] };
+        case "NAEL_VU":
+            return { ...state, naelVus: [...new Set([...(state.naelVus || []), action.id])] };
+        case "NAEL_FOI": {
+            const n = state.nael;
+            if (!n || !n.baptise)
+                return state;
+            const base = typeof n.foi === "number" ? n.foi : NAEL_FOI_DEPART;
+            return { ...state, nael: { ...n, foi: Math.max(0, Math.min(100, Math.round((base + (action.delta || 0)) * 10) / 10)) } };
+        }
+        case "NAEL":
+            return { ...state, nael: { ...(state.nael || { stage: 0 }), ...action.maj } };
         case "BIEN_FAIT":
             // Ce qu'on a réparé ne s'efface pas, et ne se compte pas en argent.
             if ((state.bienFaits || []).some(b => b.id === action.id))
@@ -21131,6 +21649,9 @@ function requiresMet(gs, ev) {
 class EventEngine {
     constructor() { this.lastShown = new Map(); }
     draw(gs) {
+        // Celui qui a tout arrêté ne reçoit plus rien du monde qu'il a quitté.
+        if (enRetrait(gs))
+            return null;
         const pool = ALL_EVENTS.filter(ev => {
             if (ev.manualOnly)
                 return false;
@@ -21760,6 +22281,7 @@ function FiscoGame() {
     const [settingsModal, setSettingsModal] = (0, react_1.useState)(false);
     const [prisonNotice, setPrisonNotice] = (0, react_1.useState)(null);
     const [leaveChoice, setLeaveChoice] = (0, react_1.useState)(false);
+    const [convictionsOuvertes, setConvictionsOuvertes] = (0, react_1.useState)(false);
     const [infilModal, setInfilModal] = (0, react_1.useState)(false);
     const [mapModal, setMapModal] = (0, react_1.useState)(null);
     const [restoredFromBackup, setRestoredFromBackup] = (0, react_1.useState)(false);
@@ -21808,6 +22330,8 @@ function FiscoGame() {
     const [typing, setTyping] = (0, react_1.useState)(false);
     const [typeDone, setTypeDone] = (0, react_1.useState)(false);
     const [gs, dispatch] = (0, react_1.useReducer)(gameReducer, INIT);
+    (0, react_1.useEffect)(() => { if (enRetrait(gs) && !["vie", "relations", "nightlife"].includes(mainTab))
+        setMainTab("vie"); }, [gs.bonnePart, mainTab]);
     const [notif, setNotif] = (0, react_1.useState)(null);
     const [activeEvent, setActiveEvent] = (0, react_1.useState)(null);
     const [calAlert, setCalAlert] = (0, react_1.useState)(null);
@@ -22315,7 +22839,7 @@ function FiscoGame() {
                 const chance = Math.min(1, needed / Math.max(1, daysLeft / 3));
                 if (Math.random() < chance) {
                     const curMonth = d.getMonth() + 1;
-                    const available = MAJOR_EVENTS.filter(e => !(gs.majorEventsSeen || []).includes(e.id)
+                    const available = (enRetrait(gs) ? [] : MAJOR_EVENTS).filter(e => !(gs.majorEventsSeen || []).includes(e.id)
                         && (!e.months || e.months.includes(curMonth))
                         // Les événements majeurs ignoraient leurs propres conditions :
                         // on pouvait recevoir « Menace sur ta famille » sans enfant.
@@ -22714,6 +23238,213 @@ function FiscoGame() {
                 addLog(`[CERCLE] Tu commences à mesurer ce que ça coûte`);
             }
         }
+        // ═══ APRÈS LE BAPTÊME : LA MARCHE, LES TENTATIONS, LA TRANSMISSION ═══════
+        // ── L'érosion : rien ne se maintient tout seul, la foi non plus ─────────
+        if (phase === "game" && !ending && gs.faithDone) {
+            const m = marcheNiveau(gs);
+            if (m > 0)
+                dispatch({ type: "MARCHE", delta: -MARCHE_EROSION });
+            // Une marche vivante soutient le reste ; une marche éteinte laisse tout
+            // revenir, et c'est précisément comme ça que ça se passe.
+            if (d.getDate() === 5) {
+                if (m >= 72)
+                    dispatch({ type: "MENTAL", deltas: { purpose: +3, anxiety: -2, loneliness: -2 } });
+                else if (m < 25)
+                    dispatch({ type: "MENTAL", deltas: { purpose: -4, anxiety: +4, loneliness: +3 } });
+            }
+        }
+        // ── Les paliers de la marche, dits une fois chacun ──────────────────────
+        if (phase === "game" && !ending && gs.faithDone) {
+            const m = marcheNiveau(gs);
+            const p = marchePalier(m);
+            if (p.cle !== gs.marcheVu) {
+                const avant = MARCHE_PALIERS.findIndex(x => x.cle === gs.marcheVu);
+                const apres = MARCHE_PALIERS.findIndex(x => x.cle === p.cle);
+                dispatch({ type: "MARCHE_VUE", cle: p.cle });
+                // On n'annonce que les basculements qui veulent dire quelque chose :
+                // la première fois, une rechute, ou une vraie remontée.
+                if (gs.marcheVu !== null && avant !== apres) {
+                    const descend = apres < avant;
+                    setCalAlert({ emoji: descend ? "🌫️" : "🕯️",
+                        title: descend ? `Ta marche : ${p.label.toLowerCase()}` : `Ta marche : ${p.label.toLowerCase()}`,
+                        desc: `${p.desc}\n\n${descend
+                            ? "Personne ne t'en parlera. C'est le genre de chose que tu es le seul à pouvoir voir, et le seul à pouvoir reprendre."
+                            : "Tu n'as rien fait d'extraordinaire. Tu as juste été là, régulièrement, pendant des semaines."}` });
+                }
+            }
+        }
+        // ── Ils ne te reprendront pas. Ils peuvent encore t'acheter à l'unité ───
+        if (phase === "game" && !ending && !anyOverlayOpen() && gs.faithDone && !gs.inPrison && !enRetrait(gs)
+            && d.getDate() === 23 && Math.random() < 0.34) {
+            const vues = new Set((gs.tentations || []).map(t => t.id));
+            const pool = FOI_TENTATIONS.filter(t => !vues.has(t.id));
+            if (pool.length) {
+                const t = pool[Math.floor(Math.random() * pool.length)];
+                addLog(`[TENTATION] ${t.titre}`);
+                const jouer = (choix) => {
+                    const c = choix === "oui" ? t.oui : t.non;
+                    dispatch({ type: "TENTATION", id: t.id, choix });
+                    dispatch({ type: "APPLY", effects: { ...(c.fx || {}),
+                            ...(c.money ? { money: c.money } : {}), deliberate: true } });
+                    dispatch({ type: "MARCHE", delta: c.marche || 0 });
+                    dispatch({ type: "MENTAL", deltas: choix === "oui"
+                            ? { purpose: -10, anxiety: +8 } : { purpose: +9, anxiety: -3 } });
+                    dispatch({ type: "ADD_TIMELINE", entry: { type: "foi", emoji: t.emoji,
+                            title: choix === "oui" ? `Tu as cédé : ${t.titre}` : `Tu as refusé : ${t.titre}` } });
+                    setTimeout(() => setCalAlert({ emoji: t.emoji,
+                        title: choix === "oui" ? "Tu as accepté" : "Tu as refusé", desc: c.out }), 30);
+                };
+                setAnnonceMajeure({ emoji: t.emoji, title: t.titre, majeur: true,
+                    desc: `${t.texte}\n\n*${t.verse}*\n— ${t.ref}`,
+                    actions: [{ label: t.non.label, run: () => jouer("non") },
+                        { label: t.oui.label, run: () => jouer("oui") }] });
+            }
+        }
+        // ── FALLTOS NE LÂCHE PAS ────────────────────────────────────────────────
+        // Plus ta marche est basse, plus il vient — et il vient d'autant plus vite.
+        if (phase === "game" && !ending && !anyOverlayOpen() && gs.faithDone && !gs.inPrison
+            && !(gs.deceased || []).includes("falltos")) {
+            const m = marcheNiveau(gs);
+            const vus = new Set(gs.falltosVus || []);
+            const pool = FALLTOS_FORMATION.filter(f => m <= f.seuil && !vus.has(f.id));
+            // Faible, il passe presque chaque semaine ; solide, une fois par saison.
+            const chance = m < 25 ? 0.5 : m < 45 ? 0.3 : m < 70 ? 0.14 : 0.08;
+            if (pool.length && d.getDate() % 6 === 0 && Math.random() < chance) {
+                const f = pool[Math.floor(Math.random() * pool.length)];
+                dispatch({ type: "FALLTOS_VU", id: f.id });
+                dispatch({ type: "MARCHE", delta: f.marche });
+                if (f.mental)
+                    dispatch({ type: "MENTAL", deltas: f.mental });
+                if (f.fx)
+                    dispatch({ type: "APPLY", effects: { ...f.fx, deliberate: true } });
+                dispatch({ type: "APPLY", effects: { rel: { falltos: +6 }, deliberate: true } });
+                addLog(`[FORMATION] ${f.titre}`);
+                setCalAlert({ emoji: f.emoji, title: f.titre,
+                    desc: `${f.texte}\n\n**Ta marche : +${f.marche}.**` });
+            }
+        }
+        // ── FORMER NAËL ─────────────────────────────────────────────────────────
+        if (phase === "game" && !ending && gs.nael && gs.nael.baptise && !gs.nael.tombe) {
+            const foi = naelFoi(gs);
+            if (foi > 0)
+                dispatch({ type: "NAEL_FOI", delta: -NAEL_EROSION });
+            // Il tombe. Il cesse d'être disciple, et il ne te parlera plus.
+            if (foi <= 0 && !anyOverlayOpen()) {
+                dispatch({ type: "NAEL", maj: { tombe: true, since: gs.currentDate } });
+                dispatch({ type: "CAST_BIO", id: NAEL.id, bio: "Il ne vient plus. On ne sait pas où il en est, et il ne répond à personne." });
+                dispatch({ type: "APPLY", effects: { rel: { [NAEL.id]: -80 }, stress: +30, deliberate: true } });
+                dispatch({ type: "MENTAL", deltas: { purpose: -20, loneliness: +16 } });
+                dispatch({ type: "ADD_TIMELINE", entry: { type: "foi", emoji: "🕯️", title: "Naël est tombé" } });
+                addLog("[FOI] Naël a abandonné la foi");
+                setAnnonceMajeure({ emoji: "🕯️", title: "Il ne vient plus", majeur: true,
+                    desc: `Ça n'a pas été une décision. Ça a été trois dimanches, puis six, puis on a arrêté de compter.\n\nTu l'appelles. Il ne décroche pas. Tu laisses un message, il ne rappelle pas. Tu passes chez lui, il n'ouvre pas — tu entends la télévision derrière la porte.\n\nCe n'est pas qu'il t'en veut. C'est qu'il a honte, et que la honte ne décroche jamais le téléphone.\n\nQuelqu'un te rapporte qu'il va bien, qu'il travaille, qu'il sort son projet. Qu'il ne parle plus jamais de tout ça.\n\nTu étais son formateur. C'est la seule phrase qui tourne dans ta tête, et elle ne s'en va pas.` });
+            }
+        }
+        // ── Les moments où il faut être là pour lui ────────────────────────────
+        if (phase === "game" && !ending && !anyOverlayOpen() && gs.nael && gs.nael.baptise && !gs.nael.tombe
+            && !gs.inPrison && d.getDate() % 7 === 0 && Math.random() < 0.28) {
+            const vus = new Set(gs.naelVus || []);
+            const pool = FORMATION_NAEL.filter(f => !vus.has(f.id));
+            if (pool.length) {
+                const f = pool[Math.floor(Math.random() * pool.length)];
+                const jouer = (o) => {
+                    const eff = naelEffet(gs, o.bon);
+                    dispatch({ type: "NAEL_VU", id: f.id });
+                    dispatch({ type: "NAEL_FOI", delta: eff });
+                    dispatch({ type: "APPLY", effects: { rel: { [NAEL.id]: Math.round(eff * 1.5) },
+                            stress: o.bon > 0 ? -4 : +8, deliberate: true } });
+                    dispatch({ type: "MENTAL", deltas: o.bon > 0 ? { purpose: +5 } : { purpose: -4, anxiety: +4 } });
+                    if (o.bon > 0)
+                        dispatch({ type: "MARCHE", delta: +2 });
+                    setTimeout(() => setCalAlert({ emoji: f.emoji, title: f.titre,
+                        desc: `${o.out}\n\n**La foi de Naël : ${eff > 0 ? "+" : ""}${eff}.**` }), 30);
+                };
+                setAnnonceMajeure({ emoji: f.emoji, title: `🎧 ${f.titre}`, majeur: true,
+                    desc: `${f.texte}\n\n*Tu es son formateur. Il regarde comment tu vis avant d'écouter ce que tu dis.*`,
+                    actions: f.options.map(o => ({ label: o.label, run: () => jouer(o) })) });
+            }
+        }
+        // ── NAËL : ce que Falltos a fait pour toi, quelqu'un l'attend de toi ────
+        if (phase === "game" && !ending && !anyOverlayOpen() && gs.faithDone && !gs.inPrison && gs.baptismDate) {
+            const n = naelEtat(gs);
+            const depuisBapteme = (gs.currentDate - gs.baptismDate) / 86400000;
+            // 1. Il demande à te voir
+            if (!n && depuisBapteme >= 110 && d.getDate() % 6 === 0 && Math.random() < 0.3) {
+                dispatch({ type: "ADD_CAST", cast: { ...NAEL, bio: NAEL_BIOS[0] } });
+                dispatch({ type: "NAEL", maj: { stage: 1, since: gs.currentDate } });
+                addLog("[FOI] Un gamin de Bourg-en-Bresse demande à te voir");
+                setAnnonceMajeure({ emoji: "🎧", title: "Quelqu'un demande à te voir", majeur: true,
+                    desc: `Il s'appelle **Naël Bouaziz**. Dix-neuf ans, deux projets sortis tout seul, quatre cent mille auditeurs par mois. Il vient de Bourg-en-Bresse, et c'est pour ça qu'il t'a trouvé : il a demandé à tout le monde jusqu'à ce que quelqu'un ait ton numéro.\n\nOn lui a proposé quelque chose qu'il n'a pas compris. Pas un contrat : un dîner. Pas de papier, pas de chiffre, pas de label. « Juste venir, et on verra ensuite. »\n\nIl te montre le message sur son téléphone. Tu reconnais la formulation avant d'avoir fini de lire. Tu reconnais même l'heure à laquelle il a été envoyé.\n\nIl te demande ce qu'il doit faire. Il a dix-neuf ans et il te parle comme si tu savais tout.\n\nIl est maintenant dans tes contacts.` });
+            }
+            // 2. Tu lui dis la vérité, ou pas
+            else if (n && n.stage === 1 && (gs.currentDate - n.since) / 86400000 >= 18) {
+                const fixer = (dit, out, fx) => {
+                    dispatch({ type: "NAEL", maj: { stage: 2, dit, since: gs.currentDate } });
+                    dispatch({ type: "CAST_BIO", id: NAEL.id, bio: NAEL_BIOS[1] });
+                    if (fx)
+                        dispatch({ type: "APPLY", effects: { ...fx, deliberate: true } });
+                    setTimeout(() => setCalAlert({ emoji: "🎧", title: "Ce que tu lui as dit", desc: out }), 30);
+                };
+                setAnnonceMajeure({ emoji: "🎧", title: "Il attend ta réponse", majeur: true,
+                    desc: `Il revient une semaine plus tard, et cette fois il n'a pas pris de rendez-vous : il est assis sur les marches quand tu sors.\n\n« Alors ? »\n\nTu as trois possibilités et tu les connais toutes les trois. Falltos, à l'époque, avait choisi la première — et tu avais mis des années à le croire.\n\n*« Vous connaîtrez la vérité, et la vérité vous affranchira. »*\n— Jean 8:32`,
+                    actions: [
+                        { label: "Tout lui dire, du début à la fin", run: () => fixer("verite", `Tu lui racontes tout. Le recrutement, les rangs, les services, les sacrifices, ce qu'on t'a demandé et ce que tu as donné. Tu ne t'épargnes rien, surtout pas les parties où tu as dit oui.\n\nIl ne te croit pas. Pas tout de suite, pas complètement — personne ne croit ça la première fois. Mais il arrête de sourire au bout de dix minutes et il ne reprend pas.\n\nÀ la fin, il te pose la seule question qui compte : « Et vous l'avez fait, vous ? »\n\nTu réponds oui. C'est la phrase la plus difficile que tu aies prononcée depuis la rivière.`, { stress: +22, rep: 0 }) },
+                        { label: "Lui dire de refuser, sans expliquer", run: () => fixer("refuse", `Tu lui dis juste de ne pas y aller. Fermement, sans un mot de plus.\n\nIl insiste. Tu ne cèdes pas. Il repart vexé, avec l'impression qu'on le prend pour un gamin — et il n'a pas complètement tort.\n\nTu t'es protégé toi en voulant le protéger lui. Tu le sais en refermant la porte.`, { stress: +10 }) },
+                        { label: "Ne rien dire : ce n'est pas ton rôle", run: () => fixer("silence", `Tu lui dis que tu ne peux pas décider pour lui, que chacun fait ses choix, qu'il est grand.\n\nTout est vrai. Tout est lâche. Les deux en même temps.\n\nIl te remercie pour ton temps et il s'en va. C'est exactement ce qu'on t'avait dit à toi, par quelqu'un qui savait, et tu te souviens parfaitement de l'effet que ça t'a fait.`, { stress: +16 }) },
+                    ] });
+            }
+            // 3. Ils doublent
+            else if (n && n.stage === 2 && (gs.currentDate - n.since) / 86400000 >= 40) {
+                dispatch({ type: "NAEL", maj: { stage: 3, since: gs.currentDate } });
+                addLog("[FOI] On a doublé l'offre faite à Naël");
+                setCalAlert({ emoji: "📞", title: "Il t'appelle à trois heures du matin",
+                    desc: `Ils ont doublé. Puis ils ont ajouté une maison pour sa mère.\n\nIl pleure au téléphone, et il ne sait pas pourquoi il pleure. Il répète qu'il ne comprend pas ce qu'on attend de lui, qu'on ne lui demande rien, que c'est ça qui lui fait peur.\n\nTu restes en ligne une heure et quart. Tu ne lui apprends rien de nouveau : tu es juste là, à trois heures du matin, comme quelqu'un l'a été pour toi.\n\nIl doit répondre avant la fin du mois.` });
+            }
+            // 4. Il choisit
+            else if (n && n.stage === 3 && (gs.currentDate - n.since) / 86400000 >= 34) {
+                const tient = Math.random() < naelChances(gs);
+                if (tient) {
+                    dispatch({ type: "NAEL", maj: { stage: 4, since: gs.currentDate } });
+                    dispatch({ type: "CAST_BIO", id: NAEL.id, bio: NAEL_BIOS[2] });
+                    dispatch({ type: "APPLY", effects: { rel: { [NAEL.id]: +35 }, stress: -10, deliberate: true } });
+                    dispatch({ type: "MENTAL", deltas: { purpose: +16, loneliness: -8 } });
+                    dispatch({ type: "ADD_TIMELINE", entry: { type: "foi", emoji: "🎧", title: "Naël a refusé" } });
+                    addLog("[FOI] Naël a refusé");
+                    setAnnonceMajeure({ emoji: "🎧", title: "Il a dit non", majeur: true,
+                        desc: `Il a répondu par un message de quatre mots, et il te l'a transféré avant même de l'envoyer, pour que tu le relises.\n\nIl n'aura pas l'argent, pas la maison pour sa mère, pas les portes. Il va continuer à sortir ses projets tout seul, avec ses moyens, et ce sera dur pendant des années.\n\nIl ne saura jamais exactement ce qu'il a refusé. C'est le seul cadeau que tu pouvais encore lui faire.\n\nIl te demande s'il peut venir, dimanche. Tu réponds oui.` });
+                }
+                else {
+                    dispatch({ type: "NAEL", maj: { stage: 5, perdu: true, since: gs.currentDate } });
+                    dispatch({ type: "CAST_BIO", id: NAEL.id, bio: NAEL_BIOS[5] });
+                    dispatch({ type: "APPLY", effects: { rel: { [NAEL.id]: -30 }, stress: +30, deliberate: true } });
+                    dispatch({ type: "MENTAL", deltas: { purpose: -18, loneliness: +14 } });
+                    dispatch({ type: "ADD_TIMELINE", entry: { type: "foi", emoji: "🎧", title: "Naël y est allé" } });
+                    addLog("[FOI] Naël a accepté leur proposition");
+                    setAnnonceMajeure({ emoji: "🕳️", title: "Il y est allé", majeur: true,
+                        desc: `Il a dit non. Puis il a dit oui, six semaines plus tard, sans te rappeler.\n\nSon premier gros morceau sort quatre mois après. Production immense, playlists partout, un démarrage que tu n'avais pas fait à son âge.\n\nTu le croises à une cérémonie, dix-huit mois plus tard. Il est à trois mètres, il porte un costume qui n'est pas le sien, et il tourne la tête quand il te voit.\n\nTu connais ce geste. Tu l'as fait toi aussi, à quelqu'un qui t'avait prévenu.` });
+                }
+            }
+            // 5. Les études, puis le baptême
+            else if (n && n.stage === 4 && !n.baptise && (gs.currentDate - n.since) / 86400000 >= 120) {
+                dispatch({ type: "NAEL", maj: { stage: 6, baptise: true, foi: NAEL_FOI_DEPART, since: gs.currentDate } });
+                dispatch({ type: "CAST_BIO", id: NAEL.id, bio: NAEL_BIOS[4] });
+                dispatch({ type: "APPLY", effects: { rel: { [NAEL.id]: +45 }, stress: -18, health: +4, deliberate: true } });
+                dispatch({ type: "MARCHE", delta: +18 });
+                dispatch({ type: "MENTAL", deltas: { purpose: +28, loneliness: -16, anxiety: -10 } });
+                dispatch({ type: "ADD_TIMELINE", entry: { type: "foi", emoji: "💧", title: "Le baptême de Naël" } });
+                addLog("[FOI] Tu as baptisé Naël");
+                setAnnonceMajeure({ emoji: "💧", title: "La même rivière", majeur: true,
+                    desc: `Il est venu tous les dimanches pendant des mois. Il arrivait en retard et repartait le dernier. Au bout d'un moment, plus personne ne faisait attention à lui, et c'est à ce moment-là qu'il a demandé.\n\nLa même rivière, dans l'arrière-pays niçois. La même eau glaciale, une vingtaine de personnes, aucun téléphone.\n\nCette fois, c'est toi qui lui tiens le bras. Falltos est sur la berge et il ne dit rien du tout — il te regarde faire exactement ce qu'il a fait pour toi, et tu comprends à son visage que c'était ça, depuis le début, qu'il attendait.\n\nQuand Naël ressort, quelqu'un lui tend une serviette. Lui, il te cherche des yeux, et il dit juste : « Merci, grand frère. »\n\nÀ partir de maintenant, c'est toi son formateur. Falltos te l'a dit le soir même, sans cérémonie : « Tu sais ce que ça veut dire. Il va regarder comment tu vis avant d'écouter ce que tu dis. »\n\nIl ne saura jamais de quoi il a été sauvé. Et toi, tu viens de rendre la seule chose qu'on t'a donnée gratuitement.` });
+            }
+            // 6. Et lui, un jour, pour quelqu'un d'autre
+            else if (n && n.baptise && !n.transmet && (gs.currentDate - n.since) / 86400000 >= 400) {
+                dispatch({ type: "NAEL", maj: { transmet: true } });
+                dispatch({ type: "MENTAL", deltas: { purpose: +14 } });
+                addLog("[FOI] Naël a reçu la même proposition qu'un autre avant lui");
+                setCalAlert({ emoji: "🔁", title: "Quelqu'un est venu le voir",
+                    desc: `Naël t'appelle un soir, un peu paniqué. Une fille de dix-huit ans est venue le voir : on lui a proposé un dîner, sans contrat, sans chiffre. « Juste venir. »\n\nIl te demande ce qu'il doit lui dire.\n\nTu réponds que tu ne sais pas, que c'est à lui de voir, et que tu es là s'il a besoin.\n\nTu raccroches et tu restes un moment sans bouger. Ce n'est plus ton tour. C'est le sien, et il n'a pas besoin de toi pour ça.` });
+            }
+        }
         // ── CE QUE TU AS RÉPARÉ FINIT PAR TE RATTRAPER AUSSI ──────────────────
         // L'exact symétrique des trois constats du cercle. Là-bas on comprend ce
         // qu'on a vendu ; ici on mesure ce qu'on a rendu.
@@ -22956,6 +23687,16 @@ function FiscoGame() {
                 risk.push("ad_pills");
                 risk.push("ad_alcohol");
             }
+            // ── Après le baptême, tout dépend de la marche ───────────────────────
+            // Tiède, les anciennes choses retrouvent le chemin de la maison. Vivante,
+            // elles ne disparaissent pas : elles n'ont simplement plus de prise.
+            const marche = marcheNiveau(gs);
+            if (typeof marche === "number" && marche < 25) {
+                risk.push("ad_alcohol");
+                risk.push("ad_women");
+            }
+            if (typeof marche === "number" && marche >= 60)
+                risk.length = 0;
             const pool = ADDICTIONS.filter(a => risk.includes(a.id) && !held.has(a.id));
             if (pool.length) {
                 const a = pool[Math.floor(Math.random() * pool.length)];
@@ -23245,7 +23986,7 @@ function FiscoGame() {
             setOpResult({ op: o, failed, chaos, evGain, expoGain, ally: allyOk ? ally : null, match });
         }
         // ── Une mission s'impose : environ trois par an ──
-        if (phase === "game" && !ending && !anyOverlayOpen() && gs.inResistance && !gs.warMission && !warMissionModal) {
+        if (phase === "game" && !ending && !anyOverlayOpen() && gs.inResistance && !enRetrait(gs) && !gs.warMission && !warMissionModal) {
             const log = gs.warMissionLog || {};
             const done = new Set(Object.keys(log));
             const sinceJoin = gs.resistStart ? (gs.currentDate - gs.resistStart) / 86400000 : 0;
@@ -24653,6 +25394,14 @@ function FiscoGame() {
         dispatch({ type: "ADVANCE_TIME", hours: action.hours || 2 });
         addLog(`[${formatDate(gs.currentDate)} ${formatTime(gs.currentDate)}] ${action.emoji} ${action.label}`);
         toast(`${action.emoji} ${action.label}`, "#69ff8a");
+        // La nuit se paie ailleurs que sur la santé.
+        const cn = coutNuit(gs, action.label);
+        if (cn < 0) {
+            dispatch({ type: "MARCHE", delta: cn });
+            dispatch({ type: "MENTAL", deltas: { purpose: -4 } });
+            toast(`✝️ Ta marche avec Dieu en prend un coup (${cn})`, "#ff9f1c");
+            addLog(`[FOI] ${action.label} — marche ${cn}`);
+        }
     }, [gs, msgs, mainTab, callAI, parseChoices, toast, addLog, activeEvent, maybeEvent, buildCtx]);
     const choose = (0, react_1.useCallback)(choice => {
         if (typing && !typeDone) {
@@ -25344,23 +26093,6 @@ function FiscoGame() {
             WKND_CUT: () => {
                 dispatch({ type: "APPLY", effects: { rel: { the_weeknd: -70 }, stress: +30, rep: -5 } });
                 return "Tu ne réponds rien et tu disparais de sa vie. Pas de clash, pas d'explication. Juste un silence de dix ans d'amitié qui s'éteint.";
-            },
-            FALL_GIVE: () => {
-                dispatch({ type: "APPLY", effects: { money: -45000000, rel: { falltos: +30 }, rep: +12 } });
-                dispatch({ type: "DAMAGE_BUSINESSES", pct: 0.25 });
-                return "Tu lui cèdes 30% sans discuter. 45 millions et un quart de tes revenus partent — mais l'homme qui t'a sorti de la forêt reste ton cousin.";
-            },
-            FALL_FIGHT: () => {
-                dispatch({ type: "APPLY", effects: { rel: { falltos: -100 }, money: -8000000, rep: -25, stress: +35 } });
-                return "Le procès s'étale sur deux ans. Tu gagnes juridiquement, mais Falltos raconte tout : la forêt, tes débuts, tes zones d'ombre. Tu as gagné de l'argent et perdu ta famille.";
-            },
-            FALL_TALK: () => {
-                if (Math.random() < 0.6) {
-                    dispatch({ type: "APPLY", effects: { money: -12000000, rel: { falltos: +40 }, rep: +15, stress: -10 } });
-                    return "Une nuit entière à parler, sans avocats. Vous trouvez un accord à 12 millions et vous vous retrouvez, vraiment. Il pleure en partant.";
-                }
-                dispatch({ type: "APPLY", effects: { rel: { falltos: -60 }, stress: +30, rep: -10 } });
-                return "La discussion tourne mal. Les vieilles rancunes ressortent, il claque la porte et confie tout à la presse la semaine suivante.";
             },
             HIDDEN_CONFESS: () => {
                 const p = gs.romance.partner;
@@ -26726,6 +27458,15 @@ function FiscoGame() {
         setPartyPick({ theme: null, venue: null, budget: null, guests: [] });
         if (legendary)
             dispatch({ type: "ADD_TIMELINE", entry: { type: "soiree", emoji: "🪩", title: `Soirée légendaire — ${opts.signature ? opts.signature.title : theme.name}` } });
+        // Donner la fête coûte plus cher que d'y passer : plus elle est grande, plus
+        // elle creuse. Rien ne t'en empêche — mais le lendemain, ta marche l'a senti.
+        if (gs.faithDone) {
+            const cf = -(9 + (legendary ? 3 : 0) + Math.round(guests.length / 6));
+            dispatch({ type: "MARCHE", delta: cf });
+            dispatch({ type: "MENTAL", deltas: { purpose: -6, loneliness: +4 } });
+            addLog(`[FOI] Soirée organisée — marche ${cf}`);
+            setTimeout(() => toast(`✝️ Ta marche avec Dieu en prend un coup (${cf})`, "#ff9f1c"), 600);
+        }
         // Un moment déclenché par la présence de personnes précises prime sur le moment générique
         const gids = guests.map(g => g.id);
         // Venir à tes soirées rapproche : le gain grimpe avec la qualité de la fête
@@ -26775,6 +27516,7 @@ function FiscoGame() {
     // épuisé et même si le texte est plus court que le minimum demandé : sinon le
     // bouton reste gris et le code n'atteint jamais le jeu.
     const CODES_SECRETS = [
+        ["J'compte les billets et toi tu compte tes billes", "J'Jure ni sur le coran et ni sur la bible"],
         ["J'suis sur le trône j'ai viré Elie", "Laissez moi dans mon délire"],
         ["T'sais qu'on sera toujours là En haut du podium", "On mate les étoiles", "Si tu veux plus jamais nous revoir Change de vie"],
         ["Déchiré j'vois s'arrêter le temp", "J'suis pas chez moi j'ai plus trop le temp", "Entre Toronto et Paris", "T'a Kapté la vie c'est magique"],
@@ -26839,6 +27581,31 @@ function FiscoGame() {
             addLog("[???] Seize ans passent d'un coup");
             setAnnonceMajeure({ emoji: "⏳", title: "Le temps s'arrête, puis repart sans toi", majeur: true,
                 desc: `Tu as récité ces lignes ${(interviewOutlet === null || interviewOutlet === void 0 ? void 0 : interviewOutlet.id) === "tf1jt" ? "au journal de 20h, face à des millions de personnes qui n'ont rien remarqué" : `chez ${(interviewOutlet === null || interviewOutlet === void 0 ? void 0 : interviewOutlet.name) || "eux"}, et personne n'a rien remarqué`}.\n\nQuand tu reposes le micro, seize ans ont passé. Des gens que tu connaissais sont morts, d'autres sont nés, des joueurs que tu avais signés ont raccroché, et les enfants de tes amis donnent aujourd'hui des interviews.\n\nTu as vieilli comme les autres. Ta célébrité aussi.\n\nIl reste sept jours avant les seize ans de l'enfant que tu as signé un matin ordinaire. Tu ne sais pas encore ce qu'on en a fait. Tu le sauras dans une semaine.` });
+            return;
+        }
+        // ── Quatrième code secret : tout le chemin jusqu'au baptême ──
+        // Il est fait pour TF1, mais reconnu dans n'importe quelle interview : un
+        // plateau épuisé ne doit pas rendre un code inaccessible à jamais.
+        if (kind === "interview"
+            && norm(text).includes(norm("J'compte les billets et toi tu compte tes billes"))
+            && norm(text).includes(norm("J'Jure ni sur le coran et ni sur la bible"))) {
+            setFreeTextModal(null);
+            setFreeTextValue("");
+            if (gs.faithDone) {
+                setAnnonceMajeure({ emoji: "💧", title: "Les lignes sont reconnues", majeur: true,
+                    desc: `Tu as récité les deux lignes, et quelque chose a répondu — mais il n'y a rien à rejoindre.\n\nTu es déjà passé par la rivière. On ne t'y remettra pas deux fois.` });
+                return;
+            }
+            const etaitElite = !!gs.elite && !gs.eliteFallen;
+            const values = Object.fromEntries(Object.keys(gs.businesses || {}).filter(k => !(gs.soldBusinesses || {})[k])
+                .map(k => [k, businessValuation(k)]));
+            dispatch({ type: "CHEAT_BAPTEME", values });
+            dispatch({ type: "ADD_TIMELINE", entry: { type: "foi", emoji: "💧", title: "Le baptême" } });
+            addLog("[???] Le chemin entier, d'un seul coup");
+            setAnnonceMajeure({ emoji: "💧", title: "Tu ressors de l'eau", majeur: true,
+                desc: `Tu as récité ces deux lignes ${(interviewOutlet === null || interviewOutlet === void 0 ? void 0 : interviewOutlet.id) === "tf1jt" ? "au journal de 20h" : `chez ${(interviewOutlet === null || interviewOutlet === void 0 ? void 0 : interviewOutlet.name) || "eux"}`}, et tu n'as pas fini ta phrase.\n\nCe qui suit tient en six mois que tu ne vis pas : l'appartement du vieux Nice, les sept autour de la table, les défis, la semaine sans mentir, l'appel que tu repoussais depuis huit ans. La prière, mal, à voix basse, le soir. Puis la question de Falltos, un dimanche midi, à laquelle tu réponds oui.\n\n${etaitElite
+                    ? "**Tu es sorti du cercle, et ça s'est payé exactement comme annoncé** : tes sociétés saisies, ta fortune engloutie, ta réputation et ta célébrité divisées par quatre. Personne ne t'a fait de cadeau parce que tu as sauté les étapes."
+                    : "Tu n'étais pas dans le cercle : il n'y avait rien à quitter, et le chemin a été plus court que pour la plupart."}\n\nUne rivière dans l'arrière-pays niçois, un dimanche matin. L'eau est glaciale. Quand tu ressors, l'un des frères te tend une serviette et te dit simplement : « Bienvenue. »\n\n**Le reste commence maintenant.** Ta marche est à ${MARCHE_DEPART}, et elle descendra toute seule si tu n'en fais rien.` });
             return;
         }
         // ── L'annonce de « Right Land », sur M6, à une heure de grande écoute ──
@@ -30340,11 +31107,19 @@ function FiscoGame() {
                     react_1.default.createElement("div", { style: { fontSize: 10.5, color: "rgba(255,255,255,.6)", marginTop: 5, lineHeight: 1.5 } }, "Banni des r\u00E9compenses \u00E0 vie \u00B7 r\u00E9putation plafonn\u00E9e \u00E0 50 \u00B7 trait\u00E9 de complotiste \u00B7 tes streams et tes soci\u00E9t\u00E9s s'effondrent \u00B7 tu perds ta compagne et tes amis du cercle.")),
                 react_1.default.createElement("button", { onClick: () => {
                         setPathChoice(false);
-                        setEnding({ id: "end_faith", emoji: "✝️", title: "La Bonne Part",
-                            dynamicText: `Tu as arrêté. Pas par épuisement, pas par échec — par choix.\n\nPlus de studio, plus de contrats, plus de scènes, plus de cercle. Une maison simple, des frères et des sœurs, des dimanches matin qui ne servent à rien d'autre qu'à être là.\n\nCeux qui t'ont connu au sommet ne comprennent pas. Ceux qui te connaissent aujourd'hui n'ont jamais eu besoin de comprendre.\n\nFalltos vient déjeuner le dimanche. Vous ne parlez presque jamais de ce qui s'est passé.\n\nTu as été l'un des hommes les plus puissants de la planète pendant quelques années. Personne ne s'en souvient vraiment, et ça ne te manque pas une seconde.\n\n« Une seule chose est nécessaire. Fisco a choisi la bonne part, et elle ne lui sera pas enlevée. »` });
+                        const values = Object.fromEntries(Object.keys(gs.businesses || {}).filter(k => !(gs.soldBusinesses || {})[k])
+                            .map(k => [k, businessValuation(k)]));
+                        dispatch({ type: "BONNE_PART", values });
+                        dispatch({ type: "MARCHE", delta: +20 });
+                        dispatch({ type: "MENTAL", deltas: { purpose: +30, anxiety: -20, loneliness: -15 } });
+                        dispatch({ type: "APPLY", effects: { stress: -45, health: +10, deliberate: true } });
+                        dispatch({ type: "ADD_TIMELINE", entry: { type: "foi", emoji: "✝️", title: "Tout arrêter pour Dieu" } });
+                        addLog("[FOI] Fisco a tout arrêté");
+                        setAnnonceMajeure({ emoji: "✝️", title: "La bonne part", majeur: true,
+                            desc: `Tu as tout arrêté. Pas par épuisement, pas par échec — par choix.\n\nLes sociétés ont été vendues en quelques semaines, proprement, à des gens qui s'en occuperont mieux que toi. L'équipe a été payée jusqu'au dernier. Les artistes d'UNUHU ont été libérés de leurs contrats sans un centime de pénalité.\n\nPlus de studio, plus de scène, plus de plateaux, plus de réseaux. Ton téléphone a cessé de sonner en huit jours, et c'est allé beaucoup plus vite que tu ne l'imaginais.\n\nIl te reste une maison simple, des frères et des sœurs, et des dimanches matin qui ne servent à rien d'autre qu'à être là.\n\nCeux qui t'ont connu au sommet ne comprennent pas. Ceux qui te connaissent aujourd'hui n'ont jamais eu besoin de comprendre.\n\n*« Une seule chose est nécessaire. Fisco a choisi la bonne part, et elle ne lui sera pas enlevée. »*\n\n**La partie continue.** Il ne te reste que ta marche — et c'est tout ce que tu voulais.` });
                     }, style: { padding: "15px", background: "linear-gradient(135deg,rgba(180,220,190,.24),rgba(90,140,110,.2))", border: "1px solid rgba(180,220,190,.5)", color: "#b4dcbe", borderRadius: 10, cursor: "pointer", textAlign: "left" } },
                     react_1.default.createElement("div", { style: { fontFamily: "'Bebas Neue',cursive", fontSize: 16, letterSpacing: 2 } }, "\u271D\uFE0F ARR\u00CATER SA CARRI\u00C8RE ET SE FOCALISER SUR DIEU"),
-                    react_1.default.createElement("div", { style: { fontSize: 10.5, color: "rgba(255,255,255,.6)", marginTop: 5, lineHeight: 1.5 } }, "Tout arr\u00EAter, d\u00E9finitivement. Cette d\u00E9cision met fin \u00E0 ta partie.")))))) : null;
+                    react_1.default.createElement("div", { style: { fontSize: 10.5, color: "rgba(255,255,255,.6)", marginTop: 5, lineHeight: 1.5 } }, "Soci\u00E9t\u00E9s vendues, \u00E9quipe dissoute, artistes lib\u00E9r\u00E9s. Plus de musique, de sc\u00E8ne, de plateaux, de r\u00E9seaux, ni de centre anti-\u00E9lite. La nuit reste ouverte \u2014 mais elle se paie sur ta marche. Il ne restera que ta marche \u2014 et la partie continue.")))))) : null;
     const ExitOv = exitOffer ? (react_1.default.createElement("div", { className: "overlay-anim", style: { position: "fixed", inset: 0, zIndex: 282, background: "rgba(0,0,0,.97)", backdropFilter: "blur(16px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px", overflowY: "auto" } },
         react_1.default.createElement("div", { className: "modal-anim", style: { maxWidth: 380, width: "100%", maxHeight: "92vh", overflowY: "auto", margin: "auto", background: "linear-gradient(150deg,#080c0a,#0e1512)", border: "1px solid rgba(180,220,190,.45)", borderRadius: 14, padding: "24px 18px" } },
             react_1.default.createElement("div", { style: { textAlign: "center", marginBottom: 14 } },
@@ -33091,7 +33866,9 @@ function FiscoGame() {
                     };
                     const LABELS = { 0: "❤️ PARTENAIRE", 0.5: "👁️ LE CERCLE", 1: "⭐ CERCLE PROCHE", 2: "🤝 AMIS", 3: "💔 EX",
                         4: "🎤 COLLABORATEURS", 5: "😐 NEUTRES", 6: "⚔️ RIVAUX", 7: "🕯️ DISPARUS", 8: "👤 INCONNUS" };
-                    const sorted = Object.values(CHARS)
+                    // Ceux qui sont entrés dans la partie en cours de route comptent
+                    // autant que les autres : Naël, le protégé, les enfants du casting.
+                    const sorted = [...Object.values(CHARS), ...Object.values(gs.newCast || {})]
                         .map(c => { var _a, _b; return ({ c, r: rank(c), sc: (_b = (_a = gs.relations[c.id]) === null || _a === void 0 ? void 0 : _a.score) !== null && _b !== void 0 ? _b : 0 }); })
                         .sort((a, b) => a.r - b.r || b.sc - a.sc || a.c.name.localeCompare(b.c.name));
                     let lastRank = -1;
@@ -33304,7 +34081,8 @@ function FiscoGame() {
                             react_1.default.createElement("div", { style: { height: 4, borderRadius: 2, background: i < st ? "#b4dcbe" : "rgba(255,255,255,.12)" } }),
                             react_1.default.createElement("div", { style: { fontSize: 12, marginTop: 4, opacity: i < st ? 1 : .25 } }, s.emoji),
                             react_1.default.createElement("div", { style: { fontSize: 7.5, color: i < st ? "rgba(180,220,190,.8)" : "rgba(255,255,255,.22)", marginTop: 1, lineHeight: 1.15 } }, s.title.split(" ").slice(0, 2).join(" ")))))),
-                        react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(255,255,255,.45)", marginTop: 8, fontFamily: "'Space Mono',monospace" } }, next ? `Étape ${st + 1}/5 dans ${Math.max(0, next.at - days)} jour(s)` : "Tu as été baptisé.")));
+                        react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(255,255,255,.45)", marginTop: 8, fontFamily: "'Space Mono',monospace" } }, next ? `Étape ${st + 1}/5 dans ${Math.max(0, next.at - days)} jour(s)` : "Tu as été baptisé. Le reste commence maintenant."),
+                        gs.faithDone && (react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(180,220,190,.7)", marginTop: 10, lineHeight: 1.45 } }, "Ta marche avec Dieu, tes convictions et ce que tu transmets se suivent depuis l'\u00E9cran principal."))));
                 })(),
                 gs.resistanceTried && (react_1.default.createElement("div", { style: { background: "linear-gradient(135deg,rgba(255,159,28,.09),rgba(180,90,10,.03))", border: "1px solid rgba(255,159,28,.35)", borderRadius: 11, padding: 12 } },
                     react_1.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
@@ -33707,7 +34485,7 @@ function FiscoGame() {
                         s.node),
                     react_1.default.createElement("div", { style: { fontSize: 8, color: "rgba(255,255,255,.3)", letterSpacing: 1 } }, s.label)))),
                 react_1.default.createElement("button", { onClick: () => setShowInfo(v => !v), style: { background: showInfo ? "rgba(255,150,50,.2)" : "rgba(255,255,255,.05)", border: `1px solid ${showInfo ? "rgba(255,150,50,.4)" : "rgba(255,255,255,.08)"}`, color: "rgba(255,255,255,.7)", padding: "5px 8px", borderRadius: 6, cursor: "pointer", fontSize: 12, transition: "all .18s" } }, "\uD83D\uDCCA"))),
-        react_1.default.createElement("div", { style: { display: "flex", gap: 4, padding: "7px 10px 5px", background: "rgba(3,10,22,.7)", backdropFilter: "blur(10px)", borderBottom: "1px solid rgba(255,150,50,.07)", overflowX: "auto", position: "sticky", top: 51, zIndex: 90, WebkitOverflowScrolling: "touch" } }, MAIN_TABS.map(t => (react_1.default.createElement("button", { key: t.id, className: `tab-btn ${mainTab === t.id ? "active" : ""}`, onClick: () => setMainTab(t.id), style: { display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", background: mainTab === t.id ? "" : "rgba(255,255,255,.04)", border: mainTab === t.id ? "1px solid rgba(255,150,50,.4)" : "1px solid rgba(255,255,255,.07)", color: mainTab === t.id ? "#ffce63" : "rgba(255,255,255,.5)", borderRadius: 7, cursor: "pointer", fontSize: 11, fontFamily: "'Syne',sans-serif", fontWeight: 700, whiteSpace: "nowrap" } },
+        react_1.default.createElement("div", { style: { display: "flex", gap: 4, padding: "7px 10px 5px", background: "rgba(3,10,22,.7)", backdropFilter: "blur(10px)", borderBottom: "1px solid rgba(255,150,50,.07)", overflowX: "auto", position: "sticky", top: 51, zIndex: 90, WebkitOverflowScrolling: "touch" } }, MAIN_TABS.filter(t => !enRetrait(gs) || ["vie", "relations", "nightlife"].includes(t.id)).map(t => (react_1.default.createElement("button", { key: t.id, className: `tab-btn ${mainTab === t.id ? "active" : ""}`, onClick: () => setMainTab(t.id), style: { display: "flex", alignItems: "center", gap: 4, padding: "5px 10px", background: mainTab === t.id ? "" : "rgba(255,255,255,.04)", border: mainTab === t.id ? "1px solid rgba(255,150,50,.4)" : "1px solid rgba(255,255,255,.07)", color: mainTab === t.id ? "#ffce63" : "rgba(255,255,255,.5)", borderRadius: 7, cursor: "pointer", fontSize: 11, fontFamily: "'Syne',sans-serif", fontWeight: 700, whiteSpace: "nowrap" } },
             react_1.default.createElement("span", null, t.emoji),
             react_1.default.createElement("span", null, t.label))))),
         react_1.default.createElement("div", { className: "fisco-body", style: { display: "flex", flex: 1, minWidth: 0, overflow: "hidden", position: "relative", zIndex: 5 } },
@@ -33887,7 +34665,7 @@ function FiscoGame() {
                                     days,
                                     "\u1D49 jour du chemin"))) : (react_1.default.createElement("div", { style: { fontSize: 10.5, color: "#b4dcbe" } }, "Le chemin est achev\u00E9. Tu as \u00E9t\u00E9 baptis\u00E9."))));
                     })())),
-                    mainTab === "vie" && (react_1.default.createElement("div", { style: { marginTop: 8, marginBottom: 4 } },
+                    mainTab === "vie" && !enRetrait(gs) && (react_1.default.createElement("div", { style: { marginTop: 8, marginBottom: 4 } },
                         react_1.default.createElement("button", { onClick: () => setStaffModal(true), style: { ...studioBtnStyle, width: "100%" } },
                             "\uD83D\uDC65 MON \u00C9QUIPE (",
                             (gs.staff || []).length,
@@ -33896,7 +34674,7 @@ function FiscoGame() {
                             ") \u2014 ",
                             fmtMoney(Math.round((gs.staff || []).reduce((s, x) => s + x.salary, 0) * (gs.inflation || 1))),
                             "/mois"))),
-                    mainTab === "vie" && gs.inResistance && (react_1.default.createElement("div", { style: { marginTop: 8, marginBottom: 4 } },
+                    mainTab === "vie" && gs.inResistance && !enRetrait(gs) && (react_1.default.createElement("div", { style: { marginTop: 8, marginBottom: 4 } },
                         react_1.default.createElement("button", { onClick: () => setWarRoom(true), style: { ...studioBtnStyle, width: "100%", background: "rgba(255,159,28,.13)", border: "1px solid rgba(255,159,28,.4)", color: "#ff9f1c" } },
                             "\u2694\uFE0F CENTRE ANTI-\u00C9LITE \u2014 ",
                             Math.round(gs.evidence || 0),
@@ -33904,7 +34682,7 @@ function FiscoGame() {
                             Math.round(gs.exposure || 0),
                             "/100 expo",
                             (gs.exposedTargets || []).length ? ` · ${(gs.exposedTargets || []).length} tombé(s)` : ""))),
-                    mainTab === "vie" && gs.elite && (react_1.default.createElement("div", { style: { marginTop: 8, marginBottom: 4, display: "flex", flexDirection: "column", gap: 5 } },
+                    mainTab === "vie" && gs.elite && !enRetrait(gs) && (react_1.default.createElement("div", { style: { marginTop: 8, marginBottom: 4, display: "flex", flexDirection: "column", gap: 5 } },
                         react_1.default.createElement("div", { style: { background: "linear-gradient(135deg,rgba(212,175,55,.12),rgba(140,105,20,.04))", border: "1px solid rgba(212,175,55,.35)", borderRadius: 9, padding: 10 } },
                             (() => {
                                 const r = eliteRank(gs);
@@ -34079,6 +34857,155 @@ function FiscoGame() {
                         react_1.default.createElement("button", { onClick: () => { setMoviePick({ title: "", genre: null, budget: null, cast: [] }); setMovieModal(true); }, style: studioBtnStyle }, "\uD83C\uDFAC R\u00C9ALISER UN FILM"),
                         react_1.default.createElement("button", { onClick: () => { setSeriesPick({ title: "", genre: null, platform: null, episodes: 8, cast: [], seriesId: null }); setSeriesModal(true); }, style: studioBtnStyle }, "\uD83D\uDCFA PRODUIRE UNE S\u00C9RIE")))),
                 react_1.default.createElement("div", { style: { flex: 1, padding: "12px 12px 60px" } },
+                    gs.faithDone && (() => {
+                        const m = marcheNiveau(gs);
+                        const pal = marchePalier(m);
+                        const col = m >= 72 ? "#b4dcbe" : m >= 50 ? "#ffce63" : m >= 25 ? "#ff9f1c" : "#ff6b6b";
+                        const n = naelEtat(gs);
+                        return (react_1.default.createElement("div", { style: { ...HUD_PANEL, border: "1px solid rgba(180,220,190,.3)", background: "linear-gradient(135deg,rgba(180,220,190,.07),rgba(90,140,110,.02))" } },
+                            react_1.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+                                react_1.default.createElement("span", { style: { ...HUD_LABEL, color: "rgba(180,220,190,.8)" } }, "\u271D\uFE0F TA MARCHE AVEC DIEU"),
+                                react_1.default.createElement("span", { style: { fontSize: 13, color: col, fontFamily: "'Space Mono',monospace", fontWeight: 700 } },
+                                    Math.round(m),
+                                    "/100")),
+                            react_1.default.createElement("div", { style: { marginTop: 6 } },
+                                react_1.default.createElement(StatBar, { val: m, color: col, height: 4 })),
+                            react_1.default.createElement("div", { style: { fontSize: 11.5, fontWeight: 700, color: col, marginTop: 5 } }, pal.label),
+                            react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(255,255,255,.5)", marginTop: 2, lineHeight: 1.45 } }, pal.desc),
+                            react_1.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 5, marginTop: 10 } }, FOI_PRATIQUES.map(pr => {
+                                const prete = marchePrete(gs, pr);
+                                const gain = marcheGainDu(gs, pr);
+                                const dispo = prete && (pr.libre || gain > 0);
+                                const last = (gs.marcheActs || {})[pr.id] || 0;
+                                const reste = Math.ceil(((pr.jours || 0) * 86400000 - (gs.currentDate - last)) / 86400000);
+                                const note = !prete
+                                    ? (pr.dimanche ? "dimanche" : pr.milieu ? "mercredi" : `dans ${Math.max(1, reste)} j`)
+                                    : gain > 0 ? `+${gain}` : "aujourd'hui, c'est fait";
+                                return (react_1.default.createElement("button", { key: pr.id, disabled: !dispo, onClick: () => {
+                                        sfx("confirm");
+                                        const g = marcheGainDu(gs, pr);
+                                        dispatch({ type: "MARCHE", delta: g, pratique: pr.id });
+                                        if (g > 0) {
+                                            if (pr.fx)
+                                                dispatch({ type: "APPLY", effects: { ...pr.fx, deliberate: true } });
+                                            if (pr.mental)
+                                                dispatch({ type: "MENTAL", deltas: pr.mental });
+                                        }
+                                        setCalAlert({ emoji: pr.emoji, title: pr.label,
+                                            desc: `${pr.out}\n\n*${pr.verse}*\n— ${pr.ref}\n\n${g > 0
+                                                ? `**La marche : +${g}.**`
+                                                : "**Rien de plus aujourd'hui.** Tu peux le refaire autant que tu veux : ce qui te construit, c'est la régularité, pas le compte."}` });
+                                    }, style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
+                                        padding: "9px 11px", background: dispo ? "rgba(180,220,190,.1)" : "rgba(255,255,255,.03)",
+                                        border: dispo ? "1px solid rgba(180,220,190,.4)" : "1px solid rgba(255,255,255,.08)",
+                                        color: dispo ? "#b4dcbe" : "rgba(255,255,255,.3)", borderRadius: 8,
+                                        cursor: dispo ? "pointer" : "not-allowed", textAlign: "left" } },
+                                    react_1.default.createElement("span", { style: { fontSize: 11.5 } },
+                                        pr.emoji,
+                                        " ",
+                                        pr.label),
+                                    react_1.default.createElement("span", { style: { fontSize: 9, fontFamily: "'Space Mono',monospace", whiteSpace: "nowrap" } }, note)));
+                            })),
+                            react_1.default.createElement("div", { style: { marginTop: 10, background: "rgba(180,220,190,.05)", border: "1px solid rgba(180,220,190,.22)", borderRadius: 8, padding: 9 } },
+                                react_1.default.createElement("div", { style: { fontSize: 10.5, color: "rgba(255,255,255,.7)", lineHeight: 1.5 } },
+                                    "\uD83D\uDC65 ",
+                                    react_1.default.createElement("b", { style: { color: "#b4dcbe" } }, "Ton formateur : Falltos."),
+                                    " Chaque disciple en a un ; ce sont ceux qui sont stables qui forment."),
+                                react_1.default.createElement("button", { onClick: () => {
+                                        sfx("click");
+                                        dispatch({ type: "DIME", on: !gs.dime });
+                                        if (!gs.dime) {
+                                            dispatch({ type: "MARCHE", delta: +6 });
+                                            setCalAlert({ emoji: "💶", title: "La dîme",
+                                                desc: `Dix pour cent de ce que tu gagnes, chaque mois, données à l'assemblée. La collecte pour les pauvres se fait, elle, pendant les réunions de mi-semaine.\n\nDonner permet de mesurer ton sacrifice. Sur ce que tu gagnes, personne autour de cette table n'a jamais vu une somme pareille — et personne ne te regarde autrement pour autant.\n\n*« Celui qui sème abondamment moissonnera abondamment… que chacun donne comme il l'a résolu en son cœur, non avec tristesse ni par contrainte. »*\n— 2 Corinthiens 9:6-8` });
+                                        }
+                                        else {
+                                            dispatch({ type: "MARCHE", delta: -8 });
+                                            setCalAlert({ emoji: "💶", title: "Tu as arrêté la dîme",
+                                                desc: `Tu coupes le virement un matin, sans en parler à personne.\n\nPersonne ne te le reprochera : elle ne se donne pas sous la contrainte. Mais tu sais exactement ce que tu viens de décider, et pourquoi.` });
+                                        }
+                                    }, style: { width: "100%", marginTop: 8, padding: "8px",
+                                        background: gs.dime ? "rgba(180,220,190,.16)" : "rgba(255,255,255,.04)",
+                                        border: gs.dime ? "1px solid rgba(180,220,190,.45)" : "1px solid rgba(255,255,255,.14)",
+                                        color: gs.dime ? "#b4dcbe" : "rgba(255,255,255,.55)", borderRadius: 7, fontSize: 10.5,
+                                        cursor: "pointer", fontFamily: "'Space Mono',monospace" } },
+                                    "\uD83D\uDCB6 LA D\u00CEME \u2014 ",
+                                    gs.dime ? "active · 10 % de tes revenus" : "non versée")),
+                            !enRetrait(gs) && (react_1.default.createElement(react_1.default.Fragment, null,
+                                react_1.default.createElement("div", { style: { ...HUD_LABEL, color: "rgba(180,220,190,.8)", marginTop: 13 } }, "T\u00C9MOIGNER"),
+                                react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(255,255,255,.5)", marginTop: 3, lineHeight: 1.45 } },
+                                    "Le dire dehors co\u00FBte une partie de ton public \u2014 et en fait venir un autre, qui ne s'en va plus.",
+                                    (gs.publicFidele || 0) > 0 && react_1.default.createElement("span", { style: { color: "#b4dcbe" } },
+                                        " Public fid\u00E8le : ",
+                                        gs.publicFidele,
+                                        "/3.")),
+                                react_1.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 5, marginTop: 7 } }, FOI_TEMOIGNAGES.map(tm => {
+                                    const fait = (gs.temoignages || []).includes(tm.id);
+                                    const manque = tm.besoin === "tour" && !(gs.detailedTour || gs.activeTour);
+                                    const pret = !fait && !manque;
+                                    return (react_1.default.createElement("button", { key: tm.id, disabled: !pret, onClick: () => {
+                                            sfx("confirm");
+                                            dispatch({ type: "TEMOIGNER", id: tm.id });
+                                            dispatch({ type: "APPLY", effects: { ...tm.fx, deliberate: true } });
+                                            dispatch({ type: "MARCHE", delta: tm.marche });
+                                            dispatch({ type: "MENTAL", deltas: { purpose: +12, anxiety: +5 } });
+                                            dispatch({ type: "ADD_TIMELINE", entry: { type: "foi", emoji: tm.emoji, title: tm.titre } });
+                                            addLog(`[FOI] ${tm.titre}`);
+                                            setAnnonceMajeure({ emoji: tm.emoji, title: tm.titre, majeur: true, desc: tm.out });
+                                        }, style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
+                                            padding: "9px 11px", background: fait ? "rgba(180,220,190,.06)" : pret ? "rgba(180,220,190,.1)" : "rgba(255,255,255,.03)",
+                                            border: fait ? "1px solid rgba(180,220,190,.25)" : pret ? "1px solid rgba(180,220,190,.4)" : "1px solid rgba(255,255,255,.08)",
+                                            color: fait ? "rgba(180,220,190,.6)" : pret ? "#b4dcbe" : "rgba(255,255,255,.3)", borderRadius: 8,
+                                            cursor: pret ? "pointer" : "not-allowed", textAlign: "left" } },
+                                        react_1.default.createElement("span", { style: { fontSize: 11.5 } },
+                                            tm.emoji,
+                                            " ",
+                                            tm.label),
+                                        react_1.default.createElement("span", { style: { fontSize: 9, fontFamily: "'Space Mono',monospace", whiteSpace: "nowrap" } }, fait ? "✓ dit" : manque ? "en tournée" : "→")));
+                                })))),
+                            n && (() => {
+                                const etapes = ["Il demande à te voir", "Il attend ta réponse", "Ils ont doublé l'offre", "Il a refusé", "", "Il y est allé", "Baptisé"];
+                                const col2 = n.perdu ? "#ff6b6b" : n.baptise ? "#b4dcbe" : "#ffce63";
+                                return (react_1.default.createElement("div", { style: { marginTop: 13, background: "rgba(180,220,190,.05)", border: `1px solid ${n.perdu ? "rgba(255,107,107,.3)" : "rgba(180,220,190,.3)"}`, borderRadius: 9, padding: 10 } },
+                                    react_1.default.createElement("div", { style: { ...HUD_LABEL, color: "rgba(180,220,190,.8)" } }, "TRANSMETTRE"),
+                                    react_1.default.createElement("div", { style: { fontSize: 12, fontWeight: 700, color: col2, marginTop: 4 } },
+                                        "\uD83C\uDFA7 ",
+                                        NAEL.name),
+                                    react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(255,255,255,.55)", marginTop: 3, lineHeight: 1.45 } }, naelBio(gs)),
+                                    n.baptise && !n.tombe && (() => {
+                                        const f = naelFoi(gs);
+                                        const c = f >= 60 ? "#b4dcbe" : f >= 30 ? "#ffce63" : "#ff6b6b";
+                                        return (react_1.default.createElement("div", { style: { marginTop: 6 } },
+                                            react_1.default.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+                                                react_1.default.createElement("span", { style: { fontSize: 9, color: "rgba(255,255,255,.4)", fontFamily: "'Space Mono',monospace" } }, "SA FOI \u2014 tu es son formateur"),
+                                                react_1.default.createElement("span", { style: { fontSize: 11, color: c, fontFamily: "'Space Mono',monospace", fontWeight: 700 } },
+                                                    Math.round(f),
+                                                    "/100")),
+                                            react_1.default.createElement("div", { style: { marginTop: 4 } },
+                                                react_1.default.createElement(StatBar, { val: f, color: c, height: 3 })),
+                                            f < 30 && react_1.default.createElement("div", { style: { fontSize: 9, color: "#ff6b6b", marginTop: 4, lineHeight: 1.4 } }, "Il d\u00E9croche. Si \u00E7a tombe \u00E0 z\u00E9ro, il quittera la foi et il aura trop honte pour te reparler.")));
+                                    })(),
+                                    n.tombe && (react_1.default.createElement("div", { style: { fontSize: 9, color: "#ff6b6b", marginTop: 5, fontFamily: "'Space Mono',monospace", lineHeight: 1.4 } }, "\u2715 Il est tomb\u00E9. Il ne r\u00E9pond plus \u2014 ce n'est pas de la rancune, c'est de la honte.")),
+                                    !n.perdu && !n.baptise && !n.tombe && (react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(255,255,255,.35)", marginTop: 5, fontFamily: "'Space Mono',monospace" } },
+                                        etapes[n.stage] || "—",
+                                        " \u00B7 ce qu'il d\u00E9cidera d\u00E9pend de ce que tu lui as dit, et de ta propre marche")),
+                                    n.baptise && (react_1.default.createElement("div", { style: { fontSize: 9, color: "#b4dcbe", marginTop: 5, fontFamily: "'Space Mono',monospace" } }, "\u2713 Tu l'as baptis\u00E9 dans la m\u00EAme rivi\u00E8re que toi"))));
+                            })(),
+                            react_1.default.createElement("button", { onClick: () => setConvictionsOuvertes(v => !v), style: { width: "100%", marginTop: 13, padding: "8px",
+                                    background: "rgba(180,220,190,.08)", border: "1px solid rgba(180,220,190,.3)", color: "#b4dcbe",
+                                    borderRadius: 8, fontSize: 10.5, cursor: "pointer", fontFamily: "'Space Mono',monospace" } },
+                                convictionsOuvertes ? "▴" : "▾",
+                                " CE QUE TU CROIS \u2014 ",
+                                CONVICTIONS.length,
+                                " convictions"),
+                            convictionsOuvertes && (react_1.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6, marginTop: 7 } }, CONVICTIONS.map(cv => (react_1.default.createElement("div", { key: cv.id, style: { background: "rgba(255,255,255,.03)", border: "1px solid rgba(180,220,190,.18)", borderRadius: 8, padding: 9 } },
+                                react_1.default.createElement("div", { style: { fontSize: 11, fontWeight: 700, color: "#b4dcbe", lineHeight: 1.3 } },
+                                    cv.emoji,
+                                    " ",
+                                    cv.titre),
+                                react_1.default.createElement("div", { style: { fontSize: 8.5, color: "rgba(180,220,190,.6)", marginTop: 2, fontFamily: "'Space Mono',monospace" } }, cv.ref),
+                                react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(255,255,255,.55)", marginTop: 4, lineHeight: 1.5 } }, cv.texte))))))));
+                    })(),
                     (() => {
                         const now = gs.currentDate, y = new Date(now).getFullYear();
                         const items = [];
