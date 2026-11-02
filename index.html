@@ -10548,6 +10548,137 @@ const FALLTOS_FORMATION = [
 // Un gamin de Bourg-en-Bresse, comme toi. On lui propose exactement ce qu'on
 // t'a proposé, et il ne comprend pas encore ce que c'est. Il entre vraiment dans
 // la partie : il a une fiche, une relation, et il y reste.
+// ─── SOF, TON MANAGER ───────────────────────────────────────────────────────
+// Falltos te l'a mis dans les pattes à Nice quand personne ne te connaissait.
+// Il t'apprend le métier au début, et il ne s'en va plus : il te félicite, il
+// s'inquiète, et c'est lui qui verra venir ce que tu ne verras pas.
+const SOF = { id: "younes_berkani", name: "Younes Berkani", emoji: "💼", cat: "equipe", loc: "Nice" };
+// ─── LES TROIS PREMIERS GESTES ──────────────────────────────────────────────
+// On n'explique rien tant que le joueur n'a rien touché. Sof demande trois
+// choses, dans la vraie interface, et chaque étape se valide sur l'état réel du
+// jeu — pas sur un clic scripté. Le joueur peut donc y arriver comme il veut.
+const PREMIERS_GESTES = [
+    { id: "temps",
+        dit: "Fisco. Avant qu'on parle de musique : ici, rien n'arrive tant que tu ne fais pas passer le temps. C'est toi qui décides quand.",
+        consigne: "Fais avancer le temps d'une semaine",
+        cibles: ["temps"],
+        fait: (gs, ref) => gs.currentDate > ref.date0,
+        bravo: "Voilà. Une semaine de ta vie vient de passer. Les factures aussi, d'ailleurs." },
+    { id: "rollout",
+        dit: "On ne sort pas un morceau en appuyant sur un bouton. On prépare le terrain avant : une annonce, un teasing, les playlists, un peu de marketing. Un titre préparé peut faire plus du double d'écoutes que le même titre lâché dans le vide.",
+        consigne: "Prépare la sortie depuis l'onglet Musique",
+        cibles: ["rollout", "onglet-musique"],
+        fait: (gs) => !!(gs.pendingRollout && gs.pendingRollout.hype > 0),
+        bravo: "Bien. Le public sait que quelque chose arrive. Maintenant on peut sortir le morceau." },
+    { id: "single",
+        dit: "À toi. Choisis une direction artistique, un genre, un titre, et lance-le. C'est ton premier morceau de cette vie-là.",
+        consigne: "Sors le single",
+        cibles: ["single", "onglet-musique"],
+        fait: (gs, ref) => (gs.discography || []).length > ref.disco0,
+        bravo: "C'est dehors, et c'est sorti préparé. Tu viens de faire en deux minutes ce que la moitié du métier ne fait jamais." },
+    { id: "panneau",
+        dit: "Dernière chose et je te laisse. Tout ce que tu voudras savoir — tes chiffres, tes contacts, tes classements, ce que la presse raconte — est derrière un seul bouton.",
+        consigne: "Ouvre le panneau « Tout savoir »",
+        cibles: ["panneau"],
+        fait: (gs, ref) => ref.panneauVu,
+        bravo: "Tu as tout ce qu'il te faut. Le reste, je te le dirai au fur et à mesure — quand ça te servira, pas avant." },
+];
+// ─── CE QUE SOF T'APPREND EN CHEMIN ─────────────────────────────────────────
+// Chaque carte arrive la première fois que la chose existe vraiment, une seule
+// fois, et jamais pendant qu'autre chose est ouvert.
+const CONSEILS_SOF = [
+    { id: "c_musique", quand: g => g.ongletVu === "musique",
+        titre: "L'onglet Musique",
+        texte: "Quatre choses décident du succès d'un projet : le studio où tu l'enregistres, la campagne que tu montes autour, le mois où tu le sors — octobre et novembre sont les meilleurs, août le pire — et le clip, qui relance un titre longtemps après sa sortie." },
+    { id: "c_business", quand: g => g.ongletVu === "business",
+        titre: "Tes trois marques",
+        texte: "Bahasco, FOH-0 et UNUHU Records tournent sans toi, mais pas très bien. Tu peux créer des produits, signer des artistes, et vendre si tu as besoin de liquide — sauf qu'on rachète toujours plus cher qu'on ne vend." },
+    { id: "c_relations", quand: g => g.ongletVu === "relations",
+        titre: "Les gens",
+        texte: "Une relation qui descend ne remonte pas toute seule. Et ta vie amoureuse n'est pas un détail : elle change ce qu'on te propose, et ce qu'on te pardonne." },
+    { id: "c_night", quand: g => g.ongletVu === "nightlife",
+        titre: "La nuit",
+        texte: "Les soirées construisent ta réputation plus vite que n'importe quel morceau. Elles coûtent de l'argent, de la santé, et parfois autre chose. Le Casino Royal, lui, ne coûte que de l'argent." },
+    { id: "c_reseaux", quand: g => g.ongletVu === "reseaux",
+        titre: "Les réseaux",
+        texte: "Poste régulièrement, même quand tu n'as rien à vendre : un public qui t'oublie met des mois à revenir. Un clash fait exploser les chiffres et peut te coûter bien plus que ce qu'il rapporte." },
+    { id: "c_classement", quand: g => (g.discography || []).some(d => (d.streams || 0) >= 2000000),
+        titre: "Les classements",
+        texte: "Ton premier vrai score. Le Billboard et le SNEP se mettent à jour tout seuls : tu n'as rien à y faire, mais c'est là que se joue ce qu'on dira de toi dans dix ans." },
+    { id: "c_argent", quand: g => g.money < 0,
+        titre: "Tu es dans le rouge",
+        texte: "Tes sociétés et ton train de vie se paient tous les mois, que tu travailles ou non. Vends quelque chose, sors un projet, ou coupe des dépenses — mais ne laisse pas traîner." },
+    { id: "c_energie", quand: g => g.energy <= 20,
+        titre: "Tu es à bout",
+        texte: "En dessous de vingt, tu ne peux plus rien faire de sérieux. Dors. Ça n'a l'air de rien, mais c'est la moitié du métier." },
+    { id: "c_tournee", quand: g => !!g.detailedTour || !!g.activeTour,
+        titre: "Ta tournée",
+        texte: "Une tournée rapporte plus que tout le reste et détruit ta santé plus vite que tout le reste. Regarde les villes, pas seulement le cachet." },
+];
+// ─── CE QUE YOUNES VOIT ─────────────────────────────────────────────────────
+// Il ne répète pas les consignes : il commente ce que tu as fait. Déclenché par
+// le code au moment exact de l'erreur, une fois chacun.
+const REACTIONS_YOUNES = {
+    r_sans_prepa: { titre: "Tu l'as lâché dans le vide",
+        texte: "Aucune annonce, aucun teasing, rien. Le morceau est bon, peut-être, mais personne ne l'attendait.\n\nRegarde tes chiffres dans deux semaines et rappelle-toi de cette conversation. La prochaine fois, tu prépares.",
+        fx: { rel: -4 } },
+    r_sortie_rapide: { titre: "Tu enchaînes trop vite",
+        texte: "Deux projets coup sur coup. Le second mange le premier : les gens n'ont pas fini d'écouter que tu leur demandes déjà autre chose.\n\nLaisse respirer. Un titre vit des mois si on lui en laisse le temps.",
+        fx: { rel: -3 } },
+    r_epuise: { titre: "Tu travailles à vide",
+        texte: "Tu viens de bosser avec presque plus rien dans le réservoir. Ce que tu produis dans cet état-là, tu le réécoutes dans six mois et tu le jettes.\n\nDors. Je ne te le redirai pas deux fois.",
+        fx: { rel: -2 } },
+    r_clash: { titre: "Tu as ouvert les hostilités",
+        texte: "Un clash, ça marche — les chiffres montent, on parle de toi partout. Et ça ne se referme jamais vraiment.\n\nCelui d'en face va répondre. Prépare-toi à ce que ça dure plus longtemps que tu ne l'as prévu.",
+        fx: { rel: 0 } },
+};
+// ─── CE QU'IL T'ÉCRIT ENTRE DEUX ──────────────────────────────────────────
+// Des remarques, pas des conseils. Elles tiennent compte de ce que tu es en
+// train de devenir, et tu peux lui répondre.
+const MESSAGES_YOUNES = [
+    { id: "m_silence", quand: g => {
+            const d = (g.discography || []).filter(x => x.releaseDate > GAME_START_DATE);
+            const dernier = d.length ? Math.max(...d.map(x => x.releaseDate)) : g.careerStart || GAME_START_DATE;
+            return (g.currentDate - dernier) > 240 * 86400000;
+        },
+        titre: "Ça fait long",
+        texte: "Huit mois sans rien sortir. Je ne te mets pas la pression — mais le public, lui, a déjà trouvé autre chose à écouter.\n\nMême un single. Même petit.",
+        choix: [{ t: "Il a raison, je m'y remets", fx: { rel: +4 } },
+            { t: "Je sortirai quand ce sera prêt", fx: { rel: -9 } }] },
+    { id: "m_fete", quand: g => (g.partyLegend || 0) >= 6 && g.health < 70,
+        titre: "Tu sors beaucoup",
+        texte: "Je ne suis pas ton père. Mais j'ai vu assez de carrières s'arrêter sur des nuits comme celles-là pour te le dire une fois.\n\nLa fête ne t'enlèvera rien tant qu'elle ne remplace pas le travail.",
+        choix: [{ t: "Je lève le pied", fx: { rel: +4, health: +3 } },
+            { t: "C'est ma vie", fx: { rel: -9 } }] },
+    { id: "m_argent", quand: g => g.money < 500000 && (g.careerYears || 0) >= 5,
+        titre: "Tes comptes",
+        texte: "J'ai regardé. Ce n'est pas encore grave, mais tu dépenses plus vite que tu n'encaisses, et tes sociétés ne compensent plus.\n\nSoit tu sors quelque chose, soit tu coupes.",
+        choix: [{ t: "Je m'en occupe", fx: { rel: +3 } },
+            { t: "Laisse tourner", fx: { rel: -10 } }] },
+    { id: "m_sommet", quand: g => g.fame >= 85,
+        titre: "Tu y es",
+        texte: "Je t'ai pris quand personne ne décrochait. Aujourd'hui je filtre les appels.\n\nProfite, mais rappelle-toi d'une chose : à ce niveau-là, ceux qui viennent te voir veulent tous quelque chose.",
+        choix: [{ t: "Je sais", fx: { rel: +2 } },
+            { t: "Merci d'avoir été là", fx: { rel: +7 } }] },
+    { id: "m_sante", quand: g => g.health < 45,
+        titre: "Ta santé",
+        texte: "Tu tiens avec rien. J'annule quoi dans les semaines qui viennent ?\n\nDis-moi, je m'occupe des excuses.",
+        choix: [{ t: "Annule tout, je me repose", fx: { rel: +5, health: +6, stress: -10 } },
+            { t: "N'annule rien", fx: { rel: -11 } }] },
+];
+// ─── LES DEUX LEÇONS DE PLUS TARD ──────────────────────────────────────────
+// Quand l'enjeu est réel, il reprend la main une minute : il montre où
+// regarder, sans rien verrouiller.
+const LECONS_YOUNES = [
+    { id: "l_cercle", quand: g => !!g.elite,
+        titre: "Ce dans quoi tu viens d'entrer",
+        texte: "Je ne te dirai pas ce que tu dois en penser. Je te dis comment ça marche : on te demandera des services, tu monteras en grade, et chaque service rendu te coûtera quelque chose que tu ne verras pas tout de suite.\n\nTon écran a changé : tu as maintenant un accès au cercle depuis l'onglet Vie. Tout ce qu'ils te demandent passera par là.",
+        cible: "cercle" },
+    { id: "l_clash", quand: g => !!g.activeClash,
+        titre: "Le clash est lancé",
+        texte: "Ça se joue sur les réseaux et nulle part ailleurs. Poste, réponds, laisse monter — ou laisse mourir.\n\nRegarde l'onglet Réseaux : tant que c'est ouvert, chaque message compte double, dans les deux sens.",
+        cible: "onglet-reseaux" },
+];
 const NAEL = { id: "nael_bouaziz", name: "Naël Bouaziz", emoji: "🎧", cat: "music_fr", loc: "Bourg-en-Bresse" };
 const NAEL_BIOS = [
     "Dix-neuf ans, deux projets sortis seul, et une proposition qu'il n'a pas comprise.",
@@ -18992,6 +19123,7 @@ const INIT = {
     },
     relations: {
         the_weeknd: { score: 82, status: "meilleur_ami" },
+        younes_berkani: { score: 60, status: "manager" },
         jenna_ortega: { score: 78, status: "fiancee" },
         falltos: { score: 68, status: "famille" },
         drake: { score: 75, status: "ami" },
@@ -19112,7 +19244,7 @@ const INIT = {
     children: [], careerYears: 4, familyArcLastAdvance: null, griefLastAdvance: null,
     partyHistory: [], partyLegend: 11,
     reviews: [], studioSetup: null, detailedTour: null,
-    newCast: {}, castGenYear: null, invitesSeen: [], lastSignature: null, runwayHistory: [], mainSponsor: null,
+    conseilsVus: [], ongletVu: null, sofFini: false, younesParti: false, younesDernier: null, dernierProjet: null, newCast: {}, castGenYear: null, invitesSeen: [], lastSignature: null, runwayHistory: [], mainSponsor: null,
     clashHistory: [], socialFeed: [], lastPostDate: null, activeTrend: null, activeClash: null, viralTrack: null,
     sponsoredCount: 0, lastTrendYear: null, socialCrisis: null, brandOffer: null,
     feedLog: [], eliteDeathDate: null,
@@ -19279,7 +19411,7 @@ function capFame(next) {
 // s'en approcher.
 // Affichée dans les paramètres : elle dit d'un coup d'œil si la partie tourne
 // bien sur la dernière version du jeu.
-const VERSION_JEU = "93";
+const VERSION_JEU = "96";
 // Le seuil à partir duquel une fortune commence à se défendre au lieu de croître
 const SEUIL_GRANDE_FORTUNE = 3000000000;
 const TAUX_FROTTEMENT = 0.34; // par an sur la part au-dessus du seuil, et ça s'accélère
@@ -20209,6 +20341,25 @@ function gameReducerInner(state, action) {
             return { ...state, faithStage: (state.faithStage || 0) + 1 };
         case "TOGGLE_SFX":
             return { ...state, sfxOn: !state.sfxOn };
+        case "CONSEIL_VU":
+            return { ...state, conseilsVus: [...(state.conseilsVus || []), action.id],
+                younesDernier: action.minuteur ? state.currentDate : state.younesDernier };
+        case "YOUNES_PART":
+            return { ...state, younesParti: true };
+        case "PROJET_SORTI":
+            return { ...state, dernierProjet: state.currentDate };
+        case "ONGLET_VU":
+            return { ...state, ongletVu: action.id };
+        case "SOF_FINI": {
+            const deja = CONSEILS_SOF.filter(c => { try {
+                return c.quand(state);
+            }
+            catch (e) {
+                return false;
+            } }).map(c => c.id);
+            return { ...state, sofFini: true, tutorialDone: true,
+                conseilsVus: [...new Set([...(state.conseilsVus || []), ...deja])] };
+        }
         case "TUTORIAL_DONE":
             return { ...state, tutorialDone: true };
         case "SET_BAPTISM":
@@ -21939,7 +22090,7 @@ function StudioMiniGame({ onComplete, onSkip }) {
             react_1.default.createElement("div", { style: { position: "absolute", left: `${pos}%`, top: 0, width: 3, height: "100%", background: "#f2c379", transform: "translateX(-50%)", boxShadow: "0 0 8px #f2c379" } })),
         react_1.default.createElement("div", { style: { height: 16, marginBottom: 6, fontSize: 12, fontFamily: "'Bebas Neue',cursive", letterSpacing: 2, color: "#f2c379" } }, flash || ""),
         react_1.default.createElement("div", { style: { display: "flex", gap: 4, justifyContent: "center", marginBottom: 12 } }, [0, 1, 2].map(i => (react_1.default.createElement("div", { key: i, style: { width: 8, height: 8, borderRadius: "50%", background: attempts[i] !== undefined ? "#7ce0a4" : "rgba(255,255,255,.15)" } })))),
-        react_1.default.createElement("button", { onClick: hit, className: "qa-btn", style: { ...studioBtnStyle, width: "100%", padding: "13px", fontSize: 15 } }, "\uD83E\uDD41 FRAPPER LE BEAT"),
+        react_1.default.createElement("button", { className: "qa-btn", onClick: hit, style: { ...studioBtnStyle, width: "100%", padding: "13px", fontSize: 15 } }, "\uD83E\uDD41 FRAPPER LE BEAT"),
         react_1.default.createElement("button", { onClick: onSkip, style: { marginTop: 8, background: "none", border: "none", color: "rgba(255,255,255,.3)", fontSize: 10, cursor: "pointer", fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums" } }, "passer la session (bonus +0)")));
 }
 // Rend le **gras** des textes d'aide sans dépendre d'une librairie
@@ -22017,6 +22168,8 @@ body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-r
 @keyframes eventBadge{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
 @keyframes pendingPop{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes braise{0%,100%{opacity:.5}50%{opacity:.85}}
+/* Un clic à côté pendant les premiers pas : le bandeau tressaille, rien de plus. */
+@keyframes secousse{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
 /* Une fenêtre doit flotter : le monde derrière s'éteint et se brouille, et
    elle-même repose sur une ombre longue avec un filet de lumière en haut. */
 .overlay-anim{backdrop-filter:blur(12px) saturate(.85);-webkit-backdrop-filter:blur(12px) saturate(.85)}
@@ -22416,7 +22569,19 @@ function FiscoGame() {
     // matchMedia plutôt que innerWidth pour qu'ils ne divergent jamais d'un pixel.
     const WIDE_QUERY = "(min-width:1280px)";
     const isWide = () => typeof window !== "undefined" && !!window.matchMedia && window.matchMedia(WIDE_QUERY).matches;
+    // Les premiers pas avec Sof : l'indice du geste en cours, le repère pris au
+    // moment où il a été demandé, et le halo posé sur le vrai bouton.
+    const [geste, setGeste] = (0, react_1.useState)(null);
+    const [repere, setRepere] = (0, react_1.useState)(null);
+    const [halo, setHalo] = (0, react_1.useState)(null);
+    const [bravo, setBravo] = (0, react_1.useState)(null);
+    const [secousse, setSecousse] = (0, react_1.useState)(0);
+    const [conseil, setConseil] = (0, react_1.useState)(null);
+    const panneauVuRef = (0, react_1.useRef)(false);
+    (0, react_1.useEffect)(() => { premiersPasRef.current = (geste !== null || !!conseil); }, [geste, conseil]);
     const [showInfo, setShowInfo] = (0, react_1.useState)(isWide);
+    (0, react_1.useEffect)(() => { if (showInfo)
+        panneauVuRef.current = true; }, [showInfo]);
     const officioDone = (0, react_1.useRef)(false);
     const wasWide = (0, react_1.useRef)(isWide());
     (0, react_1.useEffect)(() => {
@@ -22447,13 +22612,18 @@ function FiscoGame() {
     (0, react_1.useEffect)(() => { if (enRetrait(gs) && !["vie", "relations", "nightlife"].includes(mainTab))
         setMainTab("vie"); }, [gs.bonnePart, mainTab]);
     const [notif, setNotif] = (0, react_1.useState)(null);
-    const [activeEvent, setActiveEvent] = (0, react_1.useState)(null);
+    const [activeEvent, setActiveEventBrut] = (0, react_1.useState)(null);
+    const premiersPasRef = (0, react_1.useRef)(false);
+    const setActiveEvent = (0, react_1.useCallback)(v => { if (v && premiersPasRef.current)
+        return; setActiveEventBrut(v); }, []);
     const [calAlert, setCalAlert] = (0, react_1.useState)(null);
     // Une annonce majeure a son propre emplacement : elle passe devant toutes les
     // autres, aucune alerte du même tour ne peut l'écraser, et « passer l'année »
     // n'a pas le droit de la faire disparaître.
     const [annonceMajeure, setAnnonceMajeure] = (0, react_1.useState)(null);
-    const [pendingAlert, setPendingAlert] = (0, react_1.useState)(null);
+    const [pendingAlert, setPendingAlertBrut] = (0, react_1.useState)(null);
+    const setPendingAlert = (0, react_1.useCallback)(v => { if (v && premiersPasRef.current)
+        return; setPendingAlertBrut(v); }, []);
     const [creator, setCreator] = (0, react_1.useState)(null);
     const [savedData, setSavedData] = (0, react_1.useState)(null);
     const [ending, setEnding] = (0, react_1.useState)(null);
@@ -25450,12 +25620,169 @@ function FiscoGame() {
     }, [gs, toast]);
     // Un seul événement à la fois, avec un délai de respiration entre deux
     const lastEventTs = (0, react_1.useRef)(0);
+    // Le halo suit le vrai bouton, où qu'il soit. On relit sa position
+    // régulièrement : la page défile, les onglets changent, le bouton bouge.
+    (0, react_1.useEffect)(() => {
+        const cibles = geste !== null ? PREMIERS_GESTES[geste].cibles
+            : (conseil && conseil.cible ? [conseil.cible] : null);
+        if (!cibles) {
+            setHalo(null);
+            return;
+        }
+        const g = { cibles };
+        const lire = () => {
+            let n = null;
+            for (const c of (g.cibles || [])) {
+                n = document.querySelector(`[data-tuto="${c}"]`);
+                if (n)
+                    break;
+            }
+            if (!n) {
+                setHalo(null);
+                return;
+            }
+            const r = n.getBoundingClientRect();
+            if (!r.width || !r.height) {
+                setHalo(null);
+                return;
+            }
+            setHalo({ x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 });
+        };
+        lire();
+        const t = setInterval(lire, 280);
+        window.addEventListener("resize", lire);
+        return () => { clearInterval(t); window.removeEventListener("resize", lire); };
+    }, [geste, conseil, mainTab, showInfo]);
+    // Chaque geste se valide sur l'état réel du jeu, jamais sur un clic.
+    (0, react_1.useEffect)(() => {
+        if (geste === null || !repere || bravo)
+            return;
+        const g = PREMIERS_GESTES[geste];
+        if (!g.fait(gs, { ...repere, panneauVu: panneauVuRef.current }))
+            return;
+        setBravo(g.bravo);
+    }, [geste, repere, bravo, gs, showInfo]);
+    const gesteSuivant = (0, react_1.useCallback)(() => {
+        setBravo(null);
+        const suivant = (geste === null ? 0 : geste + 1);
+        if (suivant >= PREMIERS_GESTES.length) {
+            setGeste(null);
+            setRepere(null);
+            dispatch({ type: "SOF_FINI" });
+            setCalAlert({ emoji: "💼", title: `${SOF.name} — « On se rappelle »`,
+                desc: "Tu sais faire passer le temps, sortir un morceau et lire tes chiffres. C'est tout ce dont tu as besoin pour commencer.\n\nLe reste, je te le dirai au moment où ça te servira. Et si tu veux tout lire d'un coup, le guide complet est dans les paramètres.\n\nAppelle-moi quand ça devient sérieux." });
+            return;
+        }
+        setGeste(suivant);
+        setRepere({ date0: gs.currentDate, disco0: (gs.discography || []).length });
+    }, [geste, gs, dispatch]);
+    const passerLesPas = (0, react_1.useCallback)(() => {
+        setGeste(null);
+        setRepere(null);
+        setBravo(null);
+        dispatch({ type: "SOF_FINI" });
+    }, [dispatch]);
     const anyOverlayOpen = (0, react_1.useCallback)(() => {
         const b = blockersRef.current;
         // les modales tardives sont lues via la ref
         return !!(activeEvent || calAlert || annonceMajeure || pendingAlert || grammyResult || vdlmResult || yearRecap || taxNotice || tourReport
             || majorOutcome || ending || mourningNotice || b.naming || b.seriesReport || b.interview);
     }, [activeEvent, calAlert, annonceMajeure, pendingAlert, grammyResult, vdlmResult, yearRecap, taxNotice, tourReport, majorOutcome, ending, mourningNotice]);
+    // S'il n'est plus écouté, il s'en va. Ce n'est pas une punition : c'est un
+    // homme qui a d'autres artistes et une seule vie.
+    (0, react_1.useEffect)(() => {
+        var _a, _b, _c;
+        if (phase !== "game" || ending || !gs.sofFini || gs.younesParti)
+            return;
+        const sc = (_c = (_b = (_a = gs.relations) === null || _a === void 0 ? void 0 : _a[SOF.id]) === null || _b === void 0 ? void 0 : _b.score) !== null && _c !== void 0 ? _c : 60;
+        if (sc > 12)
+            return;
+        dispatch({ type: "YOUNES_PART" });
+        setCalAlert({ emoji: "💼", title: `${SOF.name} — « Je m'arrête là »`,
+            desc: "Il n'a pas haussé le ton. Il a juste dit qu'il ne servait plus à rien, et que continuer à être payé pour ça ne l'intéressait pas.\n\nIl avait raison depuis un moment, et tu le savais.\n\n**Tu n'as plus de manager.** Les gens qui t'approchent désormais te parleront directement." });
+    }, [phase, ending, gs.sofFini, gs.younesParti, gs.relations, dispatch]);
+    // Younes commente ce que tu viens de faire. Une fois chacun, et jamais
+    // pendant qu'autre chose est ouvert : on garde le message sous le coude.
+    const [enAttente, setEnAttente] = (0, react_1.useState)([]);
+    (0, react_1.useEffect)(() => { if (gs.activeClash)
+        reagirYounes("r_clash"); }, [gs.activeClash]);
+    // Le cercle n'achète pas que des artistes. Deux mois après ton entrée, on
+    // lui propose mieux — et c'est à toi de décider ce que tu fais.
+    (0, react_1.useEffect)(() => {
+        if (phase !== "game" || ending || !gs.sofFini || gs.younesParti || conseil || geste !== null)
+            return;
+        if (!gs.elite || !gs.eliteSince || (gs.currentDate - gs.eliteSince) < 60 * 86400000)
+            return;
+        if ((gs.conseilsVus || []).includes("y_rachat"))
+            return;
+        if (anyOverlayOpen())
+            return;
+        dispatch({ type: "CONSEIL_VU", id: "y_rachat", minuteur: true });
+        setConseil({ id: "y_rachat", genre: "il te doit une franchise", titre: "On est venu le chercher",
+            texte: "« Ils m'ont proposé quelque chose. Pas un poste chez toi — un poste chez eux, à gérer trois artistes que tu connais. Le triple de ce que tu me paies.\n\nJe ne te demande pas de t'aligner. Je te demande si tu veux que je reste. »",
+            choix: [
+                { t: "S'aligner sur leur offre — 2 M$", fx: { rel: +12, money: -2000000 } },
+                { t: "« Reste. Je ne peux pas m'aligner, mais reste. »", fx: { rel: +4 } },
+                { t: "« Prends le poste. Tu l'as mérité. »", fx: { rel: -40 } },
+            ] });
+    }, [phase, ending, gs, conseil, geste, anyOverlayOpen, dispatch]);
+    const reagirYounes = (0, react_1.useCallback)(id => {
+        const r = REACTIONS_YOUNES[id];
+        if (!r)
+            return;
+        const g = gsRef.current;
+        if (!g || g.younesParti || !g.sofFini)
+            return;
+        if ((g.conseilsVus || []).includes(id))
+            return;
+        setEnAttente(l => l.includes(id) ? l : [...l, id]);
+    }, []);
+    // Les conseils de Sof arrivent quand la chose existe, une seule fois, et
+    // jamais par-dessus autre chose.
+    (0, react_1.useEffect)(() => {
+        if (phase !== "game" || ending || geste !== null || conseil || !gs.sofFini)
+            return;
+        if (anyOverlayOpen() || settingsModal)
+            return;
+        if (gs.younesParti)
+            return;
+        const vus = new Set(gs.conseilsVus || []);
+        // 1. ce qu'il vient de voir ; 2. ce qu'il doit t'apprendre ; 3. ce qu'il
+        // t'explique ; 4. ce qu'il t'écrit, au plus une fois par quinzaine.
+        const att = enAttente.find(id => !vus.has(id));
+        if (att) {
+            const r = REACTIONS_YOUNES[att];
+            setEnAttente(l => l.filter(x => x !== att));
+            setConseil({ id: att, titre: r.titre, texte: r.texte, genre: "réaction", fx: r.fx });
+            dispatch({ type: "CONSEIL_VU", id: att });
+            if (r.fx && r.fx.rel)
+                dispatch({ type: "APPLY", effects: { rel: { [SOF.id]: r.fx.rel } } });
+            return;
+        }
+        const l = LECONS_YOUNES.find(x => !vus.has(x.id) && x.quand(gs));
+        if (l) {
+            setConseil({ ...l, genre: "leçon" });
+            dispatch({ type: "CONSEIL_VU", id: l.id });
+            return;
+        }
+        const c = CONSEILS_SOF.find(x => !vus.has(x.id) && x.quand(gs));
+        if (c) {
+            setConseil({ ...c, genre: "conseil" });
+            dispatch({ type: "CONSEIL_VU", id: c.id });
+            return;
+        }
+        const assezAttendu = !gs.younesDernier || (gs.currentDate - gs.younesDernier) > 15 * 86400000;
+        if (assezAttendu) {
+            const m = MESSAGES_YOUNES.find(x => !vus.has(x.id) && x.quand(gs));
+            if (m) {
+                setConseil({ ...m, genre: "message" });
+                dispatch({ type: "CONSEIL_VU", id: m.id, minuteur: true });
+            }
+        }
+    }, [phase, ending, geste, conseil, gs, anyOverlayOpen, settingsModal, enAttente, dispatch]);
+    // Visiter un onglet pour la première fois, c'est une occasion d'apprendre.
+    (0, react_1.useEffect)(() => { if (gs.ongletVu !== mainTab)
+        dispatch({ type: "ONGLET_VU", id: mainTab }); }, [mainTab]);
     const maybeEvent = (0, react_1.useCallback)(() => {
         if (anyOverlayOpen())
             return false; // jamais deux écrans en même temps
@@ -26428,7 +26755,10 @@ function FiscoGame() {
             dispatch({ type: "RESET" });
         setPhase("game");
         if (newGame)
-            setTimeout(() => setTutoStep(0), 400); // découverte au premier lancement
+            setTimeout(() => {
+                setGeste(0);
+                setRepere({ date0: INIT.currentDate, disco0: (INIT.discography || []).length });
+            }, 500);
     }, [callAI, parseChoices]);
     const resumeGame = (0, react_1.useCallback)(() => {
         if (!savedData || !savedData.gs) {
@@ -26581,6 +26911,15 @@ function FiscoGame() {
         setCreator(c => ({ ...c, data: { ...c.data, tracks: c.data.tracks.filter((_, i) => i !== idx) } }));
     }, []);
     const releaseProject = (0, react_1.useCallback)((project) => {
+        // Younes regarde par-dessus ton épaule : pas de campagne, ou un projet
+        // lâché trop vite après le précédent.
+        if (!(gs.pendingRollout && gs.pendingRollout.hype > 0))
+            reagirYounes("r_sans_prepa");
+        if (gs.dernierProjet && (gs.currentDate - gs.dernierProjet) < 45 * 86400000)
+            reagirYounes("r_sortie_rapide");
+        if (gs.energy <= 22)
+            reagirYounes("r_epuise");
+        dispatch({ type: "PROJET_SORTI" });
         // Les featurings internationaux se payent
         const fCost = totalFeatCost(project.tracks, gs);
         if (fCost > 0) {
@@ -30116,9 +30455,9 @@ function FiscoGame() {
                     MUSIC_TRACKS[gs.musicTier].label)),
                 react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(255,255,255,.35)", letterSpacing: 2, fontFamily: "'Space Mono',monospace", marginTop: 6 } }, "SAUVEGARDE"),
                 react_1.default.createElement("div", { style: { fontSize: 10, color: "rgba(255,255,255,.4)", lineHeight: 1.5, marginBottom: 2 } }, "Ta partie s'enregistre automatiquement. L'indicateur en haut de l'\u00E9cran te le confirme."),
-                react_1.default.createElement("button", { onClick: manualSave, className: "qa-btn", style: { ...studioBtnStyle, width: "100%" } }, "\uD83D\uDCBE SAUVEGARDER MAINTENANT"),
+                react_1.default.createElement("button", { onClick: manualSave, style: { ...studioBtnStyle, width: "100%" } }, "\uD83D\uDCBE SAUVEGARDER MAINTENANT"),
                 react_1.default.createElement("div", { style: { display: "flex", gap: 6 } },
-                    react_1.default.createElement("button", { onClick: downloadSave, className: "qa-btn", style: { ...studioBtnStyle, flex: 1 } }, "\uD83D\uDCE4 FICHIER"),
+                    react_1.default.createElement("button", { onClick: downloadSave, style: { ...studioBtnStyle, flex: 1 } }, "\uD83D\uDCE4 FICHIER"),
                     react_1.default.createElement("button", { onClick: () => { setSettingsModal(false); openSaveFile(); }, style: { ...studioBtnStyle, flex: 1 } }, "\uD83D\uDCC2 CHARGER")),
                 react_1.default.createElement("div", { style: { fontSize: 9, color: "rgba(255,255,255,.35)", letterSpacing: 2, fontFamily: "'Space Mono',monospace", marginTop: 6 } }, "AIDE"),
                 react_1.default.createElement("button", { onClick: () => { setSettingsModal(false); setTutoStep(0); }, style: { ...studioBtnStyle, width: "100%", background: "rgba(242,195,121,.1)", border: "1px solid rgba(242,195,121,.28)", color: "#f2c379" } }, "\uD83D\uDCD8 REVOIR LE GUIDE DU JEU"),
@@ -33739,7 +34078,7 @@ function FiscoGame() {
                                 react_1.default.createElement("span", { style: { fontSize: 10, color: "#b48ce0", fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums" } }, fmtFoll(t.streams)))))));
                     })())),
                 react_1.default.createElement("div", { style: { display: "flex", gap: 6 } },
-                    react_1.default.createElement("button", { onClick: openSingleCreator, className: "qa-btn", style: studioBtnStyle }, "\uD83C\uDFBC Single"),
+                    react_1.default.createElement("button", { className: "qa-btn", onClick: openSingleCreator, style: studioBtnStyle }, "\uD83C\uDFBC Single"),
                     react_1.default.createElement("button", { className: "qa-btn", onClick: () => openAlbumCreator("EP"), style: studioBtnStyle }, "\uD83D\uDCC0 EP"),
                     react_1.default.createElement("button", { className: "qa-btn", onClick: () => openAlbumCreator("Album"), style: studioBtnStyle }, "\uD83D\uDCBF Album")),
                 discoView === "projets" && (gs.discography || []).map(d => {
@@ -34039,7 +34378,7 @@ function FiscoGame() {
                         4: "🎤 COLLABORATEURS", 5: "😐 NEUTRES", 6: "⚔️ RIVAUX", 7: "🕯️ DISPARUS", 8: "👤 INCONNUS" };
                     // Ceux qui sont entrés dans la partie en cours de route comptent
                     // autant que les autres : Naël, le protégé, les enfants du casting.
-                    const sorted = [...Object.values(CHARS), ...Object.values(gs.newCast || {})]
+                    const sorted = [{ ...SOF, name: gs.younesParti ? `${SOF.name} (ancien manager)` : SOF.name }, ...Object.values(CHARS), ...Object.values(gs.newCast || {})]
                         .map(c => { var _a, _b; return ({ c, r: rank(c), sc: (_b = (_a = gs.relations[c.id]) === null || _a === void 0 ? void 0 : _a.score) !== null && _b !== void 0 ? _b : 0 }); })
                         .sort((a, b) => a.r - b.r || b.sc - a.sc || a.c.name.localeCompare(b.c.name));
                     let lastRank = -1;
@@ -34695,11 +35034,11 @@ function FiscoGame() {
                     react_1.default.createElement("span", { style: { fontSize: 11, opacity: .9 } }, st.icon),
                     react_1.default.createElement("span", { style: { fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums",
                             fontWeight: 700, fontSize: 12, color: st.col, letterSpacing: -.3 } }, st.node)))),
-                react_1.default.createElement("button", { onClick: () => setShowInfo(v => !v), "aria-label": "Tout savoir", style: { width: 32, height: 30, display: "grid", placeItems: "center",
+                react_1.default.createElement("button", { onClick: () => setShowInfo(v => !v), "data-tuto": "panneau", "aria-label": "Tout savoir", style: { width: 32, height: 30, display: "grid", placeItems: "center",
                         background: showInfo ? "linear-gradient(180deg,rgba(230,180,99,.24),rgba(230,180,99,.08))" : "rgba(255,255,255,.04)",
                         border: `1px solid ${showInfo ? "rgba(230,180,99,.42)" : "rgba(255,255,255,.08)"}`,
                         color: "rgba(242,234,218,.75)", borderRadius: 9, cursor: "pointer", fontSize: 13, transition: "all .18s" } }, "\uD83D\uDCCA"))),
-        react_1.default.createElement("div", { style: { display: "flex", gap: 4, padding: "7px 10px 5px", background: "rgba(3,10,22,.7)", backdropFilter: "blur(10px)", borderBottom: "1px solid rgba(230,180,99,.07)", overflowX: "auto", position: "sticky", top: 51, zIndex: 90, WebkitOverflowScrolling: "touch" } }, MAIN_TABS.filter(t => !enRetrait(gs) || ["vie", "relations", "nightlife"].includes(t.id)).map(t => (react_1.default.createElement("button", { key: t.id, className: `tab-btn ${mainTab === t.id ? "active" : ""}`, onClick: () => setMainTab(t.id), style: { display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", background: mainTab === t.id ? "" : "rgba(255,255,255,.04)", border: mainTab === t.id ? "1px solid rgba(230,180,99,.4)" : "1px solid rgba(255,255,255,.07)", color: mainTab === t.id ? "#f2c379" : "rgba(242,234,218,.55)", borderRadius: 9, cursor: "pointer", fontSize: 11.5, fontFamily: "'Syne',sans-serif", fontWeight: 700, whiteSpace: "nowrap" } },
+        react_1.default.createElement("div", { style: { display: "flex", gap: 4, padding: "7px 10px 5px", background: "rgba(3,10,22,.7)", backdropFilter: "blur(10px)", borderBottom: "1px solid rgba(230,180,99,.07)", overflowX: "auto", position: "sticky", top: 51, zIndex: 90, WebkitOverflowScrolling: "touch" } }, MAIN_TABS.filter(t => !enRetrait(gs) || ["vie", "relations", "nightlife"].includes(t.id)).map(t => (react_1.default.createElement("button", { key: t.id, "data-tuto": t.id === "musique" ? "onglet-musique" : t.id === "reseaux" ? "onglet-reseaux" : undefined, className: `tab-btn ${mainTab === t.id ? "active" : ""}`, onClick: () => setMainTab(t.id), style: { display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", background: mainTab === t.id ? "" : "rgba(255,255,255,.04)", border: mainTab === t.id ? "1px solid rgba(230,180,99,.4)" : "1px solid rgba(255,255,255,.07)", color: mainTab === t.id ? "#f2c379" : "rgba(242,234,218,.55)", borderRadius: 9, cursor: "pointer", fontSize: 11.5, fontFamily: "'Syne',sans-serif", fontWeight: 700, whiteSpace: "nowrap" } },
             react_1.default.createElement("span", { style: { fontSize: 12.5 } }, t.emoji),
             react_1.default.createElement("span", null, t.label))))),
         react_1.default.createElement("div", { className: "fisco-body", style: { display: "flex", flex: 1, minWidth: 0, overflow: "hidden", position: "relative", zIndex: 5 } },
@@ -34723,7 +35062,7 @@ function FiscoGame() {
                                 boxShadow: `0 0 12px ${j.c}55`, transition: "width .5s cubic-bezier(.2,.9,.3,1)" } })))))),
                 react_1.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 6 } }, [{ t: "+6 heures", h: 6, m: "⏩ +6 heures..." }, { t: "+1 semaine", h: 168, m: "⏩ +1 semaine..." }].map(b => (react_1.default.createElement("button", { key: b.h, className: "qa-btn", onClick: () => { advanceTimeSafe(b.h); toast(b.m); }, style: { background: "rgba(255,255,255,.045)", border: "1px solid rgba(255,255,255,.09)",
                         color: "rgba(242,234,218,.66)", padding: "9px 6px", borderRadius: 9, cursor: "pointer",
-                        fontSize: 10.5, fontFamily: "'Syne',sans-serif", fontWeight: 700, boxShadow: RELIEF } }, b.t)))),
+                        fontSize: 10.5, fontFamily: "'Syne',sans-serif", fontWeight: 700, boxShadow: RELIEF }, "data-tuto": b.h === 168 ? "temps" : undefined }, b.t)))),
                 react_1.default.createElement("div", null,
                     react_1.default.createElement("div", { className: "filet-titre", style: { marginBottom: 8 } },
                         react_1.default.createElement("span", { style: { fontFamily: "'Space Mono',monospace", fontSize: 8.5, letterSpacing: 1.5,
@@ -34754,8 +35093,9 @@ function FiscoGame() {
                                 react_1.default.createElement("div", { style: { height: "100%", width: `${((val + 100) / 200) * 100}%`, borderRadius: 2,
                                         background: teinte, opacity: .85, transition: "width .45s ease" } }))));
                     })),
-                react_1.default.createElement("button", { className: "qa-btn", onClick: () => setSettingsModal(true), title: "Param\u00E8tres", style: { background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)", marginTop: "auto",
-                        color: "rgba(242,234,218,.4)", padding: "7px 6px", borderRadius: 9, cursor: "pointer", fontSize: 11 } }, "\u2699\uFE0F")),
+                react_1.default.createElement("button", { className: "qa-btn", onClick: () => setSettingsModal(true), title: "Param\u00E8tres", style: { background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.07)",
+                        color: "rgba(242,234,218,.45)", padding: "8px 6px", borderRadius: 9, cursor: "pointer",
+                        fontSize: 10.5, fontFamily: "'Syne',sans-serif", fontWeight: 700 } }, "\u2699\uFE0F Param\u00E8tres")),
             react_1.default.createElement("div", { ref: scrollRef, className: "fisco-content", style: { flex: 1, minWidth: 0, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column",
                     background: "linear-gradient(180deg,rgba(4,9,26,.2),rgba(4,9,26,.32))" } },
                 TourCard,
@@ -34767,13 +35107,13 @@ function FiscoGame() {
                         react_1.default.createElement("span", { style: { fontSize: 9, fontWeight: 700, color: "rgba(255,220,150,.85)" } }, a.label),
                         react_1.default.createElement("span", { style: { fontSize: 8, color: "rgba(255,255,255,.25)", fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums" } }, [a.energy > 0 ? `+${a.energy}⚡` : a.energy < 0 ? `${a.energy}⚡` : "", a.money > 0 ? `+${fmtMoney(a.money)}` : a.money < 0 ? `${fmtMoney(a.money)}` : "", a.rep > 0 ? `+${a.rep}⭐` : a.rep < 0 ? `${a.rep}⭐` : ""].filter(Boolean).join(" ")))))),
                     mainTab === "musique" && (react_1.default.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 } },
-                        react_1.default.createElement("button", { onClick: openSingleCreator, className: "qa-btn", style: studioBtnStyle }, "\uD83C\uDFBC SORTIR UN SINGLE"),
+                        react_1.default.createElement("button", { className: "qa-btn", "data-tuto": "single", onClick: openSingleCreator, style: studioBtnStyle }, "\uD83C\uDFBC SORTIR UN SINGLE"),
                         react_1.default.createElement("button", { className: "qa-btn", onClick: () => openAlbumCreator("EP"), style: studioBtnStyle }, "\uD83D\uDCC0 CR\u00C9ER UN EP"),
                         react_1.default.createElement("button", { className: "qa-btn", onClick: () => openAlbumCreator("Album"), style: studioBtnStyle }, "\uD83D\uDCBF CR\u00C9ER UN ALBUM"),
                         react_1.default.createElement("button", { className: "qa-btn", onClick: () => { setFreeTextValue(""); setFreeTextModal("lyrics"); }, style: { ...studioBtnStyle, background: gs.pendingLyricBonus ? "rgba(124,224,164,.15)" : studioBtnStyle.background, color: gs.pendingLyricBonus ? "#7ce0a4" : studioBtnStyle.color } },
                             "\u270D\uFE0F ",
                             gs.pendingLyricBonus ? `COUPLET PRÊT (+${gs.pendingLyricBonus})` : "ÉCRIRE UN COUPLET"),
-                        !gs.detailedTour && ((gs.tourBanUntil && gs.currentDate < gs.tourBanUntil) ? (react_1.default.createElement("button", { disabled: true, className: "qa-btn", style: { ...studioBtnStyle, opacity: .4, cursor: "not-allowed" } },
+                        !gs.detailedTour && ((gs.tourBanUntil && gs.currentDate < gs.tourBanUntil) ? (react_1.default.createElement("button", { className: "qa-btn", disabled: true, style: { ...studioBtnStyle, opacity: .4, cursor: "not-allowed" } },
                             "\u23F3 TOURN\u00C9E INDISPONIBLE \u2014 ",
                             Math.ceil((gs.tourBanUntil - gs.currentDate) / 86400000),
                             " j restants")) : (react_1.default.createElement("button", { className: "qa-btn", onClick: () => setTourBuilder(true), style: studioBtnStyle }, "\uD83C\uDF0D CONSTRUIRE UNE TOURN\u00C9E"))),
@@ -34782,7 +35122,7 @@ function FiscoGame() {
                             gs.studioSetup ? ` (×${gs.studioSetup.factor.toFixed(2)})` : ""),
                         react_1.default.createElement("button", { className: "qa-btn", onClick: () => setClipModal(true), style: studioBtnStyle }, "\uD83C\uDFAC TOURNER UN CLIP"),
                         (gs.discography || []).some(d => d.type === "album" || d.type === "EP") && (react_1.default.createElement("button", { className: "qa-btn", onClick: () => setReissueModal(true), style: studioBtnStyle }, "\uD83D\uDCBF EXPLOITER LE CATALOGUE")),
-                        react_1.default.createElement("button", { className: "qa-btn", onClick: () => setRolloutModal(true), style: { ...studioBtnStyle, background: ((_w = gs.pendingRollout) === null || _w === void 0 ? void 0 : _w.hype) ? "rgba(242,195,121,.18)" : studioBtnStyle.background } },
+                        react_1.default.createElement("button", { className: "qa-btn", "data-tuto": "rollout", onClick: () => setRolloutModal(true), style: { ...studioBtnStyle, background: ((_w = gs.pendingRollout) === null || _w === void 0 ? void 0 : _w.hype) ? "rgba(242,195,121,.18)" : studioBtnStyle.background } },
                             "\uD83D\uDCE2 PR\u00C9PARER UNE SORTIE",
                             ((_x = gs.pendingRollout) === null || _x === void 0 ? void 0 : _x.hype) ? ` (+${gs.pendingRollout.hype}%)` : ""),
                         react_1.default.createElement("button", { className: "qa-btn", onClick: () => setEraModal(true), style: { ...studioBtnStyle, background: gs.industryEra && !(gs.eraAdapted || []).includes(gs.industryEra.id) ? "rgba(127,179,204,.16)" : studioBtnStyle.background } },
@@ -34914,7 +35254,7 @@ function FiscoGame() {
                             "/100 expo",
                             (gs.exposedTargets || []).length ? ` · ${(gs.exposedTargets || []).length} tombé(s)` : ""))),
                     mainTab === "vie" && gs.elite && !enRetrait(gs) && (react_1.default.createElement("div", { style: { marginTop: 8, marginBottom: 4, display: "flex", flexDirection: "column", gap: 5 } },
-                        react_1.default.createElement("div", { style: { background: "linear-gradient(135deg,rgba(217,182,95,.12),rgba(140,105,20,.04))", border: "1px solid rgba(217,182,95,.35)", borderRadius: 9, padding: 10 } },
+                        react_1.default.createElement("div", { "data-tuto": "cercle", style: { background: "linear-gradient(135deg,rgba(217,182,95,.12),rgba(140,105,20,.04))", border: "1px solid rgba(217,182,95,.35)", borderRadius: 9, padding: 10 } },
                             (() => {
                                 const r = eliteRank(gs);
                                 const nx = nextRank(gs);
@@ -35035,11 +35375,11 @@ function FiscoGame() {
                             "\u2764\uFE0F G\u00C9RER MA VIE AMOUREUSE (",
                             gs.romance.status === "fiancee" ? "fiancé" : gs.romance.status === "marie" ? (gs.romance.locked ? `marié à ${(CHARS_BY_ID[gs.romance.partner] || {}).name || "elle"}` : "marié") : gs.romance.status === "couple" ? "en couple" : gs.romance.status === "deuil" ? "en deuil" : "célibataire",
                             ")"),
-                        gs.romance.status === "marie" && react_1.default.createElement("button", { onClick: tryForBaby, className: "qa-btn", style: studioBtnStyle }, "\uD83C\uDF7C ESSAYER D'AVOIR UN ENFANT"))),
+                        gs.romance.status === "marie" && react_1.default.createElement("button", { className: "qa-btn", onClick: tryForBaby, style: studioBtnStyle }, "\uD83C\uDF7C ESSAYER D'AVOIR UN ENFANT"))),
                     mainTab === "business" && (react_1.default.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 } },
                         (() => {
                             const owned = id => !(gs.soldBusinesses || {})[id];
-                            const lockedBtn = (label) => react_1.default.createElement("button", { disabled: true, className: "qa-btn", style: { ...studioBtnStyle, opacity: .35, cursor: "not-allowed" } },
+                            const lockedBtn = (label) => react_1.default.createElement("button", { className: "qa-btn", disabled: true, style: { ...studioBtnStyle, opacity: .35, cursor: "not-allowed" } },
                                 "\uD83D\uDD12 ",
                                 label,
                                 " (vendue)");
@@ -35051,14 +35391,14 @@ function FiscoGame() {
                                     if (gs.inPrison)
                                         return react_1.default.createElement("div", { style: { width: "100%", fontSize: 11, color: "#f0756a", fontFamily: "'Space Mono',monospace", fontVariantNumeric: "tabular-nums", padding: "8px 0" } }, "\uD83D\uDD12 Incarc\u00E9r\u00E9 \u2014 impossible de travailler sur tes soci\u00E9t\u00E9s. Tu per\u00E7ois toujours leurs revenus.");
                                     return (react_1.default.createElement(react_1.default.Fragment, null,
-                                        owned("foh0") ? (fc < 3 ? react_1.default.createElement("button", { onClick: openFoh0Creator, className: "qa-btn", style: studioBtnStyle },
+                                        owned("foh0") ? (fc < 3 ? react_1.default.createElement("button", { className: "qa-btn", onClick: openFoh0Creator, style: studioBtnStyle },
                                             "\uD83D\uDC55 COLLECTION FOH-0 (",
                                             fc,
-                                            "/3)") : react_1.default.createElement("button", { disabled: true, className: "qa-btn", style: { ...studioBtnStyle, opacity: .4, cursor: "not-allowed" } }, "\uD83D\uDC55 FOH-0 \u2014 quota atteint (3/3)")) : lockedBtn("FOH-0"),
-                                        owned("bahasco") ? (dc < 5 ? react_1.default.createElement("button", { onClick: openDrinkCreator, className: "qa-btn", style: studioBtnStyle },
+                                            "/3)") : react_1.default.createElement("button", { className: "qa-btn", disabled: true, style: { ...studioBtnStyle, opacity: .4, cursor: "not-allowed" } }, "\uD83D\uDC55 FOH-0 \u2014 quota atteint (3/3)")) : lockedBtn("FOH-0"),
+                                        owned("bahasco") ? (dc < 5 ? react_1.default.createElement("button", { className: "qa-btn", onClick: openDrinkCreator, style: studioBtnStyle },
                                             "\uD83C\uDF79 BOISSON BAHASCO (",
                                             dc,
-                                            "/5)") : react_1.default.createElement("button", { disabled: true, className: "qa-btn", style: { ...studioBtnStyle, opacity: .4, cursor: "not-allowed" } }, "\uD83C\uDF79 BAHASCO \u2014 quota atteint (5/5)")) : lockedBtn("BAHASCO")));
+                                            "/5)") : react_1.default.createElement("button", { className: "qa-btn", disabled: true, style: { ...studioBtnStyle, opacity: .4, cursor: "not-allowed" } }, "\uD83C\uDF79 BAHASCO \u2014 quota atteint (5/5)")) : lockedBtn("BAHASCO")));
                                 })(),
                                 owned("foh0") ? react_1.default.createElement("button", { className: "qa-btn", onClick: () => setContractsModal("foh0"), style: studioBtnStyle }, "\uD83D\uDCDC CONTRATS FOH-0") : null,
                                 owned("bahasco") ? react_1.default.createElement("button", { className: "qa-btn", onClick: () => setContractsModal("bahasco"), style: studioBtnStyle }, "\uD83D\uDCDC CONTRATS BAHASCO") : null,
@@ -35071,18 +35411,18 @@ function FiscoGame() {
                             const blocked = gs.boycott || gs.festivalBanned;
                             const suspended = festivalSuspended(gs);
                             if ((gs.soldBusinesses || {}).bahasco)
-                                return react_1.default.createElement("button", { disabled: true, className: "qa-btn", style: { ...studioBtnStyle, opacity: .35, cursor: "not-allowed" } }, "\uD83D\uDD12 FESTIVAL (Bahasco vendue)");
+                                return react_1.default.createElement("button", { className: "qa-btn", disabled: true, style: { ...studioBtnStyle, opacity: .35, cursor: "not-allowed" } }, "\uD83D\uDD12 FESTIVAL (Bahasco vendue)");
                             if (blocked)
-                                return react_1.default.createElement("button", { disabled: true, className: "qa-btn", style: { ...studioBtnStyle, opacity: .4, cursor: "not-allowed" } }, "\uD83C\uDFAA FESTIVAL IMPOSSIBLE (boycott)");
+                                return react_1.default.createElement("button", { className: "qa-btn", disabled: true, style: { ...studioBtnStyle, opacity: .4, cursor: "not-allowed" } }, "\uD83C\uDFAA FESTIVAL IMPOSSIBLE (boycott)");
                             if (suspended)
-                                return react_1.default.createElement("button", { disabled: true, className: "qa-btn", style: { ...studioBtnStyle, opacity: .4, cursor: "not-allowed" } },
+                                return react_1.default.createElement("button", { className: "qa-btn", disabled: true, style: { ...studioBtnStyle, opacity: .4, cursor: "not-allowed" } },
                                     "\uD83D\uDD6F\uFE0F FESTIVAL SUSPENDU \u2014 retour dans ",
                                     Math.ceil((gs.festivalDisaster + 365 * 86400000 - gs.currentDate) / 86400000),
                                     " j");
                             if (doneThisYear)
-                                return react_1.default.createElement("button", { disabled: true, className: "qa-btn", style: { ...studioBtnStyle, opacity: .4, cursor: "not-allowed" } }, "\uD83C\uDFAA FESTIVAL D\u00C9J\u00C0 ORGANIS\u00C9 CETTE ANN\u00C9E");
+                                return react_1.default.createElement("button", { className: "qa-btn", disabled: true, style: { ...studioBtnStyle, opacity: .4, cursor: "not-allowed" } }, "\uD83C\uDFAA FESTIVAL D\u00C9J\u00C0 ORGANIS\u00C9 CETTE ANN\u00C9E");
                             if (!inWeek)
-                                return react_1.default.createElement("button", { disabled: true, className: "qa-btn", style: { ...studioBtnStyle, opacity: .4, cursor: "not-allowed" } }, "\uD83C\uDFAA FESTIVAL \u2014 uniquement la semaine du 8 juillet");
+                                return react_1.default.createElement("button", { className: "qa-btn", disabled: true, style: { ...studioBtnStyle, opacity: .4, cursor: "not-allowed" } }, "\uD83C\uDFAA FESTIVAL \u2014 uniquement la semaine du 8 juillet");
                             return react_1.default.createElement("button", { className: "qa-btn", onClick: () => setFestivalModal(true), style: { ...studioBtnStyle, background: "linear-gradient(135deg,rgba(242,195,121,.35),rgba(230,172,86,.3))", color: "#fff" } }, "\uD83C\uDFAA ORGANISER LE FESTIVAL (c'est le moment !)");
                         })(),
                         react_1.default.createElement("button", { className: "qa-btn", onClick: () => { setMoviePick({ title: "", genre: null, budget: null, cast: [] }); setMovieModal(true); }, style: studioBtnStyle }, "\uD83C\uDFAC R\u00C9ALISER UN FILM"),
@@ -35422,6 +35762,82 @@ function FiscoGame() {
         FalltosOv,
         ExitOv,
         PathOv,
+        geste !== null && halo && !bravo && [
+            { left: 0, top: 0, right: 0, height: Math.max(0, halo.y) },
+            { left: 0, top: halo.y + halo.h, right: 0, bottom: 0 },
+            { left: 0, top: halo.y, width: Math.max(0, halo.x), height: halo.h },
+            { left: halo.x + halo.w, top: halo.y, right: 0, height: halo.h },
+        ].map((r, i) => (react_1.default.createElement("div", { key: i, onClick: e => { e.preventDefault(); e.stopPropagation(); setSecousse(Date.now()); }, style: { position: "fixed", zIndex: 183, cursor: "not-allowed", ...r } }))),
+        geste !== null && halo && (react_1.default.createElement("div", { style: { position: "fixed", left: halo.x, top: halo.y, width: halo.w, height: halo.h,
+                borderRadius: 12, border: "2px solid rgba(230,180,99,.9)", zIndex: 184, pointerEvents: "none",
+                boxShadow: "0 0 0 4px rgba(230,180,99,.16), 0 0 34px rgba(230,180,99,.55)",
+                animation: "braise 1.5s ease-in-out infinite", transition: "left .2s, top .2s, width .2s, height .2s" } })),
+        geste !== null && (() => {
+            const g = PREMIERS_GESTES[geste];
+            return (react_1.default.createElement("div", { style: { position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 185, padding: "0 10px 10px",
+                    display: "flex", justifyContent: "center", pointerEvents: "none" } },
+                react_1.default.createElement("div", { style: { width: "min(680px,100%)", display: "flex", alignItems: "flex-start", gap: 11,
+                        padding: "12px 13px", borderRadius: 14, pointerEvents: "auto",
+                        background: "linear-gradient(180deg,rgba(8,16,34,.95),rgba(4,9,26,.93))",
+                        border: "1px solid rgba(230,180,99,.3)",
+                        backdropFilter: "blur(14px) saturate(1.2)", WebkitBackdropFilter: "blur(14px) saturate(1.2)",
+                        boxShadow: "0 1px 0 rgba(255,215,155,.14) inset, 0 28px 60px -30px rgba(0,0,0,1)",
+                        animation: secousse ? "secousse .32s ease" : "pendingPop .3s cubic-bezier(.2,.9,.3,1.05) both" }, key: secousse },
+                    react_1.default.createElement("div", { style: { width: 36, height: 36, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: 11, fontSize: 18,
+                            background: "linear-gradient(145deg,rgba(230,180,99,.26),rgba(230,180,99,.06))",
+                            border: "1px solid rgba(230,180,99,.34)" } }, SOF.emoji),
+                    react_1.default.createElement("div", { style: { flex: 1, minWidth: 0 } },
+                        react_1.default.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: 7, flexWrap: "wrap" } },
+                            react_1.default.createElement("span", { style: { fontFamily: "'Bebas Neue',cursive", fontSize: 14, letterSpacing: 1.2, color: "#ffd79b" } }, SOF.name),
+                            react_1.default.createElement("span", { style: { fontFamily: "'Space Mono',monospace", fontSize: 8.5, letterSpacing: 1.2,
+                                    color: "rgba(230,180,99,.5)", textTransform: "uppercase" } },
+                                "ton manager \u00B7 ",
+                                geste + 1,
+                                " sur ",
+                                PREMIERS_GESTES.length)),
+                        react_1.default.createElement("div", { style: { fontSize: 12.5, lineHeight: 1.55, color: "rgba(242,234,218,.86)", marginTop: 4 } }, bravo ? bravo : g.dit),
+                        !bravo && (react_1.default.createElement("div", { style: { marginTop: 7, display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 10px",
+                                borderRadius: 9, background: "rgba(230,180,99,.1)", border: "1px solid rgba(230,180,99,.26)" } },
+                            react_1.default.createElement("span", { style: { fontSize: 11 } }, "\uD83D\uDC49"),
+                            react_1.default.createElement("span", { style: { fontSize: 11.5, fontWeight: 700, color: "#ffd79b", fontFamily: "'Syne',sans-serif" } }, g.consigne))),
+                        react_1.default.createElement("div", { style: { display: "flex", gap: 8, marginTop: 9, alignItems: "center", flexWrap: "wrap" } },
+                            bravo && (react_1.default.createElement("button", { className: "qa-btn", onClick: gesteSuivant, style: { ...studioBtnStyle, flex: "0 0 auto", padding: "8px 16px", fontSize: 12.5 } }, geste >= PREMIERS_GESTES.length - 1 ? "C'EST BON" : "LA SUITE")),
+                            react_1.default.createElement("button", { onClick: passerLesPas, style: { background: "none", border: "none", cursor: "pointer",
+                                    color: "rgba(242,234,218,.4)", fontSize: 10.5, fontFamily: "'Space Mono',monospace", padding: "6px 2px" } }, "passer les premiers pas"))))));
+        })(),
+        conseil && conseil.cible && halo && (react_1.default.createElement("div", { style: { position: "fixed", left: halo.x, top: halo.y, width: halo.w, height: halo.h,
+                borderRadius: 12, border: "2px solid rgba(230,180,99,.9)", zIndex: 245, pointerEvents: "none",
+                boxShadow: "0 0 0 4px rgba(230,180,99,.16), 0 0 34px rgba(230,180,99,.55)",
+                animation: "braise 1.5s ease-in-out infinite" } })),
+        conseil && (react_1.default.createElement("div", { className: "overlay-anim", onClick: () => { if (!conseil.choix)
+                setConseil(null); }, style: { position: "fixed", inset: 0, zIndex: 240,
+                background: "rgba(4,9,26,.72)", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0 10px 10px" } },
+            react_1.default.createElement("div", { className: "modal-anim", onClick: e => e.stopPropagation(), style: { width: "min(520px,100%)", position: "relative",
+                    background: "linear-gradient(180deg,rgba(10,19,40,.98),rgba(4,9,26,.98))", padding: "15px 16px" } },
+                react_1.default.createElement("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 9 } },
+                    react_1.default.createElement("div", { style: { width: 32, height: 32, flexShrink: 0, display: "grid", placeItems: "center", borderRadius: 10, fontSize: 16,
+                            background: "linear-gradient(145deg,rgba(230,180,99,.24),rgba(230,180,99,.06))",
+                            border: "1px solid rgba(230,180,99,.3)" } }, SOF.emoji),
+                    react_1.default.createElement("div", { style: { minWidth: 0 } },
+                        react_1.default.createElement("div", { style: { fontFamily: "'Bebas Neue',cursive", fontSize: 16, letterSpacing: 1.3, color: "#ffd79b" } }, conseil.titre),
+                        react_1.default.createElement("div", { style: { fontFamily: "'Space Mono',monospace", fontSize: 8.5, letterSpacing: 1.2,
+                                color: "rgba(230,180,99,.5)", textTransform: "uppercase" } },
+                            SOF.name,
+                            conseil.genre ? ` · ${conseil.genre}` : ""))),
+                react_1.default.createElement("div", { style: { fontSize: 12.5, lineHeight: 1.62, color: "rgba(242,234,218,.84)", whiteSpace: "pre-line" } }, conseil.texte),
+                conseil.choix ? (react_1.default.createElement("div", { style: { display: "flex", flexDirection: "column", gap: 7, marginTop: 13 } }, conseil.choix.map((ch, i) => (react_1.default.createElement("button", { key: i, className: "choice-btn", onClick: () => {
+                        const f = ch.fx || {};
+                        if (f.rel)
+                            dispatch({ type: "APPLY", effects: { rel: { [SOF.id]: f.rel } } });
+                        const autres = {};
+                        ["health", "stress", "energy", "money", "rep"].forEach(k => { if (f[k] !== undefined)
+                            autres[k] = f[k]; });
+                        if (Object.keys(autres).length)
+                            dispatch({ type: "APPLY", effects: { ...autres, deliberate: true } });
+                        setConseil(null);
+                    }, style: { textAlign: "left", padding: "10px 12px", borderRadius: 9, cursor: "pointer",
+                        background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)",
+                        color: "rgba(242,234,218,.85)", fontSize: 12, fontFamily: "'Syne',sans-serif", fontWeight: 600 } }, ch.t))))) : (react_1.default.createElement("button", { className: "qa-btn", onClick: () => setConseil(null), style: { ...studioBtnStyle, width: "100%", marginTop: 13 } }, "COMPRIS"))))),
         TutoOv,
         FallOv,
         WarOv,
